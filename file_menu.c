@@ -1538,6 +1538,7 @@ void file_menu_init(
       char		timeBuf[16];
       struct hostent 	*hstnt;
       fprintf(stderr, "MAPaint: logging enabled to %s\n", globals.logfile);
+      MAPaintLogData("Filename", globals.logfile, 0, NULL);
       MAPaintLogData("User", getenv("USER"), 0, NULL);
 #if defined (LINUX2) || defined (__ppc)
       strcpy(timeBuf, "00/00/00");
