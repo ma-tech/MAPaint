@@ -257,6 +257,7 @@ typedef struct _PaintGlobals{
   WlzObject		*obj;
   WlzObject		*orig_obj;
   WlzObject		*fb_obj;
+  WlzObjectType		origObjType;
   int			num_lines, num_cols, num_planes;
   unsigned long		autosave_time;
   String		autosave_file;

@@ -877,6 +877,80 @@ void read_domain_cb(
   }
   (void) fclose( fp );
 
+  /* check for empty - do nothing then check type */
+  switch( obj->type ){
+    WlzDomain	domain;
+    WlzValues	values;
+    WlzObject	*tmpObj;
+
+  case WLZ_2D_DOMAINOBJ:
+    if( obj->type != globals.origObjType ){
+      if(!HGU_XmUserConfirm(globals.topl,
+			    "Read Domain Object:\n"
+			    "    Invalid object type - the domain read\n"
+			    "    in is 2D whereas the reference object\n"
+			    "    is 3D. Please the check or convert\n"
+			    "    the domain file. Do you want MAPaint\n"
+			    "    to try and convert the data?",
+			    "yes", "no", 0)){
+	WlzFreeObj( obj );
+	return;
+      }
+    }
+    if( domain.p = WlzMakePlaneDomain(WLZ_PLANEDOMAIN_DOMAIN,
+				      globals.orig_obj->domain.p->plane1,
+				      globals.orig_obj->domain.p->plane1,
+				      obj->domain.i->line1,
+				      obj->domain.i->lastln,
+				      obj->domain.i->kol1,
+				      obj->domain.i->lastkl,
+				      &errNum) ){
+      domain.p->domains[0] = WlzAssignDomain(obj->domain, NULL);
+      values.core = NULL;
+      tmpObj = WlzMakeMain(WLZ_3D_DOMAINOBJ, domain, values,
+			   NULL, NULL, &errNum);
+      WlzFreeObj(obj);
+      obj = tmpObj;
+    }
+    
+    break;
+
+  case WLZ_3D_DOMAINOBJ:
+    if( obj->type != globals.origObjType ){
+      if( HGU_XmUserConfirm(globals.topl,
+			    "Read Domain Object:\n"
+			    "    Invalid object type - the domain read\n"
+			    "    in is 3D whereas the reference object\n"
+			    "    is 2D. Please the check or convert\n"
+			    "    the domain file. Do you want MAPaint\n"
+			    "    to try and convert the data?",
+			    "yes", "no", 0) ){
+	obj->domain.p->lastpl -= obj->domain.p->plane1;
+	obj->domain.p->plane1 = 0;
+      }
+      else {
+	WlzFreeObj( obj );
+	return;
+      }
+    }
+    break;
+
+  case WLZ_EMPTY_OBJ:
+    break;
+
+  default:
+    HGU_XmUserError(globals.topl,
+		    "Read Domain Object:\n"
+		    "    Invalid object type - please check\n"
+		    "    that the selected file has a woolz\n"
+		    "    domain object of the same dimensions\n"
+		    "    (2D or 3D) as the reference object",
+		    XmDIALOG_FULL_APPLICATION_MODAL);
+    WlzFreeObj( obj );
+    return;
+
+  }
+
   /* check if replace existing required */
   if( widget =
      XtNameToWidget(globals.topl,
@@ -1274,9 +1348,18 @@ void write_domain_cb(
 
   /* write the domain only */
   if( obj != NULL ){
-    WlzValues	objVals = obj->values;
-    obj->values.core = NULL;
-    if( WlzWriteObj(fp, obj) == WLZ_ERR_NONE ){
+    WlzObject	*tmpObj;
+    WlzValues	objVals;
+    objVals.core = NULL;
+    if( globals.origObjType == WLZ_3D_DOMAINOBJ ){
+      tmpObj = WlzMakeMain(WLZ_3D_DOMAINOBJ, obj->domain, objVals,
+			   NULL, NULL, NULL);
+    }
+    else {
+      tmpObj = WlzMakeMain(WLZ_2D_DOMAINOBJ, obj->domain.p->domains[0],
+			   objVals, NULL, NULL, NULL);
+    }
+    if( WlzWriteObj(fp, tmpObj) == WLZ_ERR_NONE ){
       globals.domain_changed_since_saved[globals.current_domain] = 0;
       globals.domain_filename[globals.current_domain] =
 	HGU_XmGetFileStr(w, cbs->value, cbs->dir);
@@ -1291,7 +1374,7 @@ void write_domain_cb(
 		      XmDIALOG_FULL_APPLICATION_MODAL);
       AlcFree( (void *) errstr );
     }
-    obj->values = objVals;
+    WlzFreeObj(tmpObj);
     WlzFreeObj( obj );
   }
   if( fclose( fp ) == EOF ){
@@ -1380,25 +1463,34 @@ XtPointer	call_data)
 	return;
     }
 
-    /* write the domain only */
-    if( obj != NULL ){
-	WlzValues	objVals = obj->values;
-	obj->values.core = NULL;
-	if( WlzWriteObj(fp, obj) == WLZ_ERR_NONE ){
-	    globals.domain_changed_since_saved[globals.current_domain] = 0;
-	} else {
-	    char		*errstr;
-	    errstr = (char *) AlcMalloc(128);
-	    sprintf(errstr, "Save Domain Object:\n"
-		            "    woolz error detected:\n"
-		            "    Check disc space or quotas");
-	    HGU_XmUserError(globals.topl, errstr,
-			    XmDIALOG_FULL_APPLICATION_MODAL);
-	    AlcFree( (void *) errstr );
-	}
-	obj->values = objVals;
-	WlzFreeObj( obj );
+  /* write the domain only */
+  if( obj != NULL ){
+    WlzObject	*tmpObj;
+    WlzValues	objVals;
+    objVals.core = NULL;
+    if( globals.origObjType == WLZ_3D_DOMAINOBJ ){
+      tmpObj = WlzMakeMain(WLZ_3D_DOMAINOBJ, obj->domain, objVals,
+			   NULL, NULL, NULL);
     }
+    else {
+      tmpObj = WlzMakeMain(WLZ_2D_DOMAINOBJ, obj->domain.p->domains[0],
+			   objVals, NULL, NULL, NULL);
+    }
+    if( WlzWriteObj(fp, tmpObj) == WLZ_ERR_NONE ){
+      globals.domain_changed_since_saved[globals.current_domain] = 0;
+    } else {
+      char		*errstr;
+      errstr = (char *) AlcMalloc(128);
+      sprintf(errstr, "Save Domain Object:\n"
+	      "    woolz error detected:\n"
+	      "    Check disc space or quotas");
+      HGU_XmUserError(globals.topl, errstr,
+		      XmDIALOG_FULL_APPLICATION_MODAL);
+      AlcFree( (void *) errstr );
+    }
+    WlzFreeObj(tmpObj);
+    WlzFreeObj( obj );
+  }
     if( fclose( fp ) == EOF ){
       HGU_XmUserError(globals.topl,
 		      "Save Domain:\n"

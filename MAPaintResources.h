@@ -85,6 +85,10 @@ static String  fallback_resources[] = {
     /* dialog defaults */
 
     /* file dialogs */
+    "*read_model_dialog_popup.mappedWhenManaged:	False",
+    "*read_model_dialog.dialogTitle:			Read EMAP Model",
+    "*read_model_dialog.pattern:			*",
+    "*read_model_dialog.directory:	/opt/MouseAtlas/EMAP_models",
     "*read_obj_dialog_popup.mappedWhenManaged:		False",
     "*read_obj_dialog.dialogTitle:			Read 3D Object",
     "*read_obj_dialog.pattern:				*.wlz",
@@ -146,6 +150,8 @@ static String  fallback_resources[] = {
     "*file_menu*new_obj.mnemonic:		N",
     "*file_menu*read_obj.labelString:		Open reference...",
     "*file_menu*read_obj.mnemonic:		O",
+    "*file_menu*read_model.labelString:		Open EMAP Model...",
+    "*file_menu*read_model.mnemonic:		E",
     "*file_menu*write_obj.labelString:		Write reference...",
     "*file_menu*write_obj.mnemonic:		W",
     "*file_menu*obj_props.labelString:		Ref. properties...",

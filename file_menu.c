@@ -33,6 +33,11 @@ static void write_image_type_cb(
   XtPointer	client_data,
   XtPointer	call_data);
 
+void read_model_cb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data);
+
 /* menu item structure */
 static MenuItem file_type_menu_itemsP[] = {   /* file_menu items */
   {"woolz", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
@@ -126,6 +131,10 @@ static MenuItem file_menu_itemsP[] = {		/* file_menu items */
    read_obj_cb, NULL,
    HGU_XmHelpStandardCb, SEC_READ_WRITE_DOMAINS_DIALOGS,
    XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"read_model", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   read_model_cb, NULL,
+   HGU_XmHelpStandardCb, SEC_READ_WRITE_DOMAINS_DIALOGS,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
   {"write_obj", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    write_obj_cb, NULL,
    HGU_XmHelpStandardCb, SEC_READ_WRITE_DOMAINS_DIALOGS,
@@ -214,7 +223,7 @@ static MenuItem HGU_XmMiscMenuItemsP[] = {     /* misc_menu items */
 };
 MenuItem	*HGU_XmMiscMenuItems = &(HGU_XmMiscMenuItemsP[0]);
 
-static Widget	new_obj_dialog, read_obj_dialog;
+static Widget	new_obj_dialog, read_obj_dialog, read_model_dialog;
 static Widget	write_obj_dialog;
 static char 	*refFileList[]={NULL, NULL, NULL, NULL, NULL,
 				NULL, NULL, NULL, NULL, NULL};
@@ -401,6 +410,20 @@ XtPointer	call_data)
     XtPopup( XtParent(read_obj_dialog), XtGrabNone );
     /* kludge to update the file selections */
     XtCallCallbacks(read_obj_dialog, XmNmapCallback, call_data);
+  }
+  return;
+}
+
+void read_model_cb(
+Widget	w,
+XtPointer	client_data,
+XtPointer	call_data)
+{
+  if( read_model_dialog ){
+    XtManageChild( read_model_dialog );
+    XtPopup( XtParent(read_model_dialog), XtGrabNone );
+    /* kludge to update the file selections */
+    XtCallCallbacks(read_model_dialog, XmNmapCallback, call_data);
   }
   return;
 }
@@ -970,9 +993,11 @@ void read_reference_object_cb(
 	obj = newObj;
       }
     }
+    globals.origObjType = WLZ_2D_DOMAINOBJ;
     break;
 
   case WLZ_3D_DOMAINOBJ:
+    globals.origObjType = WLZ_3D_DOMAINOBJ;
     break;
 
   default:
@@ -1056,7 +1081,21 @@ XtPointer	call_data)
     HGU_XmSetHourGlassCursor(globals.topl);
 
     /* write the reference object */
-    WlzEffWriteObj(fp, icsfile, globals.orig_obj, image_type);
+    if( globals.origObjType == WLZ_2D_DOMAINOBJ ){
+      WlzObject *tmpObj;
+
+      tmpObj = WlzMakeMain(WLZ_2D_DOMAINOBJ, 
+			   globals.orig_obj->domain.p->domains[0],
+			   globals.orig_obj->values.vox->values[0],
+			   NULL, NULL, NULL);
+      if( fp ){
+	WlzWriteObj(fp, tmpObj);
+      }
+      WlzFreeObj(tmpObj);
+    }
+    else {
+      WlzEffWriteObj(fp, icsfile, globals.orig_obj, image_type);
+    }
 
     /* close the file pointer if non NULL */
     if( fp )
@@ -1352,6 +1391,18 @@ void file_menu_init(
   visual = HGU_XmWidgetToVisual(topl);
   XtSetArg(arg[0], XmNvisual, visual);
 
+  /* create the read-model file selection dialog */
+  read_model_dialog = XmCreateFileSelectionDialog(topl,
+						  "read_model_dialog", arg, 1);
+  XtAddCallback(read_model_dialog, XmNokCallback,
+		read_reference_object_cb, (XtPointer) WLZEFF_FORMAT_WLZ);
+  XtAddCallback(read_model_dialog, XmNokCallback, PopdownCallback, NULL);
+  XtAddCallback( read_model_dialog, XmNcancelCallback, 
+		PopdownCallback, NULL);
+  XtAddCallback(read_model_dialog, XmNmapCallback,
+		FSBPopupCallback, NULL);
+  XtManageChild( read_model_dialog );
+
   /* create the read-obj file selection dialog */
   read_obj_dialog = XmCreateFileSelectionDialog( topl,
 						"read_obj_dialog", arg, 1);
@@ -1526,9 +1577,11 @@ void file_menu_init(
 			       NULL, NULL, NULL);
 	  WlzFreeObj(obj);
 	  obj = newObj;
+	  globals.origObjType = WLZ_2D_DOMAINOBJ;
 	  break;
 
 	case WLZ_3D_DOMAINOBJ:
+	  globals.origObjType = WLZ_3D_DOMAINOBJ;
 	  break;
 
 	default:

@@ -444,15 +444,17 @@ void canvas_2D_painting_cb(
       installViewDomains(view_struct);
 
       /* check for autoincrement here - reclaim the paint key */
-      if( globals.auto_increment ){
-	paint_key = view_struct;
-	wlzViewStr->dist += 1.0;
-	reset_view_struct( view_struct );
-	display_view_cb(w, (XtPointer) view_struct, call_data);
-	view_feedback_cb(w, (XtPointer) view_struct, NULL);
-	getViewDomains(view_struct);
-	installCurrentPaintTool(w, view_struct);
-	break;
+      if( wlzViewStr->dist <= (wlzViewStr->maxvals.vtZ - 1.0) ){
+	if( globals.auto_increment ){
+	  paint_key = view_struct;
+	  wlzViewStr->dist += 1.0;
+	  reset_view_struct( view_struct );
+	  display_view_cb(w, (XtPointer) view_struct, call_data);
+	  view_feedback_cb(w, (XtPointer) view_struct, NULL);
+	  getViewDomains(view_struct);
+	  installCurrentPaintTool(w, view_struct);
+	  break;
+	}
       }
 
       /* restart the 3D feedback display */
@@ -508,13 +510,15 @@ void canvas_2D_painting_cb(
 	break;
       }
       else {
-	installViewDomains(view_struct);
-	clearUndoDomains();
-	wlzViewStr->dist += 1.0;
-	reset_view_struct( view_struct );
-	display_view_cb(w, (XtPointer) view_struct, call_data);
-	view_feedback_cb(w, (XtPointer) view_struct, NULL);
-	getViewDomains(view_struct);
+	if( wlzViewStr->dist <= (wlzViewStr->maxvals.vtZ - 1.0) ){
+	  installViewDomains(view_struct);
+	  clearUndoDomains();
+	  wlzViewStr->dist += 1.0;
+	  reset_view_struct( view_struct );
+	  display_view_cb(w, (XtPointer) view_struct, call_data);
+	  view_feedback_cb(w, (XtPointer) view_struct, NULL);
+	  getViewDomains(view_struct);
+	}
       }
       break;
 
@@ -538,13 +542,15 @@ void canvas_2D_painting_cb(
 	break;
       }
       else {
-	installViewDomains(view_struct);
-	clearUndoDomains();
-	wlzViewStr->dist -= 1.0;
-	reset_view_struct( view_struct );
-	display_view_cb(w, (XtPointer) view_struct, call_data);
-	view_feedback_cb(w, (XtPointer) view_struct, NULL);
-	getViewDomains(view_struct);
+	if( wlzViewStr->dist >= (wlzViewStr->minvals.vtZ + 1.0) ){
+	  installViewDomains(view_struct);
+	  clearUndoDomains();
+	  wlzViewStr->dist -= 1.0;
+	  reset_view_struct( view_struct );
+	  display_view_cb(w, (XtPointer) view_struct, call_data);
+	  view_feedback_cb(w, (XtPointer) view_struct, NULL);
+	  getViewDomains(view_struct);
+	}
       }
       break;
 

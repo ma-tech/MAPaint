@@ -58,8 +58,16 @@ void distance_cb(
     }
   }
 
-  /* get the new distance and reset the LUT's - check logging */
+  /* get the new distance and reset the LUT's - check logging & bounds*/
   new_dist = HGU_XmGetSliderValue( slider );
+  if( new_dist < wlzViewStr->minvals.vtZ ){
+    new_dist = wlzViewStr->minvals.vtZ;
+    HGU_XmSetSliderValue(view_struct->slider, new_dist);
+  }
+  else if( new_dist > wlzViewStr->maxvals.vtZ ){
+    new_dist = wlzViewStr->maxvals.vtZ;
+    HGU_XmSetSliderValue(view_struct->slider, new_dist);
+  }
   if( wlzViewStr->dist == new_dist ){
     return;
   }

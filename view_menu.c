@@ -518,10 +518,12 @@ void canvas_input_cb(
     case XK_Right:
     case XK_f:
       /* in this mode - next section */
-      wlzViewStr->dist += 1.0;
-      reset_view_struct( view_struct );
-      display_view_cb(w, (XtPointer) view_struct, call_data);
-      view_feedback_cb(w, (XtPointer) view_struct, NULL);
+      if( wlzViewStr->dist <= (wlzViewStr->maxvals.vtZ - 1.0) ){
+	wlzViewStr->dist += 1.0;
+	reset_view_struct( view_struct );
+	display_view_cb(w, (XtPointer) view_struct, call_data);
+	view_feedback_cb(w, (XtPointer) view_struct, NULL);
+      }
       break;
 
     case XK_Up:
@@ -531,10 +533,12 @@ void canvas_input_cb(
     case XK_Left:
     case XK_b:
       /* in this mode - previous section */
-      wlzViewStr->dist -= 1.0;
-      reset_view_struct( view_struct );
-      display_view_cb(w, (XtPointer) view_struct, call_data);
-      view_feedback_cb(w, (XtPointer) view_struct, NULL);
+      if( wlzViewStr->dist >= (wlzViewStr->minvals.vtZ + 1.0) ){
+	wlzViewStr->dist -= 1.0;
+	reset_view_struct( view_struct );
+	display_view_cb(w, (XtPointer) view_struct, call_data);
+	view_feedback_cb(w, (XtPointer) view_struct, NULL);
+      }
       break;
 
     case XK_Down:
@@ -1011,7 +1015,7 @@ Widget create_view_window_dialog(
   XtVaSetValues(dialog, XmNuserData, (XtPointer) view_struct, NULL);
   XtAddCallback(canvas, XmNexposeCallback, redisplay_view_cb, view_struct);
   XtAddCallback(canvas, XmNinputCallback, canvas_input_cb, view_struct);
-  XtAddEventHandler(canvas, ButtonMotionMask,
+  XtAddEventHandler(canvas, ButtonMotionMask|EnterWindowMask|LeaveWindowMask,
 		    False, CanvasMotionEventHandler, view_struct);
   XtAddEventHandler(canvas, ButtonPressMask,
 		    False, CanvasButtonEventHandler, view_struct);

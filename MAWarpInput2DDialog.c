@@ -505,7 +505,9 @@ void warpReadSourceCb(
   XmFileSelectionBoxCallbackStruct *cbs =
     (XmFileSelectionBoxCallbackStruct *) call_data;
   ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
-  WlzObject		*obj;
+  WlzObject		*obj, *obj1;
+  WlzIBox2		cutBox;
+  WlzGreyType		greyType;
   FILE			*fp;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
@@ -534,9 +536,20 @@ void warpReadSourceCb(
 	if( warpGlobals.src.obj ){
 	  WlzFreeObj(warpGlobals.src.obj);
 	}
-	warpGlobals.srcXOffset = -obj->domain.i->kol1;
-	warpGlobals.srcYOffset = -obj->domain.i->line1;
 	obj = WlzAssignObject(obj, &errNum);
+	cutBox.xMin = obj->domain.i->kol1;
+	cutBox.xMax = obj->domain.i->lastkl;
+	cutBox.yMin = obj->domain.i->line1;
+	cutBox.yMax = obj->domain.i->lastln;
+	greyType = WlzGreyTableTypeToGreyType(obj->values.core->type,
+					      &errNum);
+	obj1 = WlzCutObjToBox2D(obj, cutBox, greyType,
+				   0, 0.0, 0.0, &errNum);
+	WlzFreeObj(obj);
+	
+	warpGlobals.srcXOffset = -obj1->domain.i->kol1;
+	warpGlobals.srcYOffset = -obj1->domain.i->line1;
+	obj = WlzAssignObject(obj1, &errNum);
 	warpGlobals.src.obj = 
 	  WlzAssignObject(WlzShiftObject(obj,
 					 warpGlobals.srcXOffset,
@@ -649,7 +662,7 @@ static void warpSetupCb(
   XmToggleButtonCallbackStruct
     *cbs = (XmToggleButtonCallbackStruct *) call_data;
   ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
-  Widget		dialog;
+  Widget		dialog, button;
 
   dialog = view_struct->dialog;
 
@@ -658,6 +671,12 @@ static void warpSetupCb(
       if( !warpGlobals.warp2DInteractDialog ){
 	warpGlobals.warp2DInteractDialog =
 	  create2DWarpDialog(dialog, view_struct);
+	/* add a new dismiss callback to destroy the warp dialog */
+	if( button = XtNameToWidget(dialog, "*.dismiss") ){
+	  XtAddCallback(button, XmNactivateCallback,
+			destroy_cb, XtParent(warpGlobals.warp2DInteractDialog));
+	}
+
       }
       XtManageChild(warpGlobals.warp2DInteractDialog);
     }
@@ -742,6 +761,7 @@ static void warpControlsCb(
   ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
   WlzThreeDViewStruct	*wlzViewStr=view_struct->wlzViewStr;
   Widget		shell, dialog, cntrlFrame, cntrlForm, magFncForm;
+  Widget		warp_sgnl_frame;
   int			wasManaged;
   Dimension		shellHeight, cntrlFormHeight;
   WlzCompoundArray	*cobj;
@@ -751,10 +771,14 @@ static void warpControlsCb(
   shell = XtParent(dialog);
   cntrlFrame = XtNameToWidget(dialog, "*.warp_input_2d_frame");
   cntrlForm = XtNameToWidget(dialog, "*.warp_input_2d_form");
+  warp_sgnl_frame = XtNameToWidget( dialog, "*.warp_sgnl_frame");
   XtVaGetValues(shell, XmNheight, &shellHeight, NULL);
   XtVaGetValues(cntrlForm, XmNheight, &cntrlFormHeight, NULL);
   XtVaSetValues(dialog, XmNdefaultPosition, False, NULL);
   if( XtIsManaged(cntrlForm) ){
+    if( XtIsManaged(warp_sgnl_frame) ){
+      warpImportSignalCb(widget, client_data, call_data);
+    }
     wasManaged = True;
     XtUnmanageChild(cntrlForm);
     XtUnmanageChild(cntrlFrame);
@@ -786,18 +810,25 @@ static void warpControlsCb(
   XtSetSensitive(view_struct->controls, wasManaged);
   XtSetSensitive(view_struct->slider, wasManaged );
   setControlButtonsSensitive(view_struct, wasManaged);
-  if( magFncForm = XtNameToWidget(dialog, "*.paint_function_row_col") ){
+  /*if( magFncForm = XtNameToWidget(dialog, "*.paint_function_row_col") ){
     XtSetSensitive(magFncForm, wasManaged);
-  }
+    }*/
 
   if( wasManaged == False ){
-    /* swap the callbacks to realignment mode */
-    XtRemoveCallback(view_struct->canvas, XmNinputCallback, canvas_input_cb,
-		     client_data);
-
     /* get the paint key */
     paint_key = view_struct;
 
+    /* pause the 3D feedback display */
+    HGUglwCanvasTbPause( globals.canvas );
+    XtSetSensitive( globals.canvas, False );
+
+    /* remove the normal callbacks - why not swap to painting? */
+    XtRemoveCallback(view_struct->canvas, XmNinputCallback, canvas_input_cb,
+		     client_data);
+    XtAddCallback(view_struct->canvas, XmNinputCallback, canvas_warp_painting_cb,
+		  client_data);
+    installCurrentPaintTool(view_struct->canvas, view_struct);
+    
     /* highlight the canvas and get domains */
     view_canvas_highlight( view_struct, True );
     getViewDomains(view_struct);
@@ -849,11 +880,8 @@ static void warpControlsCb(
 	
   }
   else {
-    /* swap the callbacks to normal input mode */
-    XtAddCallback(view_struct->canvas, XmNinputCallback, canvas_input_cb,
-		  client_data);
-
     /* release the paint key */
+    removeCurrentPaintTool(view_struct->canvas, view_struct);
     paint_key = NULL;
 
     /* clear the undo domains */
@@ -865,11 +893,22 @@ static void warpControlsCb(
       view_struct->view_object = NULL;
     }
 
+    /* restart the 3D feedback display */
+    HGUglwCanvasTbAnimate( globals.canvas );
+    XtSetSensitive( globals.canvas, True );
+
     /* install new domains, update all views */
     installViewDomains(view_struct);
     
     /* unhighlight this canvas */
     view_canvas_highlight( view_struct, False );
+
+    /* swap the callbacks to normal input mode */
+    XtRemoveCallback(view_struct->canvas, XmNinputCallback, canvas_warp_painting_cb,
+		     client_data);
+    XtAddCallback(view_struct->canvas, XmNinputCallback, canvas_input_cb,
+		  client_data);
+
   }
 
   return;
@@ -1504,24 +1543,24 @@ static ActionAreaItem   warp_controls_actions[] = {
 };
 
 static MenuItem mesh_menu_itemsP[] = {		/* mesh_menu items */
-  {"block", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   warpMeshMethodCb, (XtPointer) WLZ_MESH_GENMETHOD_BLOCK,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
-   XmTEAR_OFF_DISABLED, False, False, NULL},
   {"gradient", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    warpMeshMethodCb, (XtPointer) WLZ_MESH_GENMETHOD_GRADIENT,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"block", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   warpMeshMethodCb, (XtPointer) WLZ_MESH_GENMETHOD_BLOCK,
    HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   NULL,
 };
 
 static MenuItem interpFunctionItemsP[] = { /* interp_function_menu items */
-  {"thin-plate spline", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   warpMeshFunctionCb, (XtPointer) WLZ_BASISFN_TPS,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
-   XmTEAR_OFF_DISABLED, False, False, NULL},
   {"multiquadric", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    warpMeshFunctionCb, (XtPointer) WLZ_BASISFN_MQ,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"thin-plate spline", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   warpMeshFunctionCb, (XtPointer) WLZ_BASISFN_TPS,
    HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"polynomial", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
@@ -1619,7 +1658,7 @@ Widget createWarpInput2DDialog(
 
   /* defaults for the mesh distances */
   warpGlobals.meshMinDst = 20.0;
-  warpGlobals.meshMaxDst = 100.0;
+  warpGlobals.meshMaxDst = 40.0;
 
   fval = warpGlobals.meshMinDst;
   slider = HGU_XmCreateHorizontalSlider("mesh_min_dist", form,
@@ -1811,6 +1850,7 @@ Widget createWarpInput2DDialog(
 				   XmNleftPosition,	69,
 				   XmNrightAttachment,	XmATTACH_POSITION,
 				   XmNrightPosition,	97,
+				   XmNsensitive,	False,
 				   NULL);
   XtAddCallback(button, XmNactivateCallback,
 		installMappedWarpDataCb, (XtPointer) view_struct);
@@ -1914,10 +1954,10 @@ Widget createWarpInput2DDialog(
 
   warpGlobals.affine = NULL;
   warpGlobals.basisTr = NULL;
-  warpGlobals.basisFnType = WLZ_BASISFN_TPS;
+  warpGlobals.basisFnType = WLZ_BASISFN_MQ;
   warpGlobals.meshTr = NULL;
   warpGlobals.meshErrFlg = 0;
-  warpGlobals.meshMthd = WLZ_MESH_GENMETHOD_BLOCK;
+  warpGlobals.meshMthd = WLZ_MESH_GENMETHOD_GRADIENT;
 
   return( dialog );
 }

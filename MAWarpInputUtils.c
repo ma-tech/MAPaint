@@ -772,18 +772,42 @@ void warpIORead(
 	  int		index;
 	  char		*fileStr;
 	  WlzEffFormat	fileType;
+	  WlzObject	*obj1;
+	  WlzIBox2	cutBox;
+	  WlzGreyType	greyType;
 
 	  parse_File_Record(bibfileRecord, &index,
 			    &fileStr, &fileType);
 
 	  /* read the image and install */
 	  if( obj = WlzEffReadObj(NULL, fileStr, fileType, &errNum) ){
-	    warpGlobals.srcFile = fileStr;
-	    warpGlobals.srcFileType = fileType;
-	    if( warpGlobals.src.obj ){
-	      WlzFreeObj(warpGlobals.src.obj);
+	    if((obj->type == WLZ_2D_DOMAINOBJ) &&
+	       (obj->values.core != NULL)){
+	      warpGlobals.srcFile = fileStr;
+	      warpGlobals.srcFileType = fileType;
+	      if( warpGlobals.src.obj ){
+		WlzFreeObj(warpGlobals.src.obj);
+	      }
+	      obj = WlzAssignObject(obj, &errNum);
+	      cutBox.xMin = obj->domain.i->kol1;
+	      cutBox.xMax = obj->domain.i->lastkl;
+	      cutBox.yMin = obj->domain.i->line1;
+	      cutBox.yMax = obj->domain.i->lastln;
+	      greyType = WlzGreyTableTypeToGreyType(obj->values.core->type,
+						    &errNum);
+	      obj1 = WlzCutObjToBox2D(obj, cutBox, greyType,
+					 0, 0.0, 0.0, &errNum);
+	      WlzFreeObj(obj);
+	      warpGlobals.srcXOffset = -obj1->domain.i->kol1;
+	      warpGlobals.srcYOffset = -obj1->domain.i->line1;
+	      obj = WlzAssignObject(obj1, &errNum);
+	      warpGlobals.src.obj =
+		WlzAssignObject(WlzShiftObject(obj,
+					 warpGlobals.srcXOffset,
+					 warpGlobals.srcYOffset,
+					 0, &errNum), NULL);
+	      WlzFreeObj(obj);
 	    }
-	    warpGlobals.src.obj = WlzAssignObject(obj, &errNum);
 	  }
 	}
 	  

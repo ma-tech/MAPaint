@@ -116,6 +116,7 @@ void set_theiler_stage_cb(
 	    globals.theiler_stage, globals.theiler_stage);
     if( (fp = fopen(file_str, "r")) ){
       if( obj = WlzReadObj( fp, &errNum ) ){
+	globals.origObjType = WLZ_3D_DOMAINOBJ;
 	install_paint_reference_object( obj );
 	set_topl_title(globals.theiler_stage);
       }

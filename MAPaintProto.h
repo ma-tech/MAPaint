@@ -323,6 +323,12 @@ extern void recalcWarpProcObjCb(
   XtPointer	client_data,
   XtPointer	call_data);
 
+/* MAWarpInputPaintingCb.c */
+extern void canvas_warp_painting_cb(
+  Widget          w,
+  XtPointer	client_data,
+  XtPointer	call_data);
+
 /* paint_utils.c, MAColormapUtils.c */
 extern char *HGU_XRequestToString(
   char	request_code);

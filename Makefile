@@ -45,6 +45,7 @@ CSOURCES		= \
 			MAWarpInput2DDialog.c \
 			MAWarpInputUtils.c \
 			MAWarpInputInteractUtils.c \
+			MAWarpInputPaintingCb.c \
 			MAWarpInputXUtils.c \
 			MAPMSnake.c \
 			NalgsDPSearch.c \
@@ -91,6 +92,7 @@ CSOURCES		= \
 			MAWarpInput2DDialog.c \
 			MAWarpInputUtils.c \
 			MAWarpInputInteractUtils.c \
+			MAWarpInputPaintingCb.c \
 			MAWarpInputXUtils.c \
 			MAPMSnake.c \
 			NalgsDPSearch.c \
