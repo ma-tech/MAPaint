@@ -111,7 +111,6 @@ static MAPaintEventMapping	mapaintEventMappingP[]=
    "Set finish value"},
   {MAPAINT_NONE_CONTEXT, MAPAINT_NONE_MODE,
    0x0, 0x0, 0x0, 0x0, 0x0, 0x0, NULL},
-  NULL,
 };
 
 MAPaintEventMapping *mapaintEventMapping=&(mapaintEventMappingP[0]);

@@ -351,7 +351,7 @@ void canvas_2D_painting_cb(
 		     cbs->event->xbutton.x, cbs->event->xbutton.y);
 	break;
 
-/*      case ShiftMask|Mod1Mask: /* reduce */
+/*      case ShiftMask|Mod1Mask:
 	setViewScale(view_struct, wlzViewStr->scale / 2.0,
 		     cbs->event->xbutton.x, cbs->event->xbutton.y);
 	break;
