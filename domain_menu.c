@@ -998,42 +998,61 @@ void read_domain_cb(
 }
 
 void clear_all_domains_cb(
-Widget		w,
-XtPointer	client_data,
-XtPointer	call_data)
+  Widget		w,
+  XtPointer	client_data,
+  XtPointer	call_data)
 {
-  WlzObject	*obj;
+  WlzObject		*obj;
+  DomainSelection	domain;
 
-    /* check the reference object */
-    if( globals.obj == NULL )
-	return;
-
-    /* operation irreversible therefore ask for confirmation */
-    if( !HGU_XmUserConfirm(globals.topl, "Really clear domains?",
-			   "yes", "no", 0) )
-    {
-	return;
-    }
-
-    /* set hour glass cursor */
-    HGU_XmSetHourGlassCursor(globals.topl);
-
-    /* copy in the original object and reset valueline pointers */
-    obj = WlzAssignObject(globals.orig_obj, NULL);
-    WlzFreeObj( globals.orig_obj );
-    WlzFreeObj( globals.obj );
-    globals.orig_obj = NULL;
-    globals.obj = NULL;
-    install_paint_reference_object(obj);
-    WlzFreeObj(obj);
-
-    /* redisplay and return */
-    display_all_views_cb(w, client_data, call_data);
-
-    /* set hour glass cursor */
-    HGU_XmUnsetHourGlassCursor(globals.topl);
-
+  /* check the reference object */
+  if( globals.obj == NULL )
     return;
+
+  /* operation irreversible therefore ask for confirmation */
+  if( !HGU_XmUserConfirm(globals.topl, "Really clear domains?",
+			 "yes", "no", 0) )
+  {
+    return;
+  }
+
+  /* set hour glass cursor */
+  HGU_XmSetHourGlassCursor(globals.topl);
+
+  /* copy in the original object and reset valueline pointers */
+  obj = WlzAssignObject(globals.orig_obj, NULL);
+  WlzFreeObj( globals.orig_obj );
+  WlzFreeObj( globals.obj );
+  globals.orig_obj = NULL;
+  globals.obj = NULL;
+  install_paint_reference_object(obj);
+  WlzFreeObj(obj);
+
+  /* reset the menu and 3D view */
+  for(domain=1; domain < 33; domain++){
+    set_domain_menu_entry(domain, domain_res[domain].default_addr);
+    globals.domain_filename[domain] = domain_res[domain+32].default_addr;
+    /* clear the 3D view */
+    if( globals.domain_display_list[domain] ){
+      Widget toggle;
+
+      glDeleteLists(globals.domain_display_list[domain], 1);
+      globals.domain_display_list[domain] = 0;
+      MAOpenGLDrawScene( globals.canvas );
+      if( toggle = XtNameToWidget(globals.topl,
+				  "*domain_menu*threed_display_domain") ){
+	XtVaSetValues(toggle, XmNset, False, NULL);
+      }
+    }
+  }
+
+  /* redisplay and return */
+  display_all_views_cb(w, client_data, call_data);
+
+  /* set hour glass cursor */
+  HGU_XmUnsetHourGlassCursor(globals.topl);
+
+  return;
 }
 
 int clearDomain(

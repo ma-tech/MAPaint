@@ -222,11 +222,11 @@ static void add_feedback_callbacks(
   Widget                  scale,
   ThreeDViewStruct        *view_struct)
 {
-  XtAddCallback(scale, XmNdragCallback, redisplay_all_views_cb,
-		view_struct);
+  /*XtAddCallback(scale, XmNdragCallback, redisplay_all_views_cb,
+    view_struct);*/
   XtAddCallback(scale, XmNdragCallback, view_feedback_cb, view_struct);
-  XtAddCallback(scale, XmNvalueChangedCallback, redisplay_all_views_cb,
-		view_struct);
+  /*XtAddCallback(scale, XmNvalueChangedCallback, redisplay_all_views_cb,
+    view_struct);*/
   XtAddCallback(scale, XmNvalueChangedCallback, view_feedback_cb,
 		view_struct);
   return;
@@ -807,6 +807,22 @@ Widget create_view_window_dialog(
   view_struct->painted_object = NULL;
   view_struct->noPaintingFlag = 0;
   view_struct->titleStr = "Section view";
+
+  /* check logging */
+  if( globals.logfileFp ){
+    char strBuf[48];
+    sprintf(strBuf, "(%f,%f)", wlzViewStr->dist, wlzViewStr->dist);
+    MAPaintLogData("Distance", strBuf, 0, view_struct->dialog);
+    sprintf(strBuf, "(%f,%f)", wlzViewStr->theta, wlzViewStr->theta);
+    MAPaintLogData("Theta", strBuf, 0, view_struct->dialog);
+    sprintf(strBuf, "(%f,%f)", wlzViewStr->phi, wlzViewStr->phi);
+    MAPaintLogData("Phi", strBuf, 0, view_struct->dialog);
+    sprintf(strBuf, "(%f,%f,%f)", wlzViewStr->fixed.vtX,
+	    wlzViewStr->fixed.vtY, wlzViewStr->fixed.vtZ);
+    MAPaintLogData("FixedPoint", strBuf, 0, view_struct->dialog);
+    sprintf(strBuf, "%f", 1.0);
+    MAPaintLogData("Scale", strBuf, 0, view_struct->dialog);
+  }
 
   /* the section is within a frame with a text feed-back area plus the
      distance slider */

@@ -280,11 +280,13 @@ static XrmOptionDescRec mapaint_options[] = {
   {"-realign",	"*options_menu*realignment.sensitive",
    XrmoptionNoArg, "True"},
   {"-listen",	"*view_dialog*listen.sensitive", XrmoptionNoArg, "True"},
+  {"-8bit",	".8bit", XrmoptionNoArg, "True"},
   {"-24bit",	".24bit", XrmoptionNoArg, "True"},
   {"-cdrom",	".theilerDir", XrmoptionSepArg, NULL},
   {"-theilerStage",	".theilerStage", XrmoptionSepArg, NULL},
   {"-stage",	".theilerStage", XrmoptionSepArg, NULL},
   {"-help",	"*help_menu.sensitive", XrmoptionNoArg, "True"},
+  {"-logfile",	".logfile", XrmoptionSepArg, NULL},
 };
 
 main(
@@ -299,6 +301,7 @@ main(
   Display		*dpy;
   Visual		*visual;
   Arg			arg[3];
+  Boolean		d8Flg=False;
   Boolean		d24Flg=False;
   XrmValue		xrmValue;
   char			*rtnStrType;
@@ -327,7 +330,7 @@ main(
   XtToolkitInitialize();
   app_con = XtCreateApplicationContext();
   XtAppSetFallbackResources(app_con, fallback_resources);
-  dpy = XtOpenDisplay(app_con, NULL, nameStr, "MAPaint", mapaint_options, 8,
+  dpy = XtOpenDisplay(app_con, NULL, nameStr, "MAPaint", mapaint_options, 10,
 		      &argc, argv);
   globals.dpy = dpy;
   
@@ -349,6 +352,31 @@ main(
     else {
       fprintf(stderr,
 	      "%s: can't get requested 24-bit visual.\n"
+	      "MAPaint requires either an 8-bit and/or a 24bit visual\n"
+	      "for operation. Please check if your workstation can be set\n"
+	      "to 8-bit or 24-bit mode (full operation requires 24-bit)\n"
+	      "If only 8-bit is available then warp input will be\n"
+	      "disabled\n",
+	      argv[0]);
+      return 1;
+    }
+  }
+  else if( d8Flg == True ){
+    if( visual = HGU_XGetVisual(dpy, DefaultScreen(dpy),
+				 PseudoColor, 8) ){
+      globals.visualMode = MAPAINT_8BIT_ONLY_MODE;
+      globals.toplDepth = 8;
+      globals.toplVisual = visual;
+      globals.warpVisual = visual;
+      if( visual = HGU_XGetVisual(dpy, DefaultScreen(dpy),
+				  TrueColor, 24) ){
+	globals.visualMode = MAPAINT_8_24BIT_MODE;
+	globals.warpVisual = visual;
+      }
+    }
+    else {
+      fprintf(stderr,
+	      "%s: can't get required 8-bit.\n"
 	      "MAPaint requires either an 8-bit and/or a 24bit visual\n"
 	      "for operation. Please check if your workstation can be set\n"
 	      "to 8-bit or 24-bit mode (full operation requires 24-bit)\n"

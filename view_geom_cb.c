@@ -44,6 +44,7 @@ void distance_cb(
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   Widget		slider = w;
   float			new_dist;
+  XmAnyCallbackStruct	*cbs = (XmAnyCallbackStruct *) call_data;
 
   if( !wlzViewStr->initialised ){
     if( init_view_struct( view_struct ) ){
@@ -57,10 +58,84 @@ void distance_cb(
     }
   }
 
-  /* get the new distance and reset the LUT's */
+  /* get the new distance and reset the LUT's - check logging */
   new_dist = HGU_XmGetSliderValue( slider );
   if( wlzViewStr->dist == new_dist ){
     return;
+  }
+  if( globals.logfileFp ){
+    char strBuf[48];
+    int  code=-1;
+    if( cbs && cbs->event ){
+      switch( cbs->event->type ){
+      case ButtonPress:
+	switch( cbs->event->xbutton.button ){
+	case Button1:
+	  code = 1;
+	  break;
+
+	case Button2:
+	  code = 2;
+	  break;
+
+	case Button3:
+	  code = 3;
+	  break;
+
+	default:
+	  code = 0;
+	  break;
+	}
+	break;
+
+      case ButtonRelease:
+	switch( cbs->event->xbutton.button ){
+	case Button1:
+	  code = 6;
+	  break;
+
+	case Button2:
+	  code = 7;
+	  break;
+
+	case Button3:
+	  code = 8;
+	  break;
+
+	default:
+	  code = 5;
+	  break;
+	}
+	break;
+
+      case MotionNotify:
+	code = 10;
+	break;
+
+      case KeyPress:
+	switch( XLookupKeysym(&(cbs->event->xkey), 0) ){
+	case XK_Right:
+	case XK_Left:
+	  code = 21;
+	  break;
+
+	case XK_Return:
+	  code = 22;
+	  break;
+
+	default:
+	  code = 20;
+	  break;
+	}
+	break;
+
+      default:
+	code = 0;
+	break;
+      }
+    }
+    sprintf(strBuf, "(%f,%f)", wlzViewStr->dist, new_dist);
+    MAPaintLogData("Distance", strBuf, code, view_struct->dialog);
   }
   Wlz3DSectionIncrementDistance(wlzViewStr,
 				(new_dist - wlzViewStr->dist));
@@ -169,6 +244,8 @@ void theta_cb(
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   Widget	slider = w;
+  double	oldTheta;
+  XmAnyCallbackStruct	*cbs = (XmAnyCallbackStruct *) call_data;
 
   if( !wlzViewStr->initialised )
     if( init_view_struct( view_struct ) )
@@ -180,8 +257,83 @@ void theta_cb(
   }
 
   /* get the new theta and reset the LUT's */
+  oldTheta = wlzViewStr->theta;
   wlzViewStr->theta = HGU_XmGetSliderValue( slider );
   wlzViewStr->theta *= WLZ_M_PI / 180.0;
+  if( globals.logfileFp ){
+    char strBuf[48];
+    int  code=-1;
+    if( cbs && cbs->event ){
+      switch( cbs->event->type ){
+      case ButtonPress:
+	switch( cbs->event->xbutton.button ){
+	case Button1:
+	  code = 1;
+	  break;
+
+	case Button2:
+	  code = 2;
+	  break;
+
+	case Button3:
+	  code = 3;
+	  break;
+
+	default:
+	  code = 0;
+	  break;
+	}
+	break;
+
+      case ButtonRelease:
+	switch( cbs->event->xbutton.button ){
+	case Button1:
+	  code = 6;
+	  break;
+
+	case Button2:
+	  code = 7;
+	  break;
+
+	case Button3:
+	  code = 8;
+	  break;
+
+	default:
+	  code = 5;
+	  break;
+	}
+	break;
+
+      case MotionNotify:
+	code = 10;
+	break;
+
+      case KeyPress:
+	switch( XLookupKeysym(&(cbs->event->xkey), 0) ){
+	case XK_Right:
+	case XK_Left:
+	  code = 21;
+	  break;
+
+	case XK_Return:
+	  code = 22;
+	  break;
+
+	default:
+	  code = 20;
+	  break;
+	}
+	break;
+
+      default:
+	code = 0;
+	break;
+      }
+    }
+    sprintf(strBuf, "(%f,%f)", oldTheta, wlzViewStr->theta);
+    MAPaintLogData("Theta", strBuf, code, view_struct->dialog);
+  }
   reset_view_struct( view_struct );
 
   /* set the zeta slider */
@@ -209,6 +361,8 @@ void phi_cb(
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   Widget	slider = w;
+  double	oldPhi;
+  XmAnyCallbackStruct	*cbs = (XmAnyCallbackStruct *) call_data;
 
   if( !wlzViewStr->initialised ){
     if( init_view_struct( view_struct ) ){
@@ -223,8 +377,83 @@ void phi_cb(
   }
 
   /* get the new phi and reset the LUT's */
+  oldPhi = wlzViewStr->phi;
   wlzViewStr->phi = HGU_XmGetSliderValue( slider );
   wlzViewStr->phi *= WLZ_M_PI / 180.0;
+  if( globals.logfileFp ){
+    char strBuf[48];
+    int  code=-1;
+    if( cbs && cbs->event ){
+      switch( cbs->event->type ){
+      case ButtonPress:
+	switch( cbs->event->xbutton.button ){
+	case Button1:
+	  code = 1;
+	  break;
+
+	case Button2:
+	  code = 2;
+	  break;
+
+	case Button3:
+	  code = 3;
+	  break;
+
+	default:
+	  code = 0;
+	  break;
+	}
+	break;
+
+      case ButtonRelease:
+	switch( cbs->event->xbutton.button ){
+	case Button1:
+	  code = 6;
+	  break;
+
+	case Button2:
+	  code = 7;
+	  break;
+
+	case Button3:
+	  code = 8;
+	  break;
+
+	default:
+	  code = 5;
+	  break;
+	}
+	break;
+
+      case MotionNotify:
+	code = 10;
+	break;
+
+      case KeyPress:
+	switch( XLookupKeysym(&(cbs->event->xkey), 0) ){
+	case XK_Right:
+	case XK_Left:
+	  code = 21;
+	  break;
+
+	case XK_Return:
+	  code = 22;
+	  break;
+
+	default:
+	  code = 20;
+	  break;
+	}
+	break;
+
+      default:
+	code = 0;
+	break;
+      }
+    }
+    sprintf(strBuf, "(%f,%f)", oldPhi, wlzViewStr->phi);
+    MAPaintLogData("Phi", strBuf, code, view_struct->dialog);
+  }
   reset_view_struct( view_struct );
 
   /* set the zeta slider */

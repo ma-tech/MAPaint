@@ -120,6 +120,11 @@ extern void setGreyValuesFromObject(WlzObject	*destObj,
 /* file_menu.c */
 extern MenuItem		*file_menu_items;
 
+extern void	MAPaintLogData(String	type,
+			       String	value,
+			       int	code,
+			       Widget	widget);
+
 extern void	file_menu_init(Widget	topl);
 
 extern void ReferenceFileListCb(Widget	w,

@@ -142,7 +142,7 @@ void realignSetOverlay(
       dst_height = view_struct->ximage->height;
       src_height = overlayObj->domain.i->lastln -
 	overlayObj->domain.i->line1 + 1;
-      scale = dst_height / src_height;
+      scale = ((double) dst_height) / src_height;
       spX = (overlayObj->domain.i->lastkl + overlayObj->domain.i->kol1) / 2;
       spY = (overlayObj->domain.i->lastln + overlayObj->domain.i->line1) / 2;
       if( trans = WlzAffineTransformFromSpinSqueeze(spX, spY, 0.0,

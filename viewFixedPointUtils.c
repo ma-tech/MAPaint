@@ -1140,7 +1140,6 @@ int controls_io_quiet_read(
 	oldScale = wlzViewStr->scale;
 	parse_Wlz3DSectionViewParams_Record(bibfileRecord, wlzViewStr);
 	BibFileRecordFree(&bibfileRecord);
-	(void) fclose(fp);
 
 	/* normal viewing sliders active and unset fixed-line mode */
 	setViewSliderSensitivities(view_struct, True);

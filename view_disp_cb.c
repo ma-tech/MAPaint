@@ -272,11 +272,12 @@ void redisplay_view_cb(
   unsigned int	widthp, heightp;
   WlzDVertex3		vtx;
   int			x, y;
-  XExposeEvent	event;
+  XExposeEvent		event;
   XmDrawingAreaCallbackStruct
     *cbs = (XmDrawingAreaCallbackStruct *) call_data;
   Widget		x_bar, y_bar, clip=NULL, scrolled_window;
-  int 		minimum, maximum, value, width, height, size;
+  int 			minimum, maximum, value, width, height, size;
+  int			code;
 
   if( !wlzViewStr->initialised ){
     if( init_view_struct( view_struct ) ){
@@ -296,6 +297,7 @@ void redisplay_view_cb(
   /* check for expose event */
   if( cbs && (cbs->event) && (cbs->event->type == Expose) ){
     event = cbs->event->xexpose;
+    code = 1;
   }
   else {
     event.type = Expose;
@@ -303,6 +305,7 @@ void redisplay_view_cb(
     event.y = 0;
     event.width = widthp;
     event.height = heightp;
+    code = 2;
   }
 
   /* check if exposed region can be reduced */
@@ -370,6 +373,14 @@ void redisplay_view_cb(
 			 event.width, event.height,
 			 globals.colormap);
     }
+  }
+
+  /* check logging */
+  if( globals.logfileFp ){
+    char strBuf[128];
+    sprintf(strBuf, "(%d,%d,%d,%d)", event.x, event.y,
+	    event.width, event.height);
+    MAPaintLogData("Displayed", strBuf, code, view_struct->dialog);
   }
 
   /* if dist is zero check for display fixed point or fixed line */
@@ -508,6 +519,7 @@ void view_feedback_cb(
       vl = vl->next;
       continue;
     }
+    redisplay_view_cb( w, (XtPointer) vl->view_struct, call_data );
 
     /* check initialisation */
     if( !vl->view_struct->wlzViewStr->initialised ){

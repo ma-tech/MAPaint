@@ -16,7 +16,12 @@ include			../../Makefile.conf
 # local mods to Makefile.conf defaults
 
 # Names of executables to be built (modify as required).
-EXECUTABLES		= MAPaint
+EXECUTABLES		= \
+			MAPaint \
+			MAPaint.mesa
+
+SCRIPTS			= \
+			MAPaint.log
 
 # A version number for a versioned release
 RELEASE			= 1.0
@@ -250,7 +255,7 @@ EXTRA_LIBS		= m gen socket nsl
 X11LIBS         	= Xt Xmu X11  Xi Xext
 endif
 ifeq	 	($(UNIXTYPE), LINUX2)
-EXTRA_LIBS		= m
+EXTRA_LIBS		= m Xp SM ICE
 X11LIBS         	= Xt Xmu X11 Xext
 endif
 
@@ -272,13 +277,30 @@ ifeq 		($(UNIXTYPE), SUNOS5)
 #CDEBUG			= -g
 #COPTIMISE		= -xcg92
 endif
+
 LDFLAGS			= $(LIBDIRS:%=-L%)
+
 ifeq 		($(UNIXTYPE), SUNOS5)
 LDFLAGS			= $(LIBDIRS:%=-L%) -R$(SYSLIB):$(HGU_LIB_DIR):$(OPENGL_LIB_DIR):$(X11_LIB_DIR):$(MOTIF_LIB_DIR)
 endif
+
+ifeq	 	($(UNIXTYPE), LINUX2)
+LDFLAGS			= $(LIBDIRS:%=-L%) -static
+endif
+
 LDLIBS			= $(LOCALLIBS:%=-l%) $(OPENGLLIBS:%=-l%) \
 			$(MOTIFLIBS:%=-l%) \
 			$(X11LIBS:%=-l%) $(EXTRA_LIBS:%=-l%)
+LDLIBS_PRE		= $(LOCALLIBS:%=-l%)
+LDLIBS_MESA		= $(OPENGLLIBS:%=-l%)
+LDLIBS_POST		= $(MOTIFLIBS:%=-l%) $(X11LIBS:%=-l%) $(EXTRA_LIBS:%=-l%)
+
+ifeq 		($(UNIXTYPE), SUNOS5)
+LDLIBS_MESA		= -Bstatic $(OPENGLLIBS:%=-l%) -Bdynamic
+endif
+ifeq 		($(UNIXTYPE), IRIX5)
+LDLIBS_MESA		= /opt/Mesa/lib/libGLU.a /opt/Mesa/lib/libGL.a
+endif
 
 # Default traget which builds everything (should not need modifying).
 all:			archive executables includes manpages 
@@ -312,7 +334,7 @@ endif
 			$(install_archive)
 
 # Target which installs executables (should not need modifying).
-install_executables:	$(EXECUTABLES)
+install_executables:	$(EXECUTABLES) $(SCRIPTS)
 ifneq ($(strip $(SUBSYSTEMS)),)
 			$(subsystems)
 endif
@@ -439,6 +461,7 @@ $(OBJECTS):		%.o: %.c $(INCLUDES_PRV)
 # Targets to create executables, just a dependencies (modify as required).
 MAPaint.o:		MAPaint.c MAPaintResources.h MAPaintHelpResource.h $(INCLUDES_ALL)
 MAPaint:		$(OBJECTS)
+MAPaint.mesa:		$(OBJECTS)
 
 # Target for Purified executables (modify as required).
 purify:			MAPaint.pure

@@ -13,6 +13,8 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <string.h>
+#include <time.h>
+#include <netdb.h>
 
 #include <MAPaint.h>
 
@@ -222,6 +224,29 @@ static WlzEffFormat refImageTypeList[]=
  WLZEFF_FORMAT_WLZ, WLZEFF_FORMAT_WLZ, WLZEFF_FORMAT_WLZ,
  WLZEFF_FORMAT_WLZ};
 
+/* logging functions */
+void MAPaintLogData(
+  String	type,
+  String	value,
+  int		code,
+  Widget	widget)
+{
+  double clockVal;
+
+  if( globals.logfileFp ){
+    if(type && value ){
+      if(*(value + strlen(value) - 1) == '\n'){
+	*(value + strlen(value) - 1) = '\0';
+      }
+      clockVal = clock()/1000;
+      fprintf(globals.logfileFp, "%-14s : %-12.0f : %s : %d : %x\n", type,
+	      clockVal, value, code, widget);
+    }
+  }
+  return;
+}
+
+
 /* reference file list manipulation procedures */
 void ReferenceFileListPush(
   char 		*fileStr,
@@ -339,6 +364,7 @@ void ReferenceFileListCb(
       if( fileIndex ){
 	ReferenceFileListPush(refFileList[fileIndex], image_type);
       }
+      MAPaintLogData("ReferenceFile", refFileList[0], 0, NULL);
       install_paint_reference_object( obj );
     }
 
@@ -796,8 +822,21 @@ void install_paint_reference_object(
     setup_obj_props_cb(read_obj_dialog, NULL, NULL);
   }
 
+  /* log the object size */
+  if( (errNum == WLZ_ERR_NONE) && globals.logfileFp ){
+    char strBuf[64];
+    sprintf(strBuf, "(%d, %d, %d, %d, %d, %d)",
+	    globals.obj->domain.p->kol1, globals.obj->domain.p->line1,
+	    globals.obj->domain.p->plane1, globals.obj->domain.p->lastkl,
+	    globals.obj->domain.p->lastln, globals.obj->domain.p->lastpl);
+    MAPaintLogData("BoundingBox", strBuf, 0, NULL);
+    sprintf(strBuf, "%d", WlzVolume(globals.obj, NULL));
+    MAPaintLogData("Volume", strBuf, 0, NULL);
+  }
+
   if( errNum != WLZ_ERR_NONE ){
-    MAPaintReportWlzError(globals.topl, "install_paint_reference_object", errNum);
+    MAPaintReportWlzError(globals.topl,
+			  "install_paint_reference_object", errNum);
   }
   return;
 }
@@ -960,6 +999,7 @@ void read_reference_object_cb(
       globals.file = icsfile;
     }
   }
+  MAPaintLogData("ReferenceFile", globals.file, 0, NULL);
 
   /* clear feedback object and install new reference object */
   if( errNum == WLZ_ERR_NONE ){
@@ -1290,9 +1330,11 @@ void fileMenuPopupCb(
 
 static XtResource set_att_res[] = {
 {"theilerDir", "TheilerDir", XtRString, sizeof(String),
-     set_att_offset(base_theiler_dir), XtRString, "./reconstructions"},
+ set_att_offset(base_theiler_dir), XtRString, "./reconstructions"},
 {"theilerStage", "TheilerStage", XtRString, sizeof(String),
-     set_att_offset(theiler_stage), XtRString, NULL},
+ set_att_offset(theiler_stage), XtRString, NULL},
+{"logfile", "Logfile", XtRString, sizeof(String),
+ set_att_offset(logfile), XtRString, NULL},
 };
 
 void file_menu_init(
@@ -1401,6 +1443,35 @@ void file_menu_init(
   /* setup the theiler directory and menu item - check for stage */
   XtGetApplicationResources(topl, &globals, set_att_res,
 			    XtNumber(set_att_res), NULL, 0);
+
+  /* check the logfile */
+  if( globals.logfile ){
+    if( (globals.logfileFp = fopen(globals.logfile, "w")) == NULL ){
+      fprintf(stderr,
+	      "MAPaint: something wrong with the logfile %s\n"
+	      "Please check name and permissions\n"
+	      "Logging not enabled\n\007", globals.logfile);
+    }
+    else {
+      time_t		tmpTime;
+      char		timeBuf[16];
+      struct hostent 	*hstnt;
+      fprintf(stderr, "MAPaint: logging enabled to %s\n", globals.logfile);
+      MAPaintLogData("User", getenv("USER"), 0, NULL);
+      tmpTime = time(NULL);
+      cftime(timeBuf, "%d/%m/%Y", &tmpTime);
+      MAPaintLogData("Date", timeBuf, 0, NULL);
+      cftime(timeBuf, "%H.%M", &tmpTime);
+      MAPaintLogData("Time", timeBuf, 0, NULL);
+      hstnt = gethostbyname(getenv("HOST"));
+      MAPaintLogData("Host", getenv("HOST"), 0, NULL);
+      MAPaintLogData("Hostname", hstnt->h_name, 0, NULL);
+    }
+  }
+  else {
+    globals.logfileFp = NULL;
+  }
+
   /* check base directory - if the string has come from the resources then
      we need to duplicate it to allow it to be freed
      possibly some memory leakage here */
@@ -1466,6 +1537,7 @@ void file_menu_init(
 
 	}
 	ReferenceFileListPush(initial_reference_file, image_type);
+	MAPaintLogData("ReferenceFile", initial_reference_file, 0, NULL);
 	install_paint_reference_object( obj );
 
 	/* set the globals reference file */

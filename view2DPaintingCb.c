@@ -135,6 +135,11 @@ void setViewScale(
   if( fabs(newScale - wlzViewStr->scale) < 0.1 ){
     return;
   }  
+  if( globals.logfileFp ){
+    char strBuf[48];
+    sprintf(strBuf, "%f", newScale);
+    MAPaintLogData("Scale", strBuf, 0, viewStruct->dialog);
+  }
   mag = newScale / wlzViewStr->scale;
 
   /* get old slider and window info */

@@ -266,6 +266,8 @@ typedef struct _PaintGlobals{
   WlzDVertex3		bbox_vtx, bbox_size;
   String		base_theiler_dir;
   String		theiler_stage;
+  String		logfile;
+  FILE			*logfileFp;
 
   /* main_work_area globals */
   Widget		canvas;
