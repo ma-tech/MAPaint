@@ -213,6 +213,13 @@ static XtActionsRec actions[] = {
 {NULL,			NULL},
 };
 
+static XrmOptionDescRec mapaint_options[] = {
+  {"-warpInput","*options_menu*warp_input_2d.sensitive",
+   XrmoptionNoArg, "True"},
+  {"-realign",	"*options_menu*realignment.sensitive",
+   XrmoptionNoArg, "True"},
+};
+
 main(
 int	argc,
 char	**argv)
@@ -224,9 +231,10 @@ char	**argv)
     Atom		WM_DELETE_WINDOW;
 
     /* create the top level shell */
-    topl = XtAppInitialize(&app_con, "MAPaint", NULL, 0,
-			    &argc, argv, fallback_resources,
-			    NULL, 0);
+    topl = XtAppInitialize(&app_con, "MAPaint",
+			   mapaint_options, XtNumber(mapaint_options),
+			   &argc, argv, fallback_resources,
+			   NULL, 0);
 
     /* check for command line reference image */
     if( argc > 1 ){
