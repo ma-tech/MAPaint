@@ -269,7 +269,7 @@ void setGreysIncrement(
     if( view_struct->view_object == NULL ){
       if( obj1 = WlzGetSectionFromObject(globals.orig_obj,
 					 view_struct->wlzViewStr,
-					 &errNum) ){
+					 WLZ_INTERPOLATION_LINEAR, &errNum) ){
 	view_struct->view_object = WlzAssignObject(obj1, NULL);
       }
     }
@@ -327,7 +327,7 @@ void setDomainIncrement(
   if( view_struct->view_object == NULL ){
     if( obj1 = WlzGetSectionFromObject(globals.orig_obj,
 				       view_struct->wlzViewStr,
-				       &errNum) ){
+				       WLZ_INTERPOLATION_LINEAR, &errNum) ){
       view_struct->view_object = WlzAssignObject(obj1, NULL);
     }
   }

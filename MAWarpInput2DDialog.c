@@ -943,7 +943,9 @@ static void warpControlsCb(
     }
     warpGlobals.dst.obj =
       WlzAssignObject(WlzGetSectionFromObject(globals.orig_obj,
-					      view_struct->wlzViewStr, NULL),
+					      view_struct->wlzViewStr,
+					      WLZ_INTERPOLATION_LINEAR,
+					      NULL),
 		      NULL);
 
     if( warpGlobals.dst.ximage ){

@@ -381,7 +381,8 @@ static void redisplayDomains(
   /* check the view object */
   if( view_struct->view_object == NULL ){
     if( obj = WlzGetSectionFromObject(globals.orig_obj,
-				      view_struct->wlzViewStr, &errNum) ){
+				      view_struct->wlzViewStr,
+				      WLZ_INTERPOLATION_LINEAR, &errNum) ){
       view_struct->view_object = WlzAssignObject(obj, NULL);
     }
     else {

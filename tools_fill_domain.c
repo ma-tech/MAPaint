@@ -70,7 +70,9 @@ WlzObject *getSelectedRegion(
   if( view_struct->painted_object == NULL ){
     WlzObject	*sectObj, *rectObj;
     WlzDomain	domain;
-    sectObj = WlzGetMaskedSectionFromObject(globals.obj, wlzViewStr, &errNum);
+    sectObj = WlzGetMaskedSectionFromObject(globals.obj, wlzViewStr,
+					    WLZ_INTERPOLATION_NEAREST,
+					    &errNum);
     if( sectObj ){
       domain.i = WlzMakeIntervalDomain(WLZ_INTERVALDOMAIN_RECT,
 				       WLZ_NINT(wlzViewStr->minvals.vtY),

@@ -74,7 +74,7 @@ void imageTrackCurrentDomain(
       Wlz3DSectionIncrementDistance(view_struct->wlzViewStr,
 				    (tmpDist - curr_dist));
       obj = WlzGetSectionFromObject(globals.orig_obj, view_struct->wlzViewStr,
-				    &errNum);
+				    WLZ_INTERPOLATION_LINEAR, &errNum);
       view_struct->prev_view_obj = WlzAssignObject(obj, NULL);
       Wlz3DSectionIncrementDistance(view_struct->wlzViewStr,
 				    -(tmpDist - curr_dist));
@@ -106,7 +106,7 @@ void imageTrackCurrentDomain(
   if( (errNum == WLZ_ERR_NONE) && (view_struct->view_object == NULL) ){
     if( obj = WlzGetSectionFromObject(globals.orig_obj,
 				      view_struct->wlzViewStr,
-				      &errNum) ){
+				      WLZ_INTERPOLATION_LINEAR, &errNum) ){
       view_struct->view_object = WlzAssignObject(obj, NULL);
     }
     else {

@@ -200,6 +200,7 @@ void canvas_warp_painting_cb(
 	  warpGlobals.dst.obj =
 	    WlzAssignObject(WlzGetSectionFromObject(globals.orig_obj,
 						    view_struct->wlzViewStr,
+						    WLZ_INTERPOLATION_LINEAR,
 						    NULL),
 			    NULL);
 	  warpSetXImage(&(warpGlobals.dst));
@@ -269,6 +270,7 @@ void canvas_warp_painting_cb(
 	  warpGlobals.dst.obj =
 	    WlzAssignObject(WlzGetSectionFromObject(globals.orig_obj,
 						    view_struct->wlzViewStr,
+						    WLZ_INTERPOLATION_LINEAR,
 						    NULL),
 			    NULL);
 	  warpSetXImage(&(warpGlobals.dst));

@@ -640,7 +640,9 @@ XtPointer	call_data)
 	    z += step)
 	{
 	  Wlz3DSectionIncrementDistance(viewStr, (double) step);
-	  if( obj1 = WlzGetSectionFromObject(globals.fb_obj, viewStr, &errNum) ){
+	  if( obj1 = WlzGetSectionFromObject(globals.fb_obj, viewStr,
+					     WLZ_INTERPOLATION_NEAREST,
+					     &errNum) ){
 	    obj1 = WlzAssignObject(obj1, NULL);
 	    boundobj = WlzObjToBoundary(obj1, 1, &errNum);
 	    if( boundobj != NULL )
@@ -670,7 +672,9 @@ XtPointer	call_data)
 	    z += step)
 	{
 	  Wlz3DSectionIncrementDistance(viewStr, (double) step);
-	  if( obj1 = WlzGetSectionFromObject(globals.fb_obj, viewStr, &errNum) ){
+	  if( obj1 = WlzGetSectionFromObject(globals.fb_obj, viewStr,
+					     WLZ_INTERPOLATION_NEAREST,
+					     &errNum) ){
 	    obj1 = WlzAssignObject(obj1, NULL);
 	    boundobj = WlzObjToBoundary(obj1, 1, &errNum);
 	    if( boundobj != NULL )

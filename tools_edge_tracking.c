@@ -71,7 +71,7 @@ void imageEdgeTrackDomain(
     if( view_struct->view_object == NULL ){
       if( obj = WlzGetSectionFromObject(globals.orig_obj,
 					view_struct->wlzViewStr,
-					&errNum) ){
+					WLZ_INTERPOLATION_LINEAR, &errNum) ){
 	view_struct->view_object = WlzAssignObject(obj, NULL);
       }
       else {

@@ -478,6 +478,7 @@ void display_view_cb(
 
   /* get the section and set the painted object pointer */
   if( sectObj = WlzGetMaskedSectionFromObject(globals.obj, wlzViewStr,
+					      WLZ_INTERPOLATION_NEAREST,
 					      &errNum) ){
     WlzObject	*rectObj;
     WlzDomain	domain;

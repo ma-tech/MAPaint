@@ -344,6 +344,7 @@ void MAPaintAffine2DCb(
 	  if( view_struct->view_object == NULL ){
 	    if( tmpObj = WlzGetSectionFromObject(globals.orig_obj,
 						 view_struct->wlzViewStr,
+						 WLZ_INTERPOLATION_LINEAR,
 						 &errNum) ){
 	      view_struct->view_object = WlzAssignObject(tmpObj, NULL);
 	    }

@@ -588,7 +588,9 @@ void fixed_2_cb(
     if( view_struct->view_object == NULL ){
       WlzObject	*tmpObj;
       if( tmpObj = WlzGetSectionFromObject(globals.orig_obj,
-					   wlzViewStr, &errNum) ){
+					   wlzViewStr,
+					   WLZ_INTERPOLATION_LINEAR,
+					   &errNum) ){
 	view_struct->view_object = WlzAssignObject(tmpObj, NULL);
       }
       else {

@@ -336,6 +336,7 @@ void display_pointer_feedback_informationV(
   int			widthp, heightp;
   WlzGreyValueWSpace	*gVWSp = NULL;
   int			kol, line, plane;
+  double		dk, dl, dp;
   char			str_buf[512];
   String		domainName;
   short			i, numCols, numSpaces;
@@ -348,9 +349,12 @@ void display_pointer_feedback_informationV(
     return;
   }
 
-  kol = (int) (wlzViewStr->xp_to_x[x] + wlzViewStr->yp_to_x[y]);
-  line = (int) (wlzViewStr->xp_to_y[x] + wlzViewStr->yp_to_y[y]);
-  plane = (int) (wlzViewStr->xp_to_z[x] + wlzViewStr->yp_to_z[y]);
+  dk = wlzViewStr->xp_to_x[x] + wlzViewStr->yp_to_x[y];
+  dl = wlzViewStr->xp_to_y[x] + wlzViewStr->yp_to_y[y];
+  dp = wlzViewStr->xp_to_z[x] + wlzViewStr->yp_to_z[y];
+  kol = WLZ_NINT(dk);
+  line = WLZ_NINT(dl);
+  plane = WLZ_NINT(dp);
 
   /* get the selected domain */
   domainName = getAnatFullNameFromCoord(kol, line, plane);
@@ -709,7 +713,8 @@ static void saveSectionCb(
   if( view_struct->view_object == NULL ){
     WlzObject	*tmpObj;
     if( tmpObj = WlzGetSectionFromObject(globals.orig_obj,
-					 wlzViewStr, &errNum) ){
+					 wlzViewStr,
+					 WLZ_INTERPOLATION_LINEAR, &errNum) ){
       view_struct->view_object = WlzAssignObject(tmpObj, NULL);
     }
     else {
