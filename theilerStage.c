@@ -198,16 +198,18 @@ void theiler_menu_init(
   /* create a menu items list and new menu */
   menu_items = (MenuItem *) AlcMalloc(sizeof(MenuItem) * (num_stages+1));
   stage = 0;
-  file_str = (String)
-    AlcMalloc(strlen(globals.base_theiler_dir) +
-	      5*2 + 10);
   while( (dp = readdir(dfd)) != NULL ){
     if( strncmp(dp->d_name, "ts", 2) == 0 ){
+
+      file_str = (String)
+	AlcMalloc(strlen(globals.base_theiler_dir) +
+		  strlen(dp->d_name)*2 + 10);
 
       /* check for reference image else ignore */
       sprintf(file_str, "%s/%s/%s.wlz", globals.base_theiler_dir,
 	      dp->d_name, dp->d_name);
       if( (fp = fopen(file_str, "r")) == NULL ){
+	AlcFree(file_str);
 	continue;
       }
       fclose(fp);
@@ -227,9 +229,9 @@ void theiler_menu_init(
       menu_items[stage].always_one = False;
       menu_items[stage].subitems = NULL;
       stage++;
+      AlcFree(file_str);
     }
   }
-  AlcFree(file_str);
   closedir(dfd);
   menu_items[stage].name = NULL;
 
