@@ -1458,10 +1458,18 @@ void file_menu_init(
       struct hostent 	*hstnt;
       fprintf(stderr, "MAPaint: logging enabled to %s\n", globals.logfile);
       MAPaintLogData("User", getenv("USER"), 0, NULL);
+#ifdef LINUX2
+      strcpy(timeBuf, "00/00/00");
+#else
       tmpTime = time(NULL);
       cftime(timeBuf, "%d/%m/%Y", &tmpTime);
+#endif /* LINUX2 */
       MAPaintLogData("Date", timeBuf, 0, NULL);
+#ifdef LINUX2
+      strcpy(timeBuf, "00.00");
+#else
       cftime(timeBuf, "%H.%M", &tmpTime);
+#endif /* LINUX2 */
       MAPaintLogData("Time", timeBuf, 0, NULL);
       hstnt = gethostbyname(getenv("HOST"));
       MAPaintLogData("Host", getenv("HOST"), 0, NULL);

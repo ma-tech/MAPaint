@@ -160,6 +160,7 @@ INCDIRS			= .  \
 			../../HGUX/libHguX \
 			../../HGUX/libHguXm \
 			../../HGUX/libhguGL \
+			../../External/Tiff/libtiff \
 			  $(HGU_INC_DIR) \
 			  $(OPENGL_INC_DIR) \
 			  $(X11_INC_DIR) \
@@ -194,6 +195,7 @@ LIBDIRS			= . \
 			../../HGUX/libHguX \
 			../../HGUX/libHguXm \
 			../../HGUX/libhguGL \
+			../../External/Tiff/libtiff \
 			  $(HGU_LIB_DIR) \
 			  $(OPENGL_LIB_DIR) \
 			  $(X11_LIB_DIR) \
