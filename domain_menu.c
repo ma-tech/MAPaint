@@ -399,6 +399,26 @@ static XtResource domain_res[] = {
      res_offset(OpenGLDisplayDomainStep), XtRImmediate, (caddr_t) 2},
 {"currentDomain", "Domain", XtRInt, sizeof(int),
      res_offset(current_domain), XtRImmediate, (caddr_t) 1},
+{"domain_priority_1", "DomainPriority", XtRInt, sizeof(int),
+     res_offset(priority_to_domain_lut[1]), XtRImmediate, (caddr_t) 1},
+{"domain_priority_2", "DomainPriority", XtRInt, sizeof(int),
+     res_offset(priority_to_domain_lut[2]), XtRImmediate, (caddr_t) 2},
+{"domain_priority_3", "DomainPriority", XtRInt, sizeof(int),
+     res_offset(priority_to_domain_lut[3]), XtRImmediate, (caddr_t) 3},
+{"domain_priority_4", "DomainPriority", XtRInt, sizeof(int),
+     res_offset(priority_to_domain_lut[4]), XtRImmediate, (caddr_t) 4},
+{"domain_priority_5", "DomainPriority", XtRInt, sizeof(int),
+     res_offset(priority_to_domain_lut[5]), XtRImmediate, (caddr_t) 5},
+{"domain_priority_6", "DomainPriority", XtRInt, sizeof(int),
+     res_offset(priority_to_domain_lut[6]), XtRImmediate, (caddr_t) 6},
+{"domain_priority_7", "DomainPriority", XtRInt, sizeof(int),
+     res_offset(priority_to_domain_lut[7]), XtRImmediate, (caddr_t) 7},
+{"domain_priority_8", "DomainPriority", XtRInt, sizeof(int),
+     res_offset(priority_to_domain_lut[8]), XtRImmediate, (caddr_t) 8},
+{"domain_priority_9", "DomainPriority", XtRInt, sizeof(int),
+     res_offset(priority_to_domain_lut[9]), XtRImmediate, (caddr_t) 9},
+{"domain_priority_10", "DomainPriority", XtRInt, sizeof(int),
+     res_offset(priority_to_domain_lut[10]), XtRImmediate, (caddr_t) 10},
 };
 
 static void setMenuLabelsAndColors(void)
@@ -435,7 +455,8 @@ static void setMenuLabelsAndColors(void)
     XtVaSetValues(widget,
 		  XmNlabelString, xmstr,
 		  XmNbackground, pixel,
-		  XmNset, (i == globals.current_domain)?True:False,
+		  XmNset, (globals.priority_to_domain_lut[i] ==
+			   globals.current_domain)?True:False,
 		  NULL);
 
     sprintf(str_buf, "*domain_controls_dialog*dominance_form*%d", i);
@@ -514,7 +535,8 @@ void selectNextDomain(int downFlag)
   numDomains = 0;
   currIndex = 0;
   while( select_menu_itemsP[numDomains].name ){
-    if( (PaintActionType) select_menu_itemsP[numDomains].callback_data
+    if( globals.priority_to_domain_lut[
+      (int) select_menu_itemsP[numDomains].callback_data]
        == globals.current_domain ){
       currIndex = numDomains;
     }
