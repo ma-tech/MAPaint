@@ -120,10 +120,10 @@ void warpSetOvlyObject(void)
     dstVtxs[i].vtX += warpGlobals.dst.obj->domain.i->kol1;
     dstVtxs[i].vtY += warpGlobals.dst.obj->domain.i->line1;
   }
-  if( (trans = WlzAffineTransformLSq(warpGlobals.num_vtxs, srcVtxs,
-				     warpGlobals.num_vtxs, dstVtxs,
-				     WLZ_TRANSFORM_2D_NOSHEAR,
-				     &errNum)) == NULL ){
+  if( (trans = WlzAffineTransformLSq2D(warpGlobals.num_vtxs, srcVtxs,
+				       warpGlobals.num_vtxs, dstVtxs,
+				       WLZ_TRANSFORM_2D_NOSHEAR,
+				       &errNum)) == NULL ){
     (void) WlzStringFromErrorNum(errNum, &warpErrStr);
     sprintf(warpErrBuf,
 	    "2D Warp Object Input:\n"

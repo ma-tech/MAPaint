@@ -473,8 +473,8 @@ void MAPaintTabletInit(
   {
     wlzVtxs[1].vtY = HGU_XmGetSliderValue(slider);
   }
-  trans = WlzAffineTransformLSq(2, tabVtxs, 2, wlzVtxs,
-				WLZ_TRANSFORM_2D_NOSHEAR, NULL);
+  trans = WlzAffineTransformLSq2D(2, tabVtxs, 2, wlzVtxs,
+				  WLZ_TRANSFORM_2D_NOSHEAR, NULL);
   tablet->xTrans[0] = trans->mat[0][0];
   tablet->xTrans[1] = trans->mat[0][1];
   tablet->xTrans[2] = trans->mat[0][2];
