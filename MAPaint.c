@@ -28,6 +28,46 @@ static int set_MainWindow_XSizeHints	(Widget	main_w);
 static String translations_table =
 	"<Map>: InitialiseTopl()";
 
+void MAPaintKeyTranslator(
+  Display	*dpy,
+  _XtKeyCode	keycode,
+  Modifiers	modifiers,
+  Modifiers	*modifiers_return,
+  KeySym	*keysym_return)
+{
+  XmTranslateKey(dpy, keycode, modifiers, modifiers_return, keysym_return);
+  switch( *keysym_return ){
+  case XK_KP_Up:
+  case XK_Up:
+  case osfXK_Up:
+    *keysym_return = osfXK_Up;
+    break;
+
+  case XK_KP_Down:
+  case XK_Down:
+  case osfXK_Down:
+    *keysym_return = osfXK_Down;
+    break;
+
+  case XK_KP_Left:
+  case XK_Left:
+  case osfXK_Left:
+    *keysym_return = osfXK_Left;
+    break;
+
+  case XK_KP_Right:
+  case XK_Right:
+  case osfXK_Right:
+    *keysym_return = osfXK_Right;
+    break;
+
+  default:
+    break;
+  }
+
+  return;
+}
+
 static void StartDragDrop(
 Widget		w,
 XEvent		*event,
@@ -528,6 +568,9 @@ main(
   globals.app_con = app_con;
   globals.app_name = nameStr;
   globals.sectViewFlg = 0;
+
+  /* add a key translator to catch keypad and arrow keys */
+  XtSetKeyTranslator(dpy, MAPaintKeyTranslator);
 
   /* initialise the colormap */
   init_paint_cmapstruct( topl );

@@ -18,7 +18,7 @@
 *   Author Name :  Richard Baldock					*
 *   Author Login:  richard@hgu.mrc.ac.uk				*
 *   Date        :  Mon Nov 29 13:30:38 1999				*
-*   $Revision$								*
+*   $Revision$						*
 *   $Name$								*
 *   Synopsis    : 							*
 *************************************************************************
@@ -447,12 +447,12 @@ void warpIOWrite(
   static char		unknownS[] = "unknown";
   time_t		tmpTime;
   char			*tmpS,
-                        *idxS = NULL,
-                        *dateS = NULL,
-                        *hostS = NULL,
-                        *userS = NULL,
-                        *refFileS = NULL,
-                        *srcFileS, *sgnlFileS;
+    *idxS = NULL,
+    *dateS = NULL,
+    *hostS = NULL,
+    *userS = NULL,
+    *refFileS = NULL,
+    *srcFileS, *sgnlFileS;
   char			tmpBuf[256];
   Widget		toggle, slider;
   Boolean		normFlg=0, histoFlg=0, shadeFlg=0, gaussFlg=0;
@@ -460,237 +460,233 @@ void warpIOWrite(
   WlzEffBibWarpInputThresholdParamsStruct	threshParamStr;
 
   /* get a filename for the warp parameters */
-  if( fileStr = HGU_XmUserGetFilename(globals.topl,
-				      "Please type in a filename\n"
-				      "for the section, warp and tie-\n"
-				      "point parameters to be saved\n"
-				      "as plain text",
-				      "OK", "cancel",
-				      warpGlobals.warpBibFile? 
-				      warpGlobals.warpBibFile:"MAPaintWarpParams.bib",
-				      NULL, "*.bib") ){
-    if( fp = fopen(fileStr, "w") ){
+  if( fileStr =
+     HGU_XmUserGetFilenameT
+     (globals.topl,
+      "WRITE WARP PARAMETERS:\n\n"
+      "Please type in a filename for the section, warp\n"
+      "and tie-point parameters to be saved (bib format).\n",
+      "OK", "cancel",
+      warpGlobals.warpBibFile? 
+      warpGlobals.warpBibFile:"MAPaintWarpParams.bib",
+      NULL, "*.bib", "Write Warp Parameters") ){
+    XmString	xmstr;
+    if( xmstr = XmStringCreateSimple(fileStr) ){
+      if( fp = HGU_XmGetFilePointer(globals.topl, xmstr, NULL, "w") ){
 
-      if( warpGlobals.warpBibFile ){
-	AlcFree( warpGlobals.warpBibFile );
-      }
-      warpGlobals.warpBibFile = AlcStrDup(fileStr);
+	if( warpGlobals.warpBibFile ){
+	  AlcFree( warpGlobals.warpBibFile );
+	}
+	warpGlobals.warpBibFile = AlcStrDup(fileStr);
 
-      /* write some sort of identifier */
-      bibfileRecord = 
-	BibFileRecordMake("Ident", "0",
-			  BibFileFieldMakeVa("Text",
-					     "MAPaint 2D warp input parameters",
-					     "Version",	"1",
-					     NULL));
-      BibFileRecordWrite(fp, NULL, bibfileRecord);
-      BibFileRecordFree(&bibfileRecord);
+	/* write some sort of identifier */
+	bibfileRecord = 
+	  BibFileRecordMake("Ident", "0",
+			    BibFileFieldMakeVa("Text",
+					       "MAPaint 2D warp input parameters",
+					       "Version",	"1",
+					       NULL));
+	BibFileRecordWrite(fp, NULL, bibfileRecord);
+	BibFileRecordFree(&bibfileRecord);
 
-      /* now a comment with user, machine, date etc. */
-      tmpS = getenv("USER");
-      (void )sprintf(tmpBuf, "User: %s", tmpS?tmpS:unknownS);
-      userS = AlcStrDup(tmpBuf);
+	/* now a comment with user, machine, date etc. */
+	tmpS = getenv("USER");
+	(void )sprintf(tmpBuf, "User: %s", tmpS?tmpS:unknownS);
+	userS = AlcStrDup(tmpBuf);
 
-      tmpTime = time(NULL);
-      tmpS = ctime(&tmpTime);
-      *(tmpS + strlen(tmpS) - 1) = '\0';
-      (void )sprintf(tmpBuf, "Date: %s", tmpS?tmpS:unknownS);
-      dateS = AlcStrDup(tmpBuf);
+	tmpTime = time(NULL);
+	tmpS = ctime(&tmpTime);
+	*(tmpS + strlen(tmpS) - 1) = '\0';
+	(void )sprintf(tmpBuf, "Date: %s", tmpS?tmpS:unknownS);
+	dateS = AlcStrDup(tmpBuf);
 
-      tmpS = getenv("HOST");
-      (void )sprintf(tmpBuf, "Host: %s", tmpS?tmpS:unknownS);
-      hostS = AlcStrDup(tmpBuf);
+	tmpS = getenv("HOST");
+	(void )sprintf(tmpBuf, "Host: %s", tmpS?tmpS:unknownS);
+	hostS = AlcStrDup(tmpBuf);
 
-      (void )sprintf(tmpBuf, "RefFile: %s", globals.file?globals.file:unknownS);
-      refFileS = AlcStrDup(tmpBuf);
+	(void )sprintf(tmpBuf, "RefFile: %s", globals.file?globals.file:unknownS);
+	refFileS = AlcStrDup(tmpBuf);
 
-      (void )sprintf(tmpBuf, "SrcFile: %s",
-		     warpGlobals.srcFile?warpGlobals.srcFile:unknownS);
-      srcFileS = AlcStrDup(tmpBuf);
+	(void )sprintf(tmpBuf, "SrcFile: %s",
+		       warpGlobals.srcFile?warpGlobals.srcFile:unknownS);
+	srcFileS = AlcStrDup(tmpBuf);
 
-      (void )sprintf(tmpBuf, "SignalFile: %s",
-		     warpGlobals.sgnlFile?warpGlobals.sgnlFile:unknownS);
-      sgnlFileS = AlcStrDup(tmpBuf);
+	(void )sprintf(tmpBuf, "SignalFile: %s",
+		       warpGlobals.sgnlFile?warpGlobals.sgnlFile:unknownS);
+	sgnlFileS = AlcStrDup(tmpBuf);
 
-      bibfileRecord = 
-	BibFileRecordMake("Comment", "0",
-			  BibFileFieldMakeVa("Text", userS,
-					     "Text", dateS,
-					     "Text", hostS,
-					     "Text", refFileS,
-					     "Text", srcFileS,
-					     "Text", sgnlFileS,
-					     NULL));
-      BibFileRecordWrite(fp, NULL, bibfileRecord);
-      BibFileRecordFree(&bibfileRecord);
+	bibfileRecord = 
+	  BibFileRecordMake("Comment", "0",
+			    BibFileFieldMakeVa("Text", userS,
+					       "Text", dateS,
+					       "Text", hostS,
+					       "Text", refFileS,
+					       "Text", srcFileS,
+					       "Text", sgnlFileS,
+					       NULL));
+	BibFileRecordWrite(fp, NULL, bibfileRecord);
+	BibFileRecordFree(&bibfileRecord);
 
-      /* if write a file record for the reference file */
-      if( globals.file ){
-	WlzEffBibWriteFileRecord(fp, "MAPaintReferenceFile",
-			  globals.file,
-			  globals.origObjExtType);
-      }
+	/* if write a file record for the reference file */
+	if( globals.file ){
+	  WlzEffBibWriteFileRecord(fp, "MAPaintReferenceFile",
+				   globals.file,
+				   globals.origObjExtType);
+	}
 
-      /* if defined write a file record for the source */
-      if( warpGlobals.srcFile ){
-	WlzEffBibWriteFileRecord(fp, "MAPaintWarpInputSourceFile",
-			  warpGlobals.srcFile,
-			  warpGlobals.srcFileType);
-      }
+	/* if defined write a file record for the source */
+	if( warpGlobals.srcFile ){
+	  WlzEffBibWriteFileRecord(fp, "MAPaintWarpInputSourceFile",
+				   warpGlobals.srcFile,
+				   warpGlobals.srcFileType);
+	}
 
-      /* if defined write a file record for the signal */
-      if( warpGlobals.sgnlFile ){
-	WlzEffBibWriteFileRecord(fp, "MAPaintWarpInputSignalFile",
-			  warpGlobals.sgnlFile,
-			  warpGlobals.sgnlFileType);
-      }
+	/* if defined write a file record for the signal */
+	if( warpGlobals.sgnlFile ){
+	  WlzEffBibWriteFileRecord(fp, "MAPaintWarpInputSignalFile",
+				   warpGlobals.sgnlFile,
+				   warpGlobals.sgnlFileType);
+	}
 
 
-      /* write the section data */
-      if( WlzEffBibWrite3DSectionViewParamsRecord(fp, "Wlz3DSectionViewParams", 
-					      wlzViewStr) != WLZ_ERR_NONE ){
-	HGU_XmUserError(globals.topl,
-			"Save Warp Parameters:\n"
-			"    Error in writing the bibfile\n"
-			"    Please check disk space or quotas\n"
-			"    Section parameters not saved",
-			XmDIALOG_FULL_APPLICATION_MODAL);
-      }
+	/* write the section data */
+	if( WlzEffBibWrite3DSectionViewParamsRecord(fp, "Wlz3DSectionViewParams", 
+						    wlzViewStr) != WLZ_ERR_NONE ){
+	  HGU_XmUserError(globals.topl,
+			  "Save Warp Parameters:\n"
+			  "    Error in writing the bibfile\n"
+			  "    Please check disk space or quotas\n"
+			  "    Section parameters not saved",
+			  XmDIALOG_FULL_APPLICATION_MODAL);
+	}
 
-      /* write the warp transform parameters */
-      if( WlzEffBibWriteWarpTransformParamsRecord(fp, "WlzWarpTransformParams",
-						  warpGlobals.wlzFnType,
-						  warpGlobals.affineType,
-						  warpGlobals.meshMthd,
-						  warpGlobals.meshMinDst,
-						  warpGlobals.meshMaxDst)
-	 != WLZ_ERR_NONE ){
-	HGU_XmUserError(globals.topl,
-			"Save Warp Parameters:\n"
-			"    Error in writing the bibfile\n"
-			"    Please check disk space or quotas\n"
-			"    Section parameters not saved",
-			XmDIALOG_FULL_APPLICATION_MODAL);
-      }
+	/* write the warp transform parameters */
+	if( WlzEffBibWriteWarpTransformParamsRecord(fp, "WlzWarpTransformParams",
+						    warpGlobals.wlzFnType,
+						    warpGlobals.affineType,
+						    warpGlobals.meshMthd,
+						    warpGlobals.meshMinDst,
+						    warpGlobals.meshMaxDst)
+	   != WLZ_ERR_NONE ){
+	  HGU_XmUserError(globals.topl,
+			  "Save Warp Parameters:\n"
+			  "    Error in writing the bibfile\n"
+			  "    Please check disk space or quotas\n"
+			  "    Section parameters not saved",
+			  XmDIALOG_FULL_APPLICATION_MODAL);
+	}
 
-      /* write the signal pre-processing and filter transform parameters */
-      if( toggle = XtNameToWidget(globals.topl,
-				  "*warp_sgnl_controls_form*normalise") ){
-	XtVaGetValues(toggle, XmNset, &normFlg, NULL);
-      }
-      if( toggle = XtNameToWidget(globals.topl,
-				  "*warp_sgnl_controls_form*histo_equalise") ){
-	XtVaGetValues(toggle, XmNset, &histoFlg, NULL);
-      }
-      if( toggle = XtNameToWidget(globals.topl,
-				  "*warp_sgnl_controls_form*shade_correction") ){
-	XtVaGetValues(toggle, XmNset, &shadeFlg, NULL);
-      }
-      if( toggle = XtNameToWidget(globals.topl,
-				  "*warp_sgnl_controls_form*gauss_smooth") ){
-	XtVaGetValues(toggle, XmNset, &gaussFlg, NULL);
-      }
-      if( slider = XtNameToWidget(globals.topl,
-				  "*warp_sgnl_controls_form*gauss_width") ){
-	width = HGU_XmGetSliderValue(slider);
-      }
-      if( WlzEffBibWriteWarpInputSegmentationParamsRecord
-	 (fp, "MAPaintWarpInputSegmentationParams",
-	  normFlg==True?1:0,
-	  histoFlg==True?1:0,
-	  shadeFlg==True?1:0,
-	  gaussFlg==True?1:0,
-	  width) != WLZ_ERR_NONE ){
-	HGU_XmUserError(globals.topl,
-	 		"Save Pre-Processing Parameters:\n"
-		 	"    Error in writing the bibfile\n"
-		 	"    Please check disk space or quotas\n"
-		 	"    Section parameters not saved",
-		 	XmDIALOG_FULL_APPLICATION_MODAL);
-      }
+	/* write the signal pre-processing and filter transform parameters */
+	if( toggle = XtNameToWidget(globals.topl,
+				    "*warp_sgnl_controls_form*normalise") ){
+	  XtVaGetValues(toggle, XmNset, &normFlg, NULL);
+	}
+	if( toggle = XtNameToWidget(globals.topl,
+				    "*warp_sgnl_controls_form*histo_equalise") ){
+	  XtVaGetValues(toggle, XmNset, &histoFlg, NULL);
+	}
+	if( toggle = XtNameToWidget(globals.topl,
+				    "*warp_sgnl_controls_form*shade_correction") ){
+	  XtVaGetValues(toggle, XmNset, &shadeFlg, NULL);
+	}
+	if( toggle = XtNameToWidget(globals.topl,
+				    "*warp_sgnl_controls_form*gauss_smooth") ){
+	  XtVaGetValues(toggle, XmNset, &gaussFlg, NULL);
+	}
+	if( slider = XtNameToWidget(globals.topl,
+				    "*warp_sgnl_controls_form*gauss_width") ){
+	  width = HGU_XmGetSliderValue(slider);
+	}
+	if( WlzEffBibWriteWarpInputSegmentationParamsRecord
+	   (fp, "MAPaintWarpInputSegmentationParams",
+	    normFlg==True?1:0,
+	    histoFlg==True?1:0,
+	    shadeFlg==True?1:0,
+	    gaussFlg==True?1:0,
+	    width) != WLZ_ERR_NONE ){
+	  HGU_XmUserError(globals.topl,
+			  "Save Pre-Processing Parameters:\n"
+			  "    Error in writing the bibfile\n"
+			  "    Please check disk space or quotas\n"
+			  "    Section parameters not saved",
+			  XmDIALOG_FULL_APPLICATION_MODAL);
+	}
 
-      /* write the signal thresholding parameters */
-      threshParamStr.thresholdType = warpGlobals.thresholdType;
-      threshParamStr.threshRGBSpace = warpGlobals.threshRGBSpace;
-      threshParamStr.threshColorChannel = warpGlobals.threshColorChannel;
-      threshParamStr.threshRangeLow = warpGlobals.threshRangeLow;
-      threshParamStr.threshRangeHigh = warpGlobals.threshRangeHigh;
-      for(i=0; i < 3; i++){
-	threshParamStr.threshRangeRGBLow[i] = warpGlobals.threshRangeRGBLow[i];
-	threshParamStr.threshRangeRGBHigh[i] = warpGlobals.threshRangeRGBHigh[i];
-      }
-      threshParamStr.threshRGBCombination = warpGlobals.threshRGBCombination;
-      threshParamStr.lowRGBPoint = warpGlobals.lowRGBPoint;
-      threshParamStr.highRGBPoint = warpGlobals.highRGBPoint;
-      threshParamStr.colorEllipseEcc = warpGlobals.colorEllipseEcc;
-      threshParamStr.globalThreshFlg = warpGlobals.globalThreshFlg;
-      threshParamStr.globalThreshVtx = warpGlobals.globalThreshVtx;
-      threshParamStr.incrThreshFlg = warpGlobals.incrThreshFlg;
-      threshParamStr.pickThreshFlg = warpGlobals.pickThreshFlg;
-      threshParamStr.distanceThreshFlg = warpGlobals.distanceThreshFlg;
-      if( WlzEffBibWriteWarpInputThresholdParamsRecord
-	 (fp, "MAPaintWarpInputThresholdParams",
-	  &threshParamStr) != WLZ_ERR_NONE ){
-	HGU_XmUserError(globals.topl,
-	 		"Save Threshold Parameters:\n"
-		 	"    Error in writing the bibfile\n"
-		 	"    Please check disk space or quotas\n"
-		 	"    Section parameters not saved",
-		 	XmDIALOG_FULL_APPLICATION_MODAL);
-      }
+	/* write the signal thresholding parameters */
+	threshParamStr.thresholdType = warpGlobals.thresholdType;
+	threshParamStr.threshRGBSpace = warpGlobals.threshRGBSpace;
+	threshParamStr.threshColorChannel = warpGlobals.threshColorChannel;
+	threshParamStr.threshRangeLow = warpGlobals.threshRangeLow;
+	threshParamStr.threshRangeHigh = warpGlobals.threshRangeHigh;
+	for(i=0; i < 3; i++){
+	  threshParamStr.threshRangeRGBLow[i] = warpGlobals.threshRangeRGBLow[i];
+	  threshParamStr.threshRangeRGBHigh[i] = warpGlobals.threshRangeRGBHigh[i];
+	}
+	threshParamStr.threshRGBCombination = warpGlobals.threshRGBCombination;
+	threshParamStr.lowRGBPoint = warpGlobals.lowRGBPoint;
+	threshParamStr.highRGBPoint = warpGlobals.highRGBPoint;
+	threshParamStr.colorEllipseEcc = warpGlobals.colorEllipseEcc;
+	threshParamStr.globalThreshFlg = warpGlobals.globalThreshFlg;
+	threshParamStr.globalThreshVtx = warpGlobals.globalThreshVtx;
+	threshParamStr.incrThreshFlg = warpGlobals.incrThreshFlg;
+	threshParamStr.pickThreshFlg = warpGlobals.pickThreshFlg;
+	threshParamStr.distanceThreshFlg = warpGlobals.distanceThreshFlg;
+	if( WlzEffBibWriteWarpInputThresholdParamsRecord
+	   (fp, "MAPaintWarpInputThresholdParams",
+	    &threshParamStr) != WLZ_ERR_NONE ){
+	  HGU_XmUserError(globals.topl,
+			  "Save Threshold Parameters:\n"
+			  "    Error in writing the bibfile\n"
+			  "    Please check disk space or quotas\n"
+			  "    Section parameters not saved",
+			  XmDIALOG_FULL_APPLICATION_MODAL);
+	}
 
-      /* write the signal post-processing parameters */
+	/* write the signal post-processing parameters */
 
-      /* write the tie points only if there is a src image */
-      if( warpGlobals.src.obj ){
-	for(i=0; i < warpGlobals.num_vtxs; i++){
-	  WlzDVertex3	vtx1, vtx2;
-	  vtx1.vtX = warpGlobals.dst_vtxs[i].vtX;
-	  vtx1.vtY = warpGlobals.dst_vtxs[i].vtY;
-	  vtx1.vtZ = 0.0;
-	  if(warpGlobals.dst.obj != NULL){
-	    vtx1.vtX += warpGlobals.dst.obj->domain.i->kol1;
-	    vtx1.vtY += warpGlobals.dst.obj->domain.i->line1;
-	  }
-	  vtx2.vtX = warpGlobals.src_vtxs[i].vtX;
-	  vtx2.vtY = warpGlobals.src_vtxs[i].vtY;
-	  vtx2.vtZ = 0.0;
-	  if(warpGlobals.src.obj != NULL){
-	    vtx2.vtX -= warpGlobals.srcXOffset;
-	    vtx2.vtY -= warpGlobals.srcYOffset;
-	  }
-	  if( WlzEffBibWriteTiePointVtxsRecord(fp, "WlzTiePointVtxs", i,
-					       vtx1, vtx2, 0)
-	     != WLZ_ERR_NONE ){
-	    HGU_XmUserError(globals.topl,
-			    "Save Warp Parameters:\n"
-			    "    Error in writing the bibfile\n"
-			    "    Please check disk space or quotas\n"
-			    "    Section parameters not saved",
-			    XmDIALOG_FULL_APPLICATION_MODAL);
-	    break;
+	/* write the tie points only if there is a src image */
+	if( warpGlobals.src.obj ){
+	  for(i=0; i < warpGlobals.num_vtxs; i++){
+	    WlzDVertex3	vtx1, vtx2;
+	    vtx1.vtX = warpGlobals.dst_vtxs[i].vtX;
+	    vtx1.vtY = warpGlobals.dst_vtxs[i].vtY;
+	    vtx1.vtZ = 0.0;
+	    if(warpGlobals.dst.obj != NULL){
+	      vtx1.vtX += warpGlobals.dst.obj->domain.i->kol1;
+	      vtx1.vtY += warpGlobals.dst.obj->domain.i->line1;
+	    }
+	    vtx2.vtX = warpGlobals.src_vtxs[i].vtX;
+	    vtx2.vtY = warpGlobals.src_vtxs[i].vtY;
+	    vtx2.vtZ = 0.0;
+	    if(warpGlobals.src.obj != NULL){
+	      vtx2.vtX -= warpGlobals.srcXOffset;
+	      vtx2.vtY -= warpGlobals.srcYOffset;
+	    }
+	    if( WlzEffBibWriteTiePointVtxsRecord(fp, "WlzTiePointVtxs", i,
+						 vtx1, vtx2, 0)
+	       != WLZ_ERR_NONE ){
+	      HGU_XmUserError(globals.topl,
+			      "Save Warp Parameters:\n"
+			      "    Error in writing the bibfile\n"
+			      "    Please check disk space or quotas\n"
+			      "    Section parameters not saved",
+			      XmDIALOG_FULL_APPLICATION_MODAL);
+	      break;
+	    }
 	  }
 	}
-      }
 
-      /* close the file */
-      if( fclose(fp) == EOF ){
-	HGU_XmUserError(globals.topl,
-			"Save Warp Parameters:\n"
-			"    Error in closing the bibfile\n"
-			"    Please check disk space or quotas\n"
-			"    Section parameters not saved",
-			XmDIALOG_FULL_APPLICATION_MODAL);
+	/* close the file */
+	if( fclose(fp) == EOF ){
+	  HGU_XmUserError(globals.topl,
+			  "Save Warp Parameters:\n"
+			  "    Error in closing the bibfile\n"
+			  "    Please check disk space or quotas\n"
+			  "    Section parameters not saved",
+			  XmDIALOG_FULL_APPLICATION_MODAL);
+	}
       }
-    }
-    else {
-      HGU_XmUserError(globals.topl,
-		      "Save Warp Parameters:\n"
-		      "    Couldn't open the file for\n"
-		      "    writing, please check\n"
-		      "    permissions.\n"
-		      "    Warp parameters not saved",
-		      XmDIALOG_FULL_APPLICATION_MODAL);
+      XmStringFree(xmstr);
     }
     AlcFree(fileStr);
   }
@@ -718,16 +714,17 @@ void warpIORead(
   int			resetOvlyFlg=0;
 
   /* get a filename for the warp parameters */
-  if( fileStr = HGU_XmUserGetFilename(globals.topl,
-				      "Please type in a filename\n"
-				      "for the section, warp and tie-\n"
-				      "point parameters to be read in.\n"
-				      "WARNING: this will delete all\n"
-				      "current tie-points",
-				      "OK", "cancel",
-				      warpGlobals.warpBibFile? 
-				      warpGlobals.warpBibFile:"MAPaintWarpParams.bib",
-				      NULL, "*.bib") ){
+  if( fileStr = 
+     HGU_XmUserGetFilenameT
+     (globals.topl,
+      "READ WARP FILE:\n\n"
+      "Please type in a filename for the section,\n"
+      "warp and tie-point parameters to be read in.\n\n"
+      "WARNING: this will delete all current tie-points\n",
+      "OK", "cancel",
+      warpGlobals.warpBibFile? 
+      warpGlobals.warpBibFile:"MAPaintWarpParams.bib",
+      NULL, "*.bib", "Read Warp Parameters") ){
     warp2DInteractDeleteAllCb(w, client_data, call_data);
 
     if( fp = fopen(fileStr, "r") ){

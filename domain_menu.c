@@ -860,7 +860,7 @@ void read_domain_cb(
 
   /* get the file pointer */
   if( (fp = HGU_XmGetFilePointer(globals.topl, cbs->value,
-				 cbs->dir, "r")) == NULL )
+				 cbs->dir, "rb")) == NULL )
     return;
 
   /* read the domain */
@@ -1293,7 +1293,7 @@ void write_domain_cb(
 
   /* get the file pointer */
   if( (fp = HGU_XmGetFilePointerBck(globals.topl, cbs->value,
-				    cbs->dir, "w", ".bak")) == NULL )
+				    cbs->dir, "wb", ".bak")) == NULL )
     return;
 
   /* check which domain is selected */
@@ -1679,7 +1679,7 @@ void write_paint_object_cb(
   else
   {
     if( (fp = HGU_XmGetFilePointer(globals.topl, cbs->value,
-				   cbs->dir, "w")) == NULL )
+				   cbs->dir, "wb")) == NULL )
     {
       return;
     }
