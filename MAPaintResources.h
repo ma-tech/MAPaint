@@ -646,6 +646,11 @@ static String  fallback_resources[] = {
   "*view_dialog*warp_sgnl_controls_form*pick_mode_thresh.labelString: Pick mode",
   "*view_dialog*warp_sgnl_controls_form*distance_mode_thresh.labelString: Distance mode",
 
+  "*view_dialog*warp_sgnl_controls_form*post_process_page.struct_elem.labelString: "
+  "Structuring Element:",
+  "*view_dialog*warp_sgnl_controls_form*post_process_page*struct_elem_radius.labelString: "
+  "Struct Elem Radius:",
+
   "*view_dialog*warp_input_2d_form*mesh_method.labelString: Mesh:",
   "*view_dialog*warp_input_2d_form*mesh_min_dist.labelString:	Mesh min distance:",
   "*view_dialog*warp_input_2d_form*mesh_max_dist.labelString:	Mesh max distance:",

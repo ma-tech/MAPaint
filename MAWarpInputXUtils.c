@@ -799,17 +799,22 @@ void warpDisplayTiePoints(void)
   GC		gc;
   int		i, x, y;
   WlzDVertex2	vtx1, vtx2;
+  XWindowAttributes	win_att;
 
   /* check gc's */
+  if( XGetWindowAttributes(dpy, dst_win, &win_att) == 0 ){
+    return;
+  }
+
   if( warpGlobals.red_gc == (GC) -1 ){
     XGCValues	values;
 
-    values.foreground = 0xff;
+    values.foreground = win_att.visual->red_mask;
     values.background = 0;
     warpGlobals.red_gc = XCreateGC(dpy, dst_win,
 				   GCForeground|GCBackground,
 				   &values);
-    values.foreground = 0xff00;
+    values.foreground = win_att.visual->green_mask;
     warpGlobals.green_gc = XCreateGC(dpy, dst_win,
 				   GCForeground|GCBackground,
 				   &values);
@@ -874,6 +879,7 @@ void warpDisplayDstMeshCb(
   Display	*dpy=XtDisplay(warpGlobals.src.canvas);
   Window	dst_win = XtWindow(warpGlobals.dst.canvas);
   GC		gc;
+  XWindowAttributes	win_att;
 
   /* check there is a source image */
   if( !warpGlobals.src.obj || !warpGlobals.meshTr ){
@@ -891,11 +897,14 @@ void warpDisplayDstMeshCb(
     }
   }
 
+  if( XGetWindowAttributes(dpy, dst_win, &win_att) == 0 ){
+    return;
+  }
   /* check the graphics context */
   if( warpGlobals.yellow_gc == (GC) -1 ){
     XGCValues	values;
 
-    values.foreground = 0xffff;
+    values.foreground = win_att.visual->red_mask | win_att.visual->green_mask;
     values.background = 0;
     warpGlobals.yellow_gc = XCreateGC(dpy, dst_win,
 				      GCForeground|GCBackground,
@@ -1075,9 +1084,13 @@ void warpDisplayDomain(
   WlzDVertex2	vtx, vtx1, vtx2;
   WlzIntervalWSpace	iwsp;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
+  XWindowAttributes	win_att;
 
   /* check there is a displayed image */
   if(!winStruct->obj || !winStruct->ximage || !obj){
+    return;
+  }
+  if( XGetWindowAttributes(dpy, win, &win_att) == 0 ){
     return;
   }
 
@@ -1085,7 +1098,7 @@ void warpDisplayDomain(
   if( warpGlobals.yellow_gc == (GC) -1 ){
     XGCValues	values;
 
-    values.foreground = 0xffff;
+    values.foreground = win_att.visual->red_mask | win_att.visual->green_mask;
     values.background = 0;
     warpGlobals.yellow_gc = XCreateGC(dpy, win,
 				      GCForeground|GCBackground,

@@ -26,7 +26,9 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#ifndef DARWIN
 #include <netdb.h>
+#endif /* DARWIN */
 
 #include <MAPaint.h>
 

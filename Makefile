@@ -52,11 +52,16 @@ CSOURCES		= \
 			MAWarpInputInteractUtils.c \
 			MAWarpInputPaintingCb.c \
 			MAWarpInputXUtils.c \
+			MAWarpSignalAutoPage.c \
 			MAWarpSignalColorUtils.c \
 			MAWarpSignalDomain.c \
+			MAWarpSignalFilterPage.c \
 			MAWarpSignalInteract.c \
+			MAWarpSignalPreProcPage.c \
 			MAWarpSignalPreprocUtils.c \
 			MAWarpSignalProc.c \
+			MAWarpSignalPostProcPage.c \
+			MAWarpSignalThresholdPage.c \
 			MAPMSnake.c \
 			NalgsDPSearch.c \
 			anatomy_menu.c \
@@ -108,11 +113,16 @@ CSOURCES		= \
 			MAWarpInputInteractUtils.c \
 			MAWarpInputPaintingCb.c \
 			MAWarpInputXUtils.c \
+			MAWarpSignalAutoPage.c \
 			MAWarpSignalColorUtils.c \
 			MAWarpSignalDomain.c \
+			MAWarpSignalFilterPage.c \
 			MAWarpSignalInteract.c \
+			MAWarpSignalPreProcPage.c \
 			MAWarpSignalPreprocUtils.c \
 			MAWarpSignalProc.c \
+			MAWarpSignalPostProcPage.c \
+			MAWarpSignalThresholdPage.c \
 			MAPMSnake.c \
 			NalgsDPSearch.c \
 			anatomy_menu.c \
@@ -163,11 +173,16 @@ CSOURCES		= \
 			MAWarpInputInteractUtils.c \
 			MAWarpInputPaintingCb.c \
 			MAWarpInputXUtils.c \
+			MAWarpSignalAutoPage.c \
 			MAWarpSignalColorUtils.c \
 			MAWarpSignalDomain.c \
+			MAWarpSignalFilterPage.c \
 			MAWarpSignalInteract.c \
+			MAWarpSignalPreProcPage.c \
 			MAWarpSignalPreprocUtils.c \
 			MAWarpSignalProc.c \
+			MAWarpSignalPostProcPage.c \
+			MAWarpSignalThresholdPage.c \
 			MAPMSnake.c \
 			NalgsDPSearch.c \
 			anatomy_menu.c \

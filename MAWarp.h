@@ -21,7 +21,7 @@
 *   Author Name :  Richard Baldock					*
 *   Author Login:  richard@hgu.mrc.ac.uk				*
 *   Date        :  Mon Nov 29 13:35:59 1999				*
-*   $Revision$								*
+*   $Revision$							*
 *   $Name$								*
 *   Synopsis    : 							*
 *************************************************************************
@@ -50,6 +50,16 @@ typedef enum {
     /* dummy entry to terminate list */
   MA_OVERLAY_MIXTYPE_LAST
 } MAOverlayMixType;
+
+typedef enum _MAPaintStructElemType
+{
+  MAPAINT_8_CONN_SE,
+  MAPAINT_4_CONN_SE,
+  MAPAINT_CIRCLE_SE,
+  MAPAINT_SPHERE_SE,
+  MAPAINT_SQUARE_SE,
+  MAPAINT_CUBE_SE
+} MAPaintStructElemType;
 
 typedef struct {
   WlzObject		*obj;
@@ -138,6 +148,10 @@ typedef struct {
   WlzObject	*incrThreshObj;
   int		pickThreshFlg; /* pick mode for endpoint values */
   int		distanceThreshFlg; /* distance mode for endpoint values */
+
+  /* post-processing controls */
+  float		seElemRadius;
+  MAPaintStructElemType	seType;
 
 } MAPaintWarp2DStruct;
 
@@ -402,6 +416,24 @@ extern void warpResetCWDCb(
   Widget		w,
   XtPointer		client_data,
   XtPointer		call_data);
+
+/* misc callbacks */
+extern void thresholdMajorPageSelectCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data);
+
+/* the various pages for signal pre-processing */
+extern Widget createSignalPreProcPage(
+  Widget	notebook);
+extern Widget createSignalFilterPage(
+  Widget	notebook);
+extern Widget createSignalThresholdPage(
+  Widget	notebook);
+extern Widget createSignalAutoPage(
+  Widget	notebook);
+extern Widget createSignalPostProcPage(
+  Widget	notebook);
 
 /* do not add anything after this line */
 #endif /* MAWARP_H */
