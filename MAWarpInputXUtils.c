@@ -210,7 +210,8 @@ WlzObject *warpTransformObj(
 }
 
 int HGU_XGetColorIndexFromMask24(
-  unsigned long mask)
+  unsigned long mask,
+  int		order)
 {
   int index;
 
@@ -231,9 +232,9 @@ int HGU_XGetColorIndexFromMask24(
     index = 0;
     break;
   }
-#if defined (__sparc) || defined (__mips) || defined (__ppc)
-  index = 3 - index;
-#endif /* __sparc || __mips */
+  if( order == MSBFirst ){
+    index = 3 - index;
+  }
 
   return index;
 }
@@ -281,16 +282,6 @@ XImage	*warpCreateXImage(
     height = src_height*winStruct->mag;
   }
 
-  /* establish rgb index values if 24 bit */
-  if( win_att.depth == 24 ){
-    rIndx = HGU_XGetColorIndexFromMask24(win_att.visual->red_mask);
-    gIndx = HGU_XGetColorIndexFromMask24(win_att.visual->green_mask);
-    bIndx = HGU_XGetColorIndexFromMask24(win_att.visual->blue_mask);
-    aIndx = HGU_XGetColorIndexFromMask24(~(win_att.visual->red_mask|
-					   win_att.visual->green_mask|
-					   win_att.visual->blue_mask));
-  }
-
   /*  XtResizeWidget(winStruct->canvas, width, height, 0);*/
   XtVaSetValues(winStruct->canvas,
 		XmNwidth, width,
@@ -301,7 +292,25 @@ XImage	*warpCreateXImage(
     if( dst_data = (UBYTE *) AlcMalloc(((win_att.depth == 8)?1:4)
 				       *width*height*sizeof(char)) ){
       data = dst_data;
+      rtnImage = XCreateImage(XtDisplay(winStruct->canvas),
+			      win_att.visual, win_att.depth,
+			      ZPixmap, 0, (char *) dst_data,
+			      width, height, 8, 0);
       
+      /* establish rgb index values if 24 bit */
+      if( win_att.depth == 24 ){
+	rIndx = HGU_XGetColorIndexFromMask24(win_att.visual->red_mask,
+					     rtnImage->byte_order);
+	gIndx = HGU_XGetColorIndexFromMask24(win_att.visual->green_mask,
+					     rtnImage->byte_order);
+	bIndx = HGU_XGetColorIndexFromMask24(win_att.visual->blue_mask,
+					     rtnImage->byte_order);
+	aIndx = HGU_XGetColorIndexFromMask24(~(win_att.visual->red_mask|
+					       win_att.visual->green_mask|
+					       win_att.visual->blue_mask),
+					     rtnImage->byte_order);
+      }
+
       /* set up the gamma LUT */
       gammaLUT[0] = 0;
       for(i=1; i < 256; i++){
@@ -405,13 +414,7 @@ XImage	*warpCreateXImage(
     WlzGreyValueFreeWSp(gVWSp);
   }
 
-  if( errNum == WLZ_ERR_NONE ){
-    rtnImage = XCreateImage(XtDisplay(winStruct->canvas),
-			    win_att.visual, win_att.depth,
-			    ZPixmap, 0, (char *) dst_data,
-			    width, height, 8, 0);
-  }
-  else {
+  if( errNum != WLZ_ERR_NONE ){
     MAPaintReportWlzError(globals.topl, "warpCreateXImage", errNum);
   }
   return rtnImage;
@@ -605,6 +608,11 @@ void warpSetOvlyXImage(
   data0 = (UBYTE *) winStruct->ovlyImages[0]->data;
   data1 = (UBYTE *) winStruct->ovlyImages[1]->data;
 
+  winStruct->ximage = XCreateImage(XtDisplay(winStruct->canvas),
+				   win_att.visual, win_att.depth,
+				   ZPixmap, 0, (char *) dst_data,
+				   width, height, 8, 0);
+
   /* set up mixing factors */
   if( winStruct->mixRatio > 50.0){
     a = 1.0;
@@ -617,12 +625,16 @@ void warpSetOvlyXImage(
   c = winStruct->mixRatio / 100.0;
 
   /* merge the images */
-  rIndx = HGU_XGetColorIndexFromMask24(win_att.visual->red_mask);
-  gIndx = HGU_XGetColorIndexFromMask24(win_att.visual->green_mask);
-  bIndx = HGU_XGetColorIndexFromMask24(win_att.visual->blue_mask);
+  rIndx = HGU_XGetColorIndexFromMask24(win_att.visual->red_mask,
+				       winStruct->ximage->byte_order);
+  gIndx = HGU_XGetColorIndexFromMask24(win_att.visual->green_mask,
+				       winStruct->ximage->byte_order);
+  bIndx = HGU_XGetColorIndexFromMask24(win_att.visual->blue_mask,
+				       winStruct->ximage->byte_order);
   aIndx = HGU_XGetColorIndexFromMask24(~(win_att.visual->red_mask|
 					 win_att.visual->green_mask|
-					 win_att.visual->blue_mask));
+					 win_att.visual->blue_mask),
+				       winStruct->ximage->byte_order);
  
   switch( winStruct->mixType ){
   case MA_OVERLAY_MIXTYPE_RG1:
@@ -747,11 +759,6 @@ void warpSetOvlyXImage(
   case MA_OVERLAY_MIXTYPE_BLINK:
     break;
   }
-
-  winStruct->ximage = XCreateImage(XtDisplay(winStruct->canvas),
-				   win_att.visual, win_att.depth,
-				   ZPixmap, 0, (char *) dst_data,
-				   width, height, 8, 0);
 
   return;
 }

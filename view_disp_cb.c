@@ -19,22 +19,6 @@
 
 #include <MAPaint.h>
 
-static int byteOffsetFromMask24Bit(
-  unsigned int	mask)
-{
-  switch( mask ){
-  default:
-  case 0xff:
-    return 0;
-  case 0xff00:
-    return 1;
-  case 0xff0000:
-    return 2;
-  case 0xff000000:
-    return 3;
-  }
-}
-
 void HGU_XPutImage8To24(
   Display	*dpy,
   Window	win,
@@ -72,27 +56,21 @@ void HGU_XPutImage8To24(
   /* assume only two options for the rgb masks - no doubt wrong */
   /* try harder - find the rgba byte offsets from the masks
      Note - must also take account of byte-ordering - yuk */
-  r_off = byteOffsetFromMask24Bit(win_att.visual->red_mask);
-  g_off = byteOffsetFromMask24Bit(win_att.visual->green_mask);
-  b_off = byteOffsetFromMask24Bit(win_att.visual->blue_mask);
+  r_off = HGU_XGetColorIndexFromMask24(win_att.visual->red_mask,
+				       new->byte_order);
+  g_off = HGU_XGetColorIndexFromMask24(win_att.visual->green_mask,
+				       new->byte_order);
+  b_off = HGU_XGetColorIndexFromMask24(win_att.visual->blue_mask,
+				       new->byte_order);
   a_off = 6 - r_off - g_off - b_off;
   for(j=0; j < height; j++){
     dstOff = (srcY+j) * ximage->bytes_per_line + srcX;
     for(i=0; i < width; i++, dstOff++){
-#if defined (__sparc) || defined (__mips) || defined (__ppc)
-      newdata[srcOff + 3 - r_off] = colormap[0][data[dstOff]];
-      newdata[srcOff + 3 - g_off] = colormap[1][data[dstOff]];
-      newdata[srcOff + 3 - b_off] = colormap[2][data[dstOff]];
-      newdata[srcOff + 3 - a_off] = 0;
-      srcOff += 4;
-#endif /* __sparc || __mips || __ppc */
-#if defined (__x86) || defined (__alpha)
       newdata[srcOff + r_off] = colormap[0][data[dstOff]];
       newdata[srcOff + g_off] = colormap[1][data[dstOff]];
       newdata[srcOff + b_off] = colormap[2][data[dstOff]];
       newdata[srcOff + a_off] = 0;
       srcOff += 4;
-#endif /* __x86 || __alpha */
     }
   }
 
