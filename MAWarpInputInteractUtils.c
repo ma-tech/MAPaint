@@ -604,14 +604,13 @@ void warpDstCanvasInputCb(
   switch( cbs->event->type ){
   case ButtonPress:
     /* remap the event */
-/*    if( MAPaintEventRemap(MAPAINT_WARP_DST_CONTEXT,
+    if( MAPaintEventRemap(MAPAINT_WARP_2D_CONTEXT,
 			  MAPAINT_WARP_MODE, cbs->event) != WLZ_ERR_NONE ){
       break;
-      }*/
+    }
 
     vtx.vtX = cbs->event->xbutton.x;
     vtx.vtY = cbs->event->xbutton.y;
-    fprintf(stderr, "Dst Canvas: ButtonPress\n");
 
     /* check for any modifiers */
     if( cbs->event->xbutton.state & modMask ){
@@ -890,6 +889,12 @@ void warpSrcCanvasInputCb(
 
   switch( cbs->event->type ){
   case ButtonPress:
+    /* remap the event */
+    if( MAPaintEventRemap(MAPAINT_WARP_2D_CONTEXT,
+			  MAPAINT_WARP_MODE, cbs->event) != WLZ_ERR_NONE ){
+      break;
+    }
+
     vtx.vtX = cbs->event->xbutton.x;
     vtx.vtY = cbs->event->xbutton.y;
 
@@ -1164,6 +1169,12 @@ void warpOvlyCanvasInputCb(
 
   switch( cbs->event->type ){
   case ButtonPress:
+    /* remap the event */
+    if( MAPaintEventRemap(MAPAINT_WARP_2D_CONTEXT,
+			  MAPAINT_WARP_MODE, cbs->event) != WLZ_ERR_NONE ){
+      break;
+    }
+
     vtx.vtX = cbs->event->xbutton.x;
     vtx.vtY = cbs->event->xbutton.y;
 

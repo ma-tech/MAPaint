@@ -772,11 +772,12 @@ void warpCanvasMotionEventHandler(
   /* for reasons unknown need to pass on
      <Control>Button1 ignore all other
      ButtonEvents */
-  /* if((event->type != ButtonPress) ||
-     (event->xbutton.button != Button1) ||
-     !(event->xbutton.state&(ControlMask|Mod1Mask|Mod2Mask))){
-    return;
-    }*/
+  if((event->type == ButtonPress) &&
+     (event->xbutton.button == Button1)){
+    if( !(event->xbutton.state&ControlMask) ){
+      return;
+    }
+  }
 
   /* call the canvas input callbacks */
   cbs.reason = XmCR_INPUT;
@@ -1355,6 +1356,7 @@ static Widget create2DWarpDialog(
   XtAddCallback(warpGlobals.src.canvas, XmNinputCallback,
 		warpSrcCanvasInputCb, (XtPointer) &(warpGlobals.src));
   XtAddEventHandler(warpGlobals.src.canvas, 
+		    ButtonPressMask|
 		    PointerMotionMask|EnterWindowMask|LeaveWindowMask,
 		    False, warpCanvasMotionEventHandler, NULL);
 
@@ -1419,6 +1421,10 @@ static Widget create2DWarpDialog(
 		warpCanvasExposeCb, (XtPointer) &(warpGlobals.ovly));
   XtAddCallback(warpGlobals.ovly.canvas, XmNinputCallback,
 		warpOvlyCanvasInputCb, (XtPointer) &(warpGlobals.ovly));
+  XtAddEventHandler(warpGlobals.ovly.canvas, 
+		    ButtonPressMask|
+		    PointerMotionMask|EnterWindowMask|LeaveWindowMask,
+		    False, warpCanvasMotionEventHandler, NULL);
 
   /* button callbacks */
   button = XtNameToWidget(child, "*b_1");

@@ -1768,6 +1768,16 @@ void sgnlCanvasEventHandler(
 {
   XmDrawingAreaCallbackStruct cbs;
 
+  /* for reasons unknown need to pass on
+     <Control>Button1 ignore all other
+     ButtonEvents */
+  if((event->type == ButtonPress) &&
+     (event->xbutton.button == Button1)){
+    if( !(event->xbutton.state&ControlMask) ){
+      return;
+    }
+  }
+
   /* call the canvas input callbacks */
   cbs.reason = XmCR_INPUT;
   cbs.event = event;
@@ -1810,8 +1820,7 @@ Widget createWarpSgnlDisplayFrame(
 		sgnlCanvasMotionInputCb, NULL);
   XtAddEventHandler(warpGlobals.sgnl.canvas,
 		    PointerMotionMask|
-		    ButtonMotionMask|EnterWindowMask|
-		    LeaveWindowMask|ButtonPressMask,
+		    EnterWindowMask|LeaveWindowMask|ButtonPressMask,
 		    False, sgnlCanvasEventHandler, NULL);
 
   /* button callbacks - read */

@@ -452,6 +452,7 @@ void warpThreshSetLimitsFromDist(
 }
 
 static int 			sgnlTrigger=0, liftTrigger=0;
+static int			sgnlFinishFlg=0;
 static WlzPixelV 		sgnlStart, sgnlFinish;
 static WlzGreyValueWSpace	*sgnl_gVWSp = NULL;
 static int 			startX, startY;
@@ -495,6 +496,14 @@ void sgnlCanvasInputCb(
   switch( cbs->event->type ){
 
   case ButtonPress:
+    /* remap the event */
+    if( MAPaintEventRemap(MAPAINT_WARP_SGNL_CONTEXT,
+			  warpGlobals.pickThreshFlg?
+			  MAPAINT_PICK_MODE:MAPAINT_THRESHOLD_MODE,
+			  cbs->event) != WLZ_ERR_NONE ){
+      break;
+    }
+
     if( sgnl_gVWSp ){
       line = cbs->event->xbutton.y / warpGlobals.sgnl.mag;
       kol = cbs->event->xbutton.x / warpGlobals.sgnl.mag;
@@ -524,14 +533,10 @@ void sgnlCanvasInputCb(
       /* only if no modifiers pressed */
       if( warpGlobals.pickThreshFlg ){
 	
-	/* pick mode, set start or finish only */
+	/* pick mode, set start only */
 	sgnlTrigger = 1;
-	if( cbs->event->xbutton.state&ShiftMask ){
-	  sgnlInteractSetHighLowControls(NULL, &sgnlFinish);
-	}
-	else {
-	  sgnlInteractSetHighLowControls(&sgnlStart, NULL);
-	}
+	sgnlFinishFlg = 0;
+	sgnlInteractSetHighLowControls(&sgnlStart, NULL);
 	domainResetFlg = 1;
       }
       else if( !(cbs->event->xbutton.state&modMask) ){
@@ -553,8 +558,9 @@ void sgnlCanvasInputCb(
 
     case Button2:
       /* only pick mode and only if no modifiers pressed */
-      if( !(cbs->event->xbutton.state&modMask) && warpGlobals.pickThreshFlg ){
+      if( warpGlobals.pickThreshFlg && !(cbs->event->xbutton.state&modMask) ){
 	sgnlTrigger = 1;
+	sgnlFinishFlg = 1;
 	sgnlInteractSetHighLowControls(NULL, &sgnlFinish);
 	domainResetFlg = 1;
       }
@@ -591,14 +597,8 @@ void sgnlCanvasInputCb(
       if( sgnlTrigger ){
 	sgnlTrigger = 0;
 	if( warpGlobals.pickThreshFlg ){
-	  if( cbs->event->xbutton.state&ShiftMask ){
-	    sgnlInteractSetHighLowControls(NULL, &sgnlFinish);
-	    domainResetFlg = 1;
-	  }
-	  else {
-	    sgnlInteractSetHighLowControls(&sgnlFinish, NULL);
-	    domainResetFlg = 1;
-	  }
+	  sgnlInteractSetHighLowControls(&sgnlFinish, NULL);
+	  domainResetFlg = 1;
 	}
 	else {
 	  /* normal or distance mode */
@@ -618,11 +618,13 @@ void sgnlCanvasInputCb(
 	/* if increment then push onto stack but only in interactive mode
 	   for other modes then the segmentation is confirmed by <return>
 	   in the canvas window - why? */
-	if(domainResetFlg && warpGlobals.incrThreshFlg &&
+	/* Remove this for now see if anything terrible happens */
+	/*if(domainResetFlg && warpGlobals.incrThreshFlg &&
 	   (warpGlobals.thresholdType != WLZ_RGBA_THRESH_SINGLE) &&
 	   (warpGlobals.thresholdType != WLZ_RGBA_THRESH_MULTI)){
 	  domainIncrFlg = 1;
-	}
+	  }*/
+	domainIncrFlg = 1;
       }
 
       if( liftTrigger ){
@@ -636,7 +638,7 @@ void sgnlCanvasInputCb(
 
     case Button2:
       /* only pick mode and only if no modifiers pressed */
-      if( !(cbs->event->xbutton.state&modMask) && warpGlobals.pickThreshFlg ){
+      if( warpGlobals.pickThreshFlg && !(cbs->event->xbutton.state&modMask) ){
 	sgnlTrigger = 0;
 
 	/* set the value */
@@ -646,11 +648,12 @@ void sgnlCanvasInputCb(
 	/* if increment then push onto stack but only in interactive mode
 	   for other modes then the segmentation is confirmed by <return>
 	   in the canvas window */
-	if(warpGlobals.incrThreshFlg &&
+	/*if(warpGlobals.incrThreshFlg &&
 	   (warpGlobals.thresholdType != WLZ_RGBA_THRESH_SINGLE) &&
 	   (warpGlobals.thresholdType != WLZ_RGBA_THRESH_MULTI)){
 	  domainIncrFlg = 1;
-	}
+	  }*/
+	domainIncrFlg = 1;
       }
       break;
 
@@ -678,10 +681,10 @@ void sgnlCanvasInputCb(
     sgnlFinish.v = sgnl_gVWSp->gVal[0];
 
     /* if drag then reset threshold levels and threshold domain */
-    if( cbs->event->xmotion.state & Button1Mask ){
+    if( cbs->event->xmotion.state & (Button1Mask|Button2Mask|Button3Mask) ){
       if( sgnlTrigger ){
 	if( warpGlobals.pickThreshFlg ){
-	  if( cbs->event->xmotion.state&ShiftMask ){
+	  if( sgnlFinishFlg ){
 	    sgnlInteractSetHighLowControls(NULL, &sgnlFinish);
 	    domainResetFlg = 1;
 	  }
