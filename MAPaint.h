@@ -36,6 +36,7 @@
 
 #include <HGU_XmUtils.h>
 #include <HGU_XInteract.h>
+#include <WlzXm.h>
 
 #include <MAPaintTypes.h>
 #include <MAPaintProto.h>

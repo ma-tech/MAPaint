@@ -917,7 +917,8 @@ Widget create_view_window_dialog(
   ThreeDViewStruct	*view_struct;
   WlzThreeDViewStruct	*wlzViewStr;
   ViewListEntry		*new_view_list;
-  int			i, width, height;
+  int			i;
+  Dimension		width, height;
   Atom			WM_DELETE_WINDOW;
 
   dialog = HGU_XmCreateStdDialog(topl, "view_dialog",

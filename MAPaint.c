@@ -277,6 +277,8 @@ static XtActionsRec actions[] = {
 static XrmOptionDescRec mapaint_options[] = {
   {"-warpInput","*options_menu*warp_input_2d.sensitive",
    XrmoptionNoArg, "True"},
+  {"-nowarpInput","*options_menu*warp_input_2d.sensitive",
+   XrmoptionNoArg, "False"},
   {"-realign",	"*options_menu*realignment.sensitive",
    XrmoptionNoArg, "True"},
   {"-listen",	"*view_dialog*listen.sensitive", XrmoptionNoArg, "True"},

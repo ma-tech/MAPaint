@@ -451,17 +451,19 @@ static void setMenuLabelsAndColors(void)
 
     /* get the widgets by priority and reset resources */
     sprintf(str_buf, "*menubar*domain_menu*select*domain_%d", i);
-    widget = XtNameToWidget(globals.topl, str_buf);
-    XtVaSetValues(widget,
-		  XmNlabelString, xmstr,
-		  XmNbackground, pixel,
-		  XmNset, (globals.priority_to_domain_lut[i] ==
-			   globals.current_domain)?True:False,
-		  NULL);
+    if( widget = XtNameToWidget(globals.topl, str_buf) ){
+      XtVaSetValues(widget,
+		    XmNlabelString, xmstr,
+		    XmNbackground, pixel,
+		    XmNset, (globals.priority_to_domain_lut[i] ==
+			     globals.current_domain)?True:False,
+		    NULL);
+    }
 
     sprintf(str_buf, "*domain_controls_dialog*dominance_form*%d", i);
-    widget = XtNameToWidget(globals.topl, str_buf);
-    XtVaSetValues(widget, XmNbackground, pixel, NULL);
+    if( widget = XtNameToWidget(globals.topl, str_buf) ){
+      XtVaSetValues(widget, XmNbackground, pixel, NULL);
+    }
 
     XmStringFree(xmstr);
   }
@@ -479,18 +481,19 @@ void addSelectDomainCallback(
   String	strBuf;
 
   /* get the menu widget */
-  cascadeB = XtNameToWidget(globals.topl,
-			    "*menubar*domain_menu*select");
+  if( cascadeB = XtNameToWidget(globals.topl,
+				"*menubar*domain_menu*select") ){
 
-  /* get each toggle widget and add the callback */
-  for(i=0; i < 32; i++){
-    strBuf = (String) AlcMalloc(strlen(select_menu_itemsP[i].name)
-				+ 4);
-    sprintf(strBuf, "*%s", select_menu_itemsP[i].name);
-    if( toggle = XtNameToWidget(cascadeB, strBuf) ){
-      XtAddCallback(toggle, XmNvalueChangedCallback, callback, clientData);
+    /* get each toggle widget and add the callback */
+    for(i=0; i < 32; i++){
+      strBuf = (String) AlcMalloc(strlen(select_menu_itemsP[i].name)
+				  + 4);
+      sprintf(strBuf, "*%s", select_menu_itemsP[i].name);
+      if( toggle = XtNameToWidget(cascadeB, strBuf) ){
+	XtAddCallback(toggle, XmNvalueChangedCallback, callback, clientData);
+      }
+      AlcFree((void *) strBuf);
     }
-    AlcFree((void *) strBuf);
   }
   
   return;
@@ -506,18 +509,19 @@ void removeSelectDomainCallback(
   String	strBuf;
 
   /* get the menu widget */
-  cascadeB = XtNameToWidget(globals.topl,
-			    "*menubar*domain_menu*select");
+  if( cascadeB = XtNameToWidget(globals.topl,
+				"*menubar*domain_menu*select") ){
 
-  /* get each toggle widget and add the callback */
-  for(i=0; i < 32; i++){
-    strBuf = (String) AlcMalloc(strlen(select_menu_itemsP[i].name)
-				+ 4);
-    sprintf(strBuf, "*%s", select_menu_itemsP[i].name);
-    if( toggle = XtNameToWidget(cascadeB, strBuf) ){
-      XtRemoveCallback(toggle, XmNvalueChangedCallback, callback, clientData);
+    /* get each toggle widget and add the callback */
+    for(i=0; i < 32; i++){
+      strBuf = (String) AlcMalloc(strlen(select_menu_itemsP[i].name)
+				  + 4);
+      sprintf(strBuf, "*%s", select_menu_itemsP[i].name);
+      if( toggle = XtNameToWidget(cascadeB, strBuf) ){
+	XtRemoveCallback(toggle, XmNvalueChangedCallback, callback, clientData);
+      }
+      AlcFree((void *) strBuf);
     }
-    AlcFree((void *) strBuf);
   }
   
   return;
@@ -2320,12 +2324,13 @@ int domain_menu_init(
 
     /* get the widgets in priority order */
     sprintf(str_buf, "*menubar*domain_menu*select*domain_%d", i);
-    widget = XtNameToWidget(topl, str_buf);
-    if( i > (globals.cmapstruct->num_overlays +
-	     globals.cmapstruct->num_solid_overlays) )
-    {
-      XtUnmanageChild(widget);
-      continue;
+    if( widget = XtNameToWidget(topl, str_buf) ){
+      if( i > (globals.cmapstruct->num_overlays +
+	       globals.cmapstruct->num_solid_overlays) )
+      {
+	XtUnmanageChild(widget);
+	continue;
+      }
     }
 
     /* add drag and drop translations */

@@ -209,6 +209,35 @@ WlzObject *warpTransformObj(
   return rtnObj;
 }
 
+int HGU_XGetColorIndexFromMask24(
+  unsigned long mask)
+{
+  int index;
+
+  switch( mask ){
+  case 0xff:
+    index = 0;
+    break;
+  case 0xff00:
+    index = 1;
+    break;
+  case 0xff0000:
+    index = 2;
+    break;
+  case 0xff000000:
+    index = 3;
+    break;
+  default:
+    index = 0;
+    break;
+  }
+#if defined (__sparc) || defined (__mips) || defined (__ppc)
+  index = 3 - index;
+#endif /* __sparc || __mips */
+
+  return index;
+}
+
 XImage	*warpCreateXImage(
   WlzObject	*obj,
   WlzObject	*refObj,
@@ -222,6 +251,8 @@ XImage	*warpCreateXImage(
   int			i, j;
   WlzGreyValueWSpace	*gVWSp = NULL;
   int			cmpndFlg=0;
+  UINT			r, g, b, a;
+  int			rIndx, gIndx, bIndx, aIndx;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* create the ximage using current mag and rotate */
@@ -248,6 +279,16 @@ XImage	*warpCreateXImage(
   else {
     width = src_width*winStruct->mag;
     height = src_height*winStruct->mag;
+  }
+
+  /* establish rgb index values if 24 bit */
+  if( win_att.depth == 24 ){
+    rIndx = HGU_XGetColorIndexFromMask24(win_att.visual->red_mask);
+    gIndx = HGU_XGetColorIndexFromMask24(win_att.visual->green_mask);
+    bIndx = HGU_XGetColorIndexFromMask24(win_att.visual->blue_mask);
+    aIndx = HGU_XGetColorIndexFromMask24(~(win_att.visual->red_mask|
+					   win_att.visual->green_mask|
+					   win_att.visual->blue_mask));
   }
 
   /*  XtResizeWidget(winStruct->canvas, width, height, 0);*/
@@ -279,29 +320,81 @@ XImage	*warpCreateXImage(
 	  WlzGreyValueGet(gVWSp, 0,
 			  vtx2.vtY + lOffset,
 			  vtx2.vtX + kOffset);
-	  switch( gVWSp->gType ){
-	  default:
-	  case WLZ_GREY_INT:
-	    *data = *(gVWSp->gPtr[0].inp);
+	  switch( win_att.depth ){
+	  case 8:
+	    switch( gVWSp->gType ){
+	    default:
+	    case WLZ_GREY_INT:
+	      *data = WLZ_CLAMP(*(gVWSp->gPtr[0].inp), 0, 255);
+	      break;
+	    case WLZ_GREY_SHORT:
+	      *data = WLZ_CLAMP(*(gVWSp->gPtr[0].shp), 0, 255);
+	      break;
+	    case WLZ_GREY_UBYTE:
+	      *data = *(gVWSp->gPtr[0].ubp);
+	      break;
+	    case WLZ_GREY_FLOAT:
+	      *data = WLZ_CLAMP(*(gVWSp->gPtr[0].flp), 0, 255);
+	      break;
+	    case WLZ_GREY_DOUBLE:
+	      *data = WLZ_CLAMP(*(gVWSp->gPtr[0].dbp), 0, 255);
+	      break;
+	    case WLZ_GREY_RGBA:
+	      *data = WLZ_RGBA_MODULUS(*(gVWSp->gPtr[0].rgbp));
+	      break;
+	    }
+	    *data = gammaLUT[data[0]];
 	    break;
-	  case WLZ_GREY_SHORT:
-	    *data = *(gVWSp->gPtr[0].shp);
-	    break;
-	  case WLZ_GREY_UBYTE:
-	    *data = *(gVWSp->gPtr[0].ubp);
-	    break;
-	  case WLZ_GREY_FLOAT:
-	    *data = *(gVWSp->gPtr[0].flp);
-	    break;
-	  case WLZ_GREY_DOUBLE:
-	    *data = *(gVWSp->gPtr[0].dbp);
-	    break;
-	  }
-	  if( win_att.depth == 24 ){
-	    data[1] = gammaLUT[data[0]];
-	    data[2] = gammaLUT[data[0]];
-	    data[3] = gammaLUT[data[0]];
+
+	  case 24:
+	    switch( gVWSp->gType ){
+	    default:
+	    case WLZ_GREY_INT:
+	      r = WLZ_CLAMP(*(gVWSp->gPtr[0].inp), 0, 255);
+	      r = gammaLUT[r];
+	      g = b = r;
+	      a = 0xff;
+	      break;
+	    case WLZ_GREY_SHORT:
+	      r = WLZ_CLAMP(*(gVWSp->gPtr[0].shp), 0, 255);
+	      r = gammaLUT[r];
+	      g = b = r;
+	      a = 0xff;
+	      break;
+	    case WLZ_GREY_UBYTE:
+	      r = *(gVWSp->gPtr[0].ubp);
+	      r = gammaLUT[r];
+	      g = b = r;
+	      a = 0xff;
+	      break;
+	    case WLZ_GREY_FLOAT:
+	      r = WLZ_CLAMP(*(gVWSp->gPtr[0].flp), 0, 255);
+	      r = gammaLUT[r];
+	      g = b = r;
+	      a = 0xff;
+	      break;
+	    case WLZ_GREY_DOUBLE:
+	      r = WLZ_CLAMP(*(gVWSp->gPtr[0].dbp), 0, 255);
+	      r = gammaLUT[r];
+	      g = b = r;
+	      a = 0xff;
+	      break;
+	    case WLZ_GREY_RGBA:
+	      r = WLZ_RGBA_RED_GET(*(gVWSp->gPtr[0].rgbp));
+	      g = WLZ_RGBA_GREEN_GET(*(gVWSp->gPtr[0].rgbp));
+	      b = WLZ_RGBA_BLUE_GET(*(gVWSp->gPtr[0].rgbp));
+	      a = WLZ_RGBA_ALPHA_GET(*(gVWSp->gPtr[0].rgbp));
+	      break;
+	    }
+	    data[rIndx] = r;
+	    data[gIndx] = g;
+	    data[bIndx] = b;
+	    data[aIndx] = a;
 	    data += 3;
+	    break;
+
+	  default:
+	    break;
 	  }
 	}
       }

@@ -70,6 +70,7 @@ void removeCurrentPaintTool(
 }
 
 void setViewScale(
+
   ThreeDViewStruct	*viewStruct,
   double		newScale,
   int			fixedX,

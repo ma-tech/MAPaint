@@ -395,6 +395,58 @@ void warpCanvasMagCb(
   return;
 }
 
+void warpCanvasMagPlusCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
+  XmPushButtonCallbackStruct
+    *cbs = (XmPushButtonCallbackStruct *) call_data;
+
+  if( winStruct->mag < 8.0 ){
+    winStruct->mag *= 2.0;
+  }
+
+  if( winStruct == &(warpGlobals.ovly) ){
+    warpSetOvlyXImages(winStruct, 0);
+    warpSetOvlyXImages(winStruct, 1);
+    warpSetOvlyXImage(winStruct);
+  }
+  else {
+    warpSetXImage(winStruct);
+  }
+  XtCallCallbacks(winStruct->canvas, XmNexposeCallback, call_data);
+
+  return;
+}
+
+void warpCanvasMagMinusCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
+  XmPushButtonCallbackStruct
+    *cbs = (XmPushButtonCallbackStruct *) call_data;
+
+  if( winStruct->mag > 0.25 ){
+    winStruct->mag /= 2.0;
+  }
+
+  if( winStruct == &(warpGlobals.ovly) ){
+    warpSetOvlyXImages(winStruct, 0);
+    warpSetOvlyXImages(winStruct, 1);
+    warpSetOvlyXImage(winStruct);
+  }
+  else {
+    warpSetXImage(winStruct);
+  }
+  XtCallCallbacks(winStruct->canvas, XmNexposeCallback, call_data);
+
+  return;
+}
+
 void warpCanvasRotCb(
   Widget		w,
   XtPointer		client_data,

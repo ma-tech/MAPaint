@@ -28,7 +28,7 @@
 *   Maintenance :  date - name - comments (Last changes at the top)	*
 ************************************************************************/
 
-#define WARP_MAX_NUM_VTXS 128
+#define WARP_MAX_NUM_VTXS 256
 
 extern Widget create_view_window_dialog(Widget topl,
 					double theta,
@@ -67,7 +67,7 @@ typedef struct {
   int			blinkTime[2];
   int			grey_invert;
 } MAPaintImageWinStruct;
-  
+
 typedef struct {
   /* general */
   ThreeDViewStruct	*view_struct;
@@ -78,6 +78,7 @@ typedef struct {
   WlzEffFormat		sgnlFileType;
   WlzObject		*sgnlObj;
   WlzObject		*sgnlProcObj;
+  WlzObject		*sgnlThreshObj;
   String		warpBibFile;
 
   /* destination canvas and affine transform */
@@ -116,8 +117,21 @@ typedef struct {
   int			meshMaxDst;
 
   /* signal processing controls */
-  int		threshRangeLow;
+  Widget	sgnlControls;
+
+  /* threshold controls */
+  WlzRGBAThresholdType	thresholdType;
+  WlzRGBAColorChannel	threshColorChannel;
+  int		threshRangeLow;		/* single threshold */
   int		threshRangeHigh;
+  int		threshRangeRGBLow[3];	/* colour threshold */
+  int		threshRangeRGBHigh[3];
+  WlzRGBAColorSpace	threshRGBSpace;	/* which colour space */
+  UINT		threshRGBCombination;	/* logical combination */
+  WlzPixelV	lowRGBPoint;	/* low-point for slice/box/ball */
+  WlzPixelV	highRGBPoint;	/* high-point for slice/box/ball */
+  double	colorEllipseEcc;	/* ball eccentricity */
+  int		lastThresholdPageNum;
 
 } MAPaintWarp2DStruct;
 
@@ -237,6 +251,16 @@ extern void warpCanvasMagCb(
   XtPointer		client_data,
   XtPointer		call_data);
 
+extern void warpCanvasMagPlusCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data);
+
+extern void warpCanvasMagMinusCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data);
+
 extern void warpCanvasRotCb(
   Widget		w,
   XtPointer		client_data,
@@ -290,6 +314,16 @@ extern void warp2DInteractDeleteAllCb(
   Widget		w,
   XtPointer		client_data,
   XtPointer		call_data);
+
+extern Widget createWarpSgnlControlsFrame(
+  Widget	parent,
+  String	name,
+  ThreeDViewStruct	*view_struct);
+
+extern Widget createWarpSgnlDisplayFrame(
+  Widget	parent,
+  String	name,
+  ThreeDViewStruct	*view_struct);
 
 /* do not add anything after this line */
 #endif /* MAWARP_H */

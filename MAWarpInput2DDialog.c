@@ -30,6 +30,13 @@
 #include <MAPaint.h>
 #include <MAWarp.h>
 
+extern void warpSetSignalDomain(void);
+
+extern void warpReadSignalPopupCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data);
+
 extern void view_canvas_highlight(
   ThreeDViewStruct	*view_struct,
   Boolean		highlight);
@@ -196,159 +203,6 @@ void warpMeshMaxDistCb(
   return;
 }
 
-void warpSgnlDomainCanvasExposeCb(
-  Widget		w,
-  XtPointer		client_data,
-  XtPointer		call_data)
-{
-  if( warpGlobals.sgnlObj ){
-    warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
-  }
-
-  return;
-}
-
-static void warpSetSignalProcObj(void)
-{
-  WlzObject	*obj1, *obj2;
-  Widget	toggle, slider;
-  Boolean	setFlg;
-  WlzErrorNum	errNum=WLZ_ERR_NONE;
-
-  if( warpGlobals.sgnlProcObj ){
-    WlzFreeObj(warpGlobals.sgnlProcObj);
-    warpGlobals.sgnlProcObj = NULL;
-  }
-
-  if( warpGlobals.sgnl.obj ){
-    if( obj1 = WlzCopyObject(warpGlobals.sgnl.obj, &errNum) ){
-      obj1 = WlzAssignObject(obj1, NULL);
-    }
-  }
-  else {
-    return;
-  }
-
-  /* normalise the data */
-  if( errNum == WLZ_ERR_NONE ){
-    if( toggle = XtNameToWidget(globals.topl,
-				"*warp_sgnl_controls_form*normalise") ){
-      XtVaGetValues(toggle, XmNset, &setFlg, NULL);
-      if( setFlg ){
-	errNum = WlzGreyNormalise(obj1);
-      }
-    }
-  }
-
-  /* Histo equalise */
-  if( errNum == WLZ_ERR_NONE ){
-    if( toggle = XtNameToWidget(globals.topl,
-				"*warp_sgnl_controls_form*histo_equalise") ){
-      XtVaGetValues(toggle, XmNset, &setFlg, NULL);
-      if( setFlg ){
-	errNum = WlzHistogramEqualiseObj(obj1, 1, 1);
-      }
-    }
-  }
-
-  /* Shade correction */
-  if( errNum == WLZ_ERR_NONE ){
-    if( toggle = XtNameToWidget(globals.topl,
-				"*warp_sgnl_controls_form*shade_correction") ){
-      XtVaGetValues(toggle, XmNset, &setFlg, NULL);
-      if( setFlg ){
-	errNum = WlzHistogramEqualiseObj(obj1, 1, 1);
-      }
-    }
-  }
-
-  /* Gauss smoothing */
-  if( errNum == WLZ_ERR_NONE ){
-    if( toggle = XtNameToWidget(globals.topl,
-				"*warp_sgnl_controls_form*gauss_smooth") ){
-      XtVaGetValues(toggle, XmNset, &setFlg, NULL);
-      if( setFlg ){
-	double	width;
-	if( slider = XtNameToWidget(globals.topl,
-				    "*warp_sgnl_controls_form*gauss_width") ){
-	  width = HGU_XmGetSliderValue(slider);
-	}
-	else {
-	  width = 3;
-	}
-	if( obj2 = WlzGauss2(obj1, width, width, 0, 0, &errNum) ){
-	  WlzFreeObj(obj1);
-	  obj1 = WlzAssignObject(obj2, NULL);
-	}
-      }
-    }
-  }
-
-  /* if anything left set the processed object */
-  if( errNum == WLZ_ERR_NONE ){
-    if( obj1 ){
-      warpGlobals.sgnlProcObj = obj1;
-    }
-  }
-  else {
-    if( obj1 ){
-      WlzFreeObj(obj1);
-    }
-    MAPaintReportWlzError(globals.topl, "warpSetSignalProcObj", errNum);
-  }
-
-  return;
-}
-
-static void warpSetSignalDomain(void)
-{
-  WlzErrorNum	errNum=WLZ_ERR_NONE;
-  WlzPixelV	threshV;
-  WlzObject	*obj, *obj1;
-
-  /* image processing sequence */
-  if( warpGlobals.sgnlProcObj == NULL ){
-    warpSetSignalProcObj();
-  }
-  if( warpGlobals.sgnlProcObj ){
-    obj1 = WlzAssignObject(warpGlobals.sgnlProcObj, &errNum);
-  }
-  else {
-    obj1 = NULL;
-  }
-
-  /* threshold the resultant image */
-  if( errNum == WLZ_ERR_NONE ){
-    threshV.type = WLZ_GREY_INT;
-    threshV.v.inv = warpGlobals.threshRangeLow;
-    if( obj1 ){
-      if( warpGlobals.sgnlObj ){
-	WlzFreeObj(warpGlobals.sgnlObj);
-      }
-      if( obj = WlzThreshold(obj1, threshV, WLZ_THRESH_HIGH, &errNum) ){
-	WlzFreeObj(obj1);
-	obj = WlzAssignObject(obj, &errNum);
-	threshV.v.inv = warpGlobals.threshRangeHigh + 1;
-	if( obj1 = WlzThreshold(obj, threshV, WLZ_THRESH_LOW, &errNum) ){
-	  warpGlobals.sgnlObj = WlzAssignObject(obj1, &errNum);
-	}
-	else {
-	  warpGlobals.sgnlObj = NULL;
-	}
-	WlzFreeObj(obj);
-      }
-      else {
-	WlzFreeObj(obj1);
-	warpGlobals.sgnlObj = NULL;
-      }
-    }
-  }
-
-  if( errNum != WLZ_ERR_NONE ){
-    MAPaintReportWlzError(globals.topl, "warpSetSignalDomain", errNum);
-  }
-  return;
-}
 
 void recalcWarpProcObjCb(
   Widget	w,
@@ -359,35 +213,9 @@ void recalcWarpProcObjCb(
     WlzFreeObj(warpGlobals.sgnlProcObj);
     warpGlobals.sgnlProcObj = NULL;
   }
-
-  /* set the signal domain */
-  if( warpGlobals.sgnlObj ){
-    warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
-  }
-  warpSetSignalDomain();
-  if( warpGlobals.sgnlObj ){
-    warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
-  }
-
-  return;
-}
-
-void warpThreshLowCb(
-  Widget		w,
-  XtPointer		client_data,
-  XtPointer		call_data)
-{
-  Widget	slider = w;
-  
-  /* get the parent slider */
-  while( strcmp(XtName(slider), "thresh_range_low") ){
-    if( (slider = XtParent(slider)) == NULL )
-      return;
-  }
-  warpGlobals.threshRangeLow = (int) HGU_XmGetSliderValue( slider );
-  if( warpGlobals.threshRangeLow > warpGlobals.threshRangeHigh ){
-    warpGlobals.threshRangeLow = warpGlobals.threshRangeHigh;
-    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeLow);
+  if( warpGlobals.sgnlThreshObj ){
+    WlzFreeObj(warpGlobals.sgnlThreshObj);
+    warpGlobals.sgnlThreshObj = NULL;
   }
 
   /* set the signal domain */
@@ -402,190 +230,6 @@ void warpThreshLowCb(
   return;
 }
 
-void warpThreshHighCb(
-  Widget		w,
-  XtPointer		client_data,
-  XtPointer		call_data)
-{
-  Widget	slider = w;
-    
-  /* get the parent slider */
-  while( strcmp(XtName(slider), "thresh_range_high") ){
-    if( (slider = XtParent(slider)) == NULL )
-      return;
-  }
-  warpGlobals.threshRangeHigh = (int) HGU_XmGetSliderValue( slider );
-  if( warpGlobals.threshRangeLow > warpGlobals.threshRangeHigh ){
-    warpGlobals.threshRangeHigh = warpGlobals.threshRangeLow;
-    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeHigh);
-  }
-
-  /* set the signal domain */
-  if( warpGlobals.sgnlObj ){
-    warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
-  }
-  warpSetSignalDomain();
-  if( warpGlobals.sgnlObj ){
-    warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
-  }
-  XFlush(XtDisplayOfObject(w));
-
-  return;
-}
-
-
-void warpResetCWDCb(
-  Widget		w,
-  XtPointer		client_data,
-  XtPointer		call_data)
-{
-  XmFileSelectionBoxCallbackStruct *cbs =
-    (XmFileSelectionBoxCallbackStruct *) call_data;
-  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
-  Widget	toggle;
-  String	dirStr;
-  Boolean	setFlg;
-
-  if( toggle = XtNameToWidget(w, "*.reset_cwd") ){
-    XtVaGetValues(toggle, XmNset, &setFlg, NULL);
-    if( setFlg == True ){
-      if( XmStringGetLtoR(cbs->dir, XmSTRING_DEFAULT_CHARSET, &dirStr) ){
-	if( chdir((const char *) dirStr) ){
-	  /* report an error */
-	  HGU_XmUserError(view_struct->dialog,
-			  "Read signal image callback:\n"
-			  "  Failed to change current working\n"
-			  "  directory (folder). For the next\n"
-			  "  save please check the domain file\n"
-			  "  names.",
-			  XmDIALOG_FULL_APPLICATION_MODAL);
-	}
-	XtFree(dirStr);
-      }
-    }
-  }
-
-  return;
-}
-
-void warpReadSignalCb(
-  Widget		w,
-  XtPointer		client_data,
-  XtPointer		call_data)
-{
-  XmFileSelectionBoxCallbackStruct *cbs =
-    (XmFileSelectionBoxCallbackStruct *) call_data;
-  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
-  WlzObject		*obj;
-  FILE			*fp;
-  WlzErrorNum		errNum=WLZ_ERR_NONE;
-
-  /* check we can open the file and save the filename */
-  if( (fp = HGU_XmGetFilePointer(view_struct->dialog, cbs->value,
-				 cbs->dir, "r")) == NULL ){
-    return;
-  }
-  if( warpGlobals.sgnlFile ){
-    AlcFree(warpGlobals.sgnlFile);
-  }
-  warpGlobals.sgnlFile = HGU_XmGetFileStr(view_struct->dialog, cbs->value,
-				 cbs->dir);
-  warpGlobals.sgnlFileType = WLZEFF_FORMAT_WLZ;
-
-  /* read the new signal object - ready to extend to other types */
-  obj = WlzEffReadObj(fp, NULL, WLZEFF_FORMAT_WLZ, 0, &errNum);
-  fclose(fp);
-
-  /* check the object */
-  if( errNum == WLZ_ERR_NONE ){
-    if( obj ){
-      switch( obj->type ){
-      case WLZ_2D_DOMAINOBJ:
-	/* set the source object */
-	if( warpGlobals.sgnl.obj ){
-	  WlzFreeObj(warpGlobals.sgnl.obj);
-	}
-	warpGlobals.sgnl.obj = WlzAssignObject(obj, &errNum);
-	warpSetXImage(&(warpGlobals.sgnl));
-	warpCanvasExposeCb(warpGlobals.sgnl.canvas,
-			   (XtPointer) &(warpGlobals.sgnl),
-			   call_data);
-
-	/* reset the processed object and signal domain */
-	if( warpGlobals.sgnlProcObj ){
-	  WlzFreeObj( warpGlobals.sgnlProcObj );
-	  warpGlobals.sgnlProcObj = NULL;
-	  if( warpGlobals.sgnlObj ){
-	    warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
-	  }
-	  warpSetSignalDomain();
-	  if( warpGlobals.sgnlObj ){
-	    warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
-	  }
-	}
-	break;
-
-      default:
-	WlzFreeObj(obj);
-	HGU_XmUserError(globals.topl,
-			"Read Signal Object:\n"
-			"    Wrong object type, please select\n"
-			"    another image file.",
-			XmDIALOG_FULL_APPLICATION_MODAL);
-	break;
-      }
-    }
-  }
-
-  if( errNum != WLZ_ERR_NONE ){
-    MAPaintReportWlzError(globals.topl, "warpReadSignalCb", errNum);
-  }
-  return;
-}
-
-void warpReadSignalPopupCb(
-  Widget		w,
-  XtPointer		client_data,
-  XtPointer		call_data)
-{
-  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
-  Arg		arg[1];
-  Visual	*visual;
-  Widget	toggle;
-
-  /* get the visual explicitly */
-  visual = HGU_XmWidgetToVisual(globals.topl);
-  XtSetArg(arg[0], XmNvisual, visual);
-
-  if( warp_read_sgnl_dialog == NULL ){
-    warp_read_sgnl_dialog =
-      XmCreateFileSelectionDialog(view_struct->dialog,
-				  "warp_read_sgnl_dialog", arg, 1);
-
-    /* add a check box to reset the current working directory */
-    toggle = XtVaCreateManagedWidget("reset_cwd", xmToggleButtonGadgetClass,
-				     warp_read_sgnl_dialog,
-				     XmNset,	True,
-				     NULL);
-
-    XtAddCallback(warp_read_sgnl_dialog, XmNokCallback,
-		  warpReadSignalCb, client_data);
-    XtAddCallback(warp_read_sgnl_dialog, XmNokCallback,
-		  warpResetCWDCb, client_data);
-    XtAddCallback(warp_read_sgnl_dialog, XmNokCallback,
-		  PopdownCallback, NULL);
-    XtAddCallback(warp_read_sgnl_dialog, XmNcancelCallback, 
-		  PopdownCallback, NULL);
-    XtAddCallback(warp_read_sgnl_dialog, XmNmapCallback,
-		  FSBPopupCallback, NULL);
-  }
-
-  XtManageChild(warp_read_sgnl_dialog);
-  PopupCallback(w, (XtPointer) XtParent(warp_read_sgnl_dialog), NULL);
-  XtCallCallbacks(warp_read_sgnl_dialog, XmNmapCallback, call_data);
-
-  return;
-}
 
 void warpReadSourceCb(
   Widget		w,
@@ -602,9 +246,11 @@ void warpReadSourceCb(
   WlzErrorNum		errNum=WLZ_ERR_NONE;
   Widget		scrw;
 
-  /* check we can open the file and save the filename */
-  if( (fp = HGU_XmGetFilePointer(view_struct->dialog, cbs->value,
-				 cbs->dir, "r")) == NULL ){
+  /* check we can get the object */
+  if( (obj = WlzXmReadExtFFObject(warp_read_src_dialog,
+				  cbs,
+				  &(warpGlobals.srcFileType),
+				  &errNum)) == NULL ){
     return;
   }
   if( warpGlobals.srcFile ){
@@ -612,11 +258,6 @@ void warpReadSourceCb(
   }
   warpGlobals.srcFile = HGU_XmGetFileStr(view_struct->dialog, cbs->value,
 				 cbs->dir);
-  warpGlobals.srcFileType = WLZEFF_FORMAT_WLZ;
-
-  /* read the new source object - ready to extend to other types */
-  obj = WlzEffReadObj(fp, NULL, WLZEFF_FORMAT_WLZ, 0, &errNum);
-  fclose(fp);
 
   /* check the object */
   if( errNum == WLZ_ERR_NONE ){
@@ -691,8 +332,8 @@ void warpReadSourceCb(
 	WlzFreeObj(obj);
 	HGU_XmUserError(globals.topl,
 			"Read Source Object:\n"
-			"    Wrong object type, please select\n"
-			"    another image file.",
+			"    Wrong object type, must be 2D,\n"
+			"    please select another image file.",
 			XmDIALOG_FULL_APPLICATION_MODAL);
 	break;
       }
@@ -711,26 +352,13 @@ void warpReadSourcePopupCb(
   XtPointer		call_data)
 {
   ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
-  Arg		arg[1];
-  Visual	*visual;
 
-  /* get the visual explicitly */
-  visual = HGU_XmWidgetToVisual(globals.topl);
-  XtSetArg(arg[0], XmNvisual, visual);
-
+  /* now use generic Ext format dialog */
   if( warp_read_src_dialog == NULL ){
-    warp_read_src_dialog =
-      XmCreateFileSelectionDialog(view_struct->dialog,
-				  "warp_read_src_dialog", arg, 1);
-
-    XtAddCallback(warp_read_src_dialog, XmNokCallback,
-		  warpReadSourceCb, client_data);
-    XtAddCallback(warp_read_src_dialog, XmNokCallback,
-		  PopdownCallback, NULL);
-    XtAddCallback(warp_read_src_dialog, XmNcancelCallback, 
-		  PopdownCallback, NULL);
-    XtAddCallback(warp_read_src_dialog, XmNmapCallback,
-		  FSBPopupCallback, NULL);
+    warp_read_src_dialog = WlzXmCreateExtFFObjectFSB(view_struct->dialog,
+						     "warp_read_src_dialog",
+						     warpReadSourceCb,
+						     client_data);
   }
 
   XtManageChild(warp_read_src_dialog);
@@ -772,8 +400,6 @@ static void warpSetupCb(
 
   if( cbs->set == True ){
     if( paint_key == view_struct ){
-      XSync(XtDisplay(view_struct->canvas), False);
-/*      XtUngrabPointer(widget, CurrentTime);*/
       if( !warpGlobals.warp2DInteractDialog ){
 	warpGlobals.warp2DInteractDialog =
 	  create2DWarpDialog(dialog, view_struct);
@@ -844,15 +470,15 @@ static void warpImportSignalCb(
     XtVaSetValues(warp_input_2d_frame,
 		  XmNrightAttachment, XmATTACH_NONE, NULL);
 
-    /* adjust width and manage the signal frame */
-    XtVaSetValues(shell, XmNwidth, shellWidth+400, NULL);
-    XtManageChild(warp_sgnl_controls_frame);
-    XtManageChild(warp_sgnl_frame);
-
     /* reset widths */
     XtVaSetValues(section_frame, XmNwidth, sectionWidth, NULL);
     XtVaSetValues(controls_frame, XmNwidth, sectionWidth, NULL);
     XtVaSetValues(warp_input_2d_frame, XmNwidth, sectionWidth, NULL);
+
+    /* adjust width and manage the signal frame */
+    XtVaSetValues(shell, XmNwidth, shellWidth+500, NULL);
+    XtManageChild(warp_sgnl_controls_frame);
+    XtManageChild(warp_sgnl_frame);
 
   }
 
@@ -869,7 +495,8 @@ static void warpControlsCb(
   Widget		shell, dialog, cntrlFrame, cntrlForm, magFncForm;
   Widget		warp_sgnl_frame;
   int			wasManaged;
-  Dimension		shellHeight, cntrlFormHeight;
+  Dimension		shellHeight, shellWidth, viewFrameWidth;
+  Dimension		cntrlFormHeight, cntrlFormWidth;
   WlzCompoundArray	*cobj;
 
   /* get the section viewer frames and unmanage everything */
@@ -1075,64 +702,6 @@ WlzObject *mapaintWarpObj(
   return obj1;
 }
 
-void mapWarpDataCb(
-  Widget	w,
-  XtPointer	client_data,
-  XtPointer	call_data)
-{
-  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
-  WlzObject		*obj, *tmpObj;
-  WlzErrorNum		errNum=WLZ_ERR_NONE;
-  FILE			*fp;
-
-  /* check for signal domain and warp transform */
-  if((warpGlobals.sgnlObj == NULL)){
-    return;
-  }
-
-  /* shift the signal object for the -ve bounds-obj mesh bug */
-  if( tmpObj = WlzAssignObject(
-    WlzShiftObject(warpGlobals.sgnlObj, warpGlobals.srcXOffset,
-		   warpGlobals.srcYOffset, 0, &errNum), NULL) ){
-		       
-    /* transform the domain and add to current domain */
-    if( obj = mapaintWarpObj(tmpObj,
-			     WLZ_INTERPOLATION_NEAREST) ){
-      pushUndoDomains(view_struct);
-      setDomainIncrement(obj, view_struct, globals.current_domain, 0);
-      WlzFreeObj(obj);
-    }
-    WlzFreeObj(tmpObj);
-  }
-
-  if( errNum != WLZ_ERR_NONE ){
-    MAPaintReportWlzError(globals.topl, "mapWarpDataCb", errNum);
-  }
-  return;
-}
-
-void undoMappedWarpDataCb(
-  Widget	w,
-  XtPointer	client_data,
-  XtPointer	call_data)
-{
-  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
-
-  UndoDomains(view_struct);
-  return;
-}
-
-void installMappedWarpDataCb(
-  Widget	w,
-  XtPointer	client_data,
-  XtPointer	call_data)
-{
-  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
-
-  installViewDomains(view_struct);
-  return;
-}
-
 static  void warp2DInteractDismissCb(
   Widget	widget,
   XtPointer	client_data,
@@ -1168,7 +737,7 @@ void warpCanvasMotionEventHandler(
   return;
 }
 
-static Widget createWarpDisplayFrame(
+Widget createWarpDisplayFrame(
   Widget	parent,
   String	name,
   Visual	*visual,
@@ -1195,7 +764,11 @@ static Widget createWarpDisplayFrame(
   /* create the buttons */
   button = XtVaCreateManagedWidget("b_1", xmPushButtonWidgetClass,
 				   title, NULL);
+  button = XtVaCreateWidget("b_1a", xmPushButtonWidgetClass,
+				   title, NULL);
   button = XtVaCreateManagedWidget("b_2", xmPushButtonWidgetClass,
+				   title, NULL);
+  button = XtVaCreateWidget("b_2a", xmPushButtonWidgetClass,
 				   title, NULL);
   button = XtVaCreateManagedWidget("b_3", xmPushButtonWidgetClass,
 				   title, NULL);
@@ -1633,10 +1206,11 @@ static Widget create2DWarpDialog(
   warpDisplayFramePopupItemsP[0].callback_data = &warpGlobals.dst;
   warpDisplayFramePopupItemsP[1].callback_data = &warpGlobals.dst;
   warpDisplayFramePopupItemsP[2].callback_data = &warpGlobals.dst;
-  warpGlobals.dst.popup = HGU_XmBuildMenu(globals.topl,
+  warpGlobals.dst.popup = HGU_XmBuildMenu(warpGlobals.dst.canvas,
 					  XmMENU_POPUP, "warp_dst_popup",
 					  '\0', XmTEAR_OFF_DISABLED,
 					  warpDisplayFramePopupItemsP);
+
   /*warpGlobals.dst.popup = NULL;*/
   warpGlobals.dst.ximage = NULL;
   warpGlobals.dst.mag = 1.0;
@@ -1654,7 +1228,11 @@ static Widget create2DWarpDialog(
 
   /* button callbacks */
   button = XtNameToWidget(child, "*b_1");
-  XtAddCallback(button, XmNactivateCallback, warpCanvasMagCb,
+  XtAddCallback(button, XmNactivateCallback, warpCanvasMagPlusCb,
+		(XtPointer) &(warpGlobals.dst));
+  button = XtNameToWidget(child, "*b_1a");
+  XtManageChild(button);
+  XtAddCallback(button, XmNactivateCallback, warpCanvasMagMinusCb,
 		(XtPointer) &(warpGlobals.dst));
   button = XtNameToWidget(child, "*b_2");
   XtAddCallback(button, XmNactivateCallback, warpCanvasRotCb,
@@ -1689,7 +1267,7 @@ static Widget create2DWarpDialog(
   warpDisplayFramePopupItemsP[0].callback_data = &warpGlobals.src;
   warpDisplayFramePopupItemsP[1].callback_data = &warpGlobals.src;
   warpDisplayFramePopupItemsP[2].callback_data = &warpGlobals.src;
-  warpGlobals.src.popup = HGU_XmBuildMenu(globals.topl,
+  warpGlobals.src.popup = HGU_XmBuildMenu(warpGlobals.src.canvas,
 					  XmMENU_POPUP, "warp_src_popup",
 					  '\0', XmTEAR_OFF_DISABLED,
 					  warpDisplayFramePopupItemsP);
@@ -1709,7 +1287,11 @@ static Widget create2DWarpDialog(
 
   /* button callbacks */
   button = XtNameToWidget(child, "*b_1");
-  XtAddCallback(button, XmNactivateCallback, warpCanvasMagCb,
+  XtAddCallback(button, XmNactivateCallback, warpCanvasMagPlusCb,
+		(XtPointer) &(warpGlobals.src));
+  button = XtNameToWidget(child, "*b_1a");
+  XtManageChild(button);
+  XtAddCallback(button, XmNactivateCallback, warpCanvasMagMinusCb,
 		(XtPointer) &(warpGlobals.src));
   button = XtNameToWidget(child, "*b_2");
   XtAddCallback(button, XmNactivateCallback, warpCanvasRotCb,
@@ -1748,7 +1330,7 @@ static Widget create2DWarpDialog(
   warpOvlyDisplayFramePopupItemsP[4].callback_data = &warpGlobals.ovly;
   warpOvlyDisplayFramePopupItemsP[5].callback_data = &warpGlobals.ovly;
   warpGlobals.ovly.popup = 
-    HGU_XmBuildMenu(globals.topl,
+    HGU_XmBuildMenu(warpGlobals.ovly.canvas,
 		    XmMENU_POPUP,
 		    "warp_ovly_popup",
 		    '\0', XmTEAR_OFF_DISABLED,
@@ -1766,7 +1348,11 @@ static Widget create2DWarpDialog(
 
   /* button callbacks */
   button = XtNameToWidget(child, "*b_1");
-  XtAddCallback(button, XmNactivateCallback, warpCanvasMagCb,
+  XtAddCallback(button, XmNactivateCallback, warpCanvasMagPlusCb,
+		(XtPointer) &(warpGlobals.ovly));
+  button = XtNameToWidget(child, "*b_1a");
+  XtManageChild(button);
+  XtAddCallback(button, XmNactivateCallback, warpCanvasMagMinusCb,
 		(XtPointer) &(warpGlobals.ovly));
   button = XtNameToWidget(child, "*b_2");
   XtAddCallback(button, XmNactivateCallback, warpCanvasRotCb,
@@ -1862,6 +1448,7 @@ Widget createWarpInput2DDialog(
   Widget	control, frame, form, title, controls_frame, section_frame;
   Widget	option_menu, button, buttons, radio_box, label, widget;
   Widget	toggle, slider, scale, sgnl_controls;
+  Widget	notebook, page;
   float		fval, fmin, fmax;
   Visual	*visual;
   int		i;
@@ -2030,139 +1617,18 @@ Widget createWarpInput2DDialog(
 		view_struct);
 
   /* create the signal controls frame */
-  sgnl_controls = XtVaCreateWidget("warp_sgnl_controls_frame",
-				   xmFrameWidgetClass, control,
-				   XmNleftAttachment,	XmATTACH_WIDGET,
-				   XmNleftWidget,	section_frame,
-				   XmNrightAttachment,	XmATTACH_FORM,
-				   XmNbottomAttachment,	XmATTACH_FORM,
-				   NULL);
-  title = XtVaCreateManagedWidget("warp_sgnl_frame_title",
-				  xmLabelGadgetClass, sgnl_controls,
-				  XmNchildType, XmFRAME_TITLE_CHILD,
-				  NULL);
-  form = XtVaCreateManagedWidget("warp_sgnl_controls_form",
-				 xmFormWidgetClass, 	sgnl_controls,
-				 XmNchildType, XmFRAME_WORKAREA_CHILD,
-				 NULL);
-  /* toggles for the image processing sequence */
-  toggle = XtVaCreateManagedWidget("normalise",
-				   xmToggleButtonGadgetClass, form,
-				   XmNleftAttachment,	XmATTACH_FORM,
-				   XmNtopAttachment,	XmATTACH_FORM,
-				   NULL);
-  XtAddCallback(toggle, XmNvalueChangedCallback, recalcWarpProcObjCb, NULL);
-  widget = toggle;
-  toggle = XtVaCreateManagedWidget("histo_equalise",
-				   xmToggleButtonGadgetClass, form,
-				   XmNleftAttachment,	XmATTACH_WIDGET,
-				   XmNleftWidget,	toggle,
-				   XmNtopAttachment,	XmATTACH_FORM,
-				   NULL);
-  XtAddCallback(toggle, XmNvalueChangedCallback, recalcWarpProcObjCb, NULL);
-  toggle = XtVaCreateManagedWidget("shade_correction",
-				   xmToggleButtonGadgetClass, form,
-				   XmNleftAttachment,	XmATTACH_WIDGET,
-				   XmNleftWidget,	toggle,
-				   XmNtopAttachment,	XmATTACH_FORM,
-				   NULL);
-  XtAddCallback(toggle, XmNvalueChangedCallback, recalcWarpProcObjCb, NULL);
-
-  /* gauss smoothing toggle and width parameter */
-  toggle = XtVaCreateManagedWidget("gauss_smooth",
-				   xmToggleButtonGadgetClass, form,
-				   XmNleftAttachment,	XmATTACH_FORM,
-				   XmNtopAttachment,	XmATTACH_WIDGET,
-				   XmNtopWidget,	widget,
-				   NULL);
-  XtAddCallback(toggle, XmNvalueChangedCallback, recalcWarpProcObjCb, NULL);
-  fval = 5.0;
-  slider = HGU_XmCreateHorizontalSlider("gauss_width", form,
-					fval, 0.5, 20.0, 1,
-					recalcWarpProcObjCb, NULL);
-  XtVaSetValues(slider,
-		XmNtopAttachment,	XmATTACH_WIDGET,
-		XmNtopWidget,		widget,
+  sgnl_controls = createWarpSgnlControlsFrame(control, "warp_sgnl_controls_frame",
+					      view_struct);
+  XtVaSetValues(sgnl_controls,
 		XmNleftAttachment,	XmATTACH_WIDGET,
-		XmNleftWidget,		toggle,
+		XmNleftWidget,		section_frame,
 		XmNrightAttachment,	XmATTACH_FORM,
+		XmNbottomAttachment,	XmATTACH_FORM,
 		NULL);
-  widget = slider;
 
-  /* defaults for the threshold range */
-  warpGlobals.threshRangeLow = 256;
-  warpGlobals.threshRangeHigh = 256;
-
-  fval = warpGlobals.threshRangeLow;
-  slider = HGU_XmCreateHorizontalSlider("thresh_range_low", form,
-					fval, 0, 256, 0,
-					warpThreshLowCb, NULL);
-  XtVaSetValues(slider,
-		XmNtopAttachment,	XmATTACH_WIDGET,
-		XmNtopWidget,		widget,
-		XmNleftAttachment,	XmATTACH_FORM,
-		XmNrightAttachment,	XmATTACH_FORM,
-		NULL);
-  widget = slider;
-  scale = XtNameToWidget(slider, "*scale");
-  XtAddCallback(scale, XmNdragCallback, warpThreshLowCb, NULL);
-
-  fval = warpGlobals.threshRangeHigh;
-  slider = HGU_XmCreateHorizontalSlider("thresh_range_high", form,
-					fval, 0, 256, 0,
-					warpThreshHighCb, NULL);
-  XtVaSetValues(slider,
-		XmNtopAttachment,	XmATTACH_WIDGET,
-		XmNtopWidget,		widget,
-		XmNleftAttachment,	XmATTACH_FORM,
-		XmNrightAttachment,	XmATTACH_FORM,
-		NULL);
-  widget = slider;
-  scale = XtNameToWidget(slider, "*scale");
-  XtAddCallback(scale, XmNdragCallback, warpThreshHighCb, NULL);
-
-
-  /* a buttons to map the data */
-  button = XtVaCreateManagedWidget("map_it",
-				   xmPushButtonGadgetClass, form,
-				   XmNtopAttachment,	XmATTACH_WIDGET,
-				   XmNtopWidget,	widget,
-				   XmNleftAttachment,	XmATTACH_POSITION,
-				   XmNleftPosition,	3,
-				   XmNrightAttachment,	XmATTACH_POSITION,
-				   XmNrightPosition,	30,
-				   NULL);
-  XtAddCallback(button, XmNactivateCallback,
-		mapWarpDataCb, (XtPointer) view_struct);
-
-  button = XtVaCreateManagedWidget("undo_map",
-				   xmPushButtonGadgetClass, form,
-				   XmNtopAttachment,	XmATTACH_WIDGET,
-				   XmNtopWidget,	widget,
-				   XmNleftAttachment,	XmATTACH_POSITION,
-				   XmNleftPosition,	36,
-				   XmNrightAttachment,	XmATTACH_POSITION,
-				   XmNrightPosition,	63,
-				   NULL);
-  XtAddCallback(button, XmNactivateCallback,
-		undoMappedWarpDataCb, (XtPointer) view_struct);
- 
-  button = XtVaCreateManagedWidget("install_data",
-				   xmPushButtonGadgetClass, form,
-				   XmNtopAttachment,	XmATTACH_WIDGET,
-				   XmNtopWidget,	widget,
-				   XmNleftAttachment,	XmATTACH_POSITION,
-				   XmNleftPosition,	69,
-				   XmNrightAttachment,	XmATTACH_POSITION,
-				   XmNrightPosition,	97,
-				   XmNsensitive,	False,
-				   NULL);
-  XtAddCallback(button, XmNactivateCallback,
-		installMappedWarpDataCb, (XtPointer) view_struct);
- 
   /* create the signal image frame and process controls -
      unmanaged for now */
-  widget = createWarpDisplayFrame(control, "warp_sgnl_frame", visual, 24);
+  widget = createWarpSgnlDisplayFrame(control, "warp_sgnl_frame", view_struct);
   XtVaSetValues(widget,
 		XmNtopAttachment,	XmATTACH_FORM,
 		XmNbottomAttachment,	XmATTACH_WIDGET,
@@ -2171,39 +1637,6 @@ Widget createWarpInput2DDialog(
 		XmNleftWidget,		section_frame,
 		XmNrightAttachment,	XmATTACH_FORM,
 		NULL);
-  warpGlobals.sgnl.canvas = XtNameToWidget(widget, "*canvas");
-  warpGlobals.sgnl.ximage = NULL;
-  warpGlobals.sgnl.mag = 1.0;
-  warpGlobals.sgnl.rot = 0;
-  warpGlobals.sgnl.transpose = 0;
-  XtUnmanageChild(widget);
-
-  /* canvas callbacks and event handler */
-  XtAddCallback(warpGlobals.sgnl.canvas, XmNexposeCallback,
-		warpCanvasExposeCb, (XtPointer) &(warpGlobals.sgnl));
-  XtAddCallback(warpGlobals.sgnl.canvas, XmNexposeCallback,
-		warpSgnlDomainCanvasExposeCb, (XtPointer) &(warpGlobals.sgnl));
-
-  /* button callbacks */
-  button = XtNameToWidget(widget, "*b_1");
-  XtAddCallback(button, XmNactivateCallback, warpReadSignalPopupCb,
-		view_struct);
-  button = XtNameToWidget(widget, "*b_2");
-  XtAddCallback(button, XmNactivateCallback, warpCanvasMagCb,
-		(XtPointer) &(warpGlobals.sgnl));
-  button = XtNameToWidget(widget, "*b_3");
-  XtAddCallback(button, XmNactivateCallback, warpInvertGreyCb,
-		(XtPointer) &(warpGlobals.sgnl));
-  button = XtNameToWidget(widget, "*b_4");
-  XtUnmanageChild(button);
-  button = XtNameToWidget(widget, "*b_5");
-  XtUnmanageChild(button);
-  button = XtNameToWidget(widget, "*b_6");
-  XtAddCallback(button, XmNactivateCallback, warpIncrGammaCb,
-		(XtPointer) &(warpGlobals.sgnl));
-  button = XtNameToWidget(widget, "*b_7");
-  XtAddCallback(button, XmNactivateCallback, warpDecrGammaCb,
-		(XtPointer) &(warpGlobals.sgnl));
 
   /* modify attachments for the section and orientation controls frame */
   XtVaSetValues(controls_frame,
@@ -2224,6 +1657,7 @@ Widget createWarpInput2DDialog(
   warpGlobals.sgnlObj = NULL;
   warpGlobals.sgnlFileType = WLZEFF_FORMAT_NONE;
   warpGlobals.sgnlProcObj = NULL;
+  warpGlobals.sgnlThreshObj = NULL;
   warpGlobals.warpBibFile = NULL;
   warpGlobals.dst.obj = NULL;
   warpGlobals.src.obj = NULL;
@@ -2268,6 +1702,23 @@ Widget createWarpInput2DDialog(
   warpGlobals.meshTr = NULL;
   warpGlobals.meshErrFlg = 0;
   warpGlobals.meshMthd = WLZ_MESH_GENMETHOD_GRADIENT;
+
+  warpGlobals.thresholdType = WLZ_RGBA_THRESH_NONE;
+  warpGlobals.threshColorChannel = WLZ_RGBA_CHANNEL_GREY;
+  warpGlobals.threshRangeLow = 256;
+  warpGlobals.threshRangeHigh = 256;
+  for(i=0; i < 3; i++){
+    warpGlobals.threshRangeRGBLow[i] = 255;
+    warpGlobals.threshRangeRGBHigh[i] = 255;
+  }
+  warpGlobals.threshRGBSpace = WLZ_RGBA_SPACE_GREY;
+  warpGlobals.threshRGBCombination = 0;
+  warpGlobals.lowRGBPoint.type = WLZ_GREY_RGBA;
+  WLZ_RGBA_RGBA_SET(warpGlobals.lowRGBPoint.v.rgbv,255,255,255,255);
+  warpGlobals.highRGBPoint.type = WLZ_GREY_RGBA;
+  WLZ_RGBA_RGBA_SET(warpGlobals.highRGBPoint.v.rgbv,255,255,255,255);
+/*  warpGlobals.colorEllipseEcc = 1.0;*/
+  warpGlobals.lastThresholdPageNum = -1;
 
   return( dialog );
 }

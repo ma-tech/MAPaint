@@ -47,6 +47,7 @@ CSOURCES		= \
 			MAWarpInputInteractUtils.c \
 			MAWarpInputPaintingCb.c \
 			MAWarpInputXUtils.c \
+			MAWarpSignalProc.c \
 			MAPMSnake.c \
 			NalgsDPSearch.c \
 			anatomy_menu.c \
@@ -73,7 +74,8 @@ CSOURCES		= \
 			view_menu.c \
 			view_utils.c \
 			view2DPaintingCb.c \
-			viewFixedPointUtils.c
+			viewFixedPointUtils.c \
+			WlzXmExtFF_FSBUtils.c
 
 ifeq ($(UNIXTYPE), LINUX2)
 CSOURCES		= \
@@ -95,6 +97,7 @@ CSOURCES		= \
 			MAWarpInputInteractUtils.c \
 			MAWarpInputPaintingCb.c \
 			MAWarpInputXUtils.c \
+			MAWarpSignalProc.c \
 			MAPMSnake.c \
 			NalgsDPSearch.c \
 			anatomy_menu.c \
@@ -120,7 +123,8 @@ CSOURCES		= \
 			view_menu.c \
 			view_utils.c \
 			view2DPaintingCb.c \
-			viewFixedPointUtils.c
+			viewFixedPointUtils.c \
+			WlzXmExtFF_FSBUtils.c
 endif
 ifeq ($(UNIXTYPE), DARWIN)
 CSOURCES		= \
@@ -142,6 +146,7 @@ CSOURCES		= \
 			MAWarpInputInteractUtils.c \
 			MAWarpInputPaintingCb.c \
 			MAWarpInputXUtils.c \
+			MAWarpSignalProc.c \
 			MAPMSnake.c \
 			NalgsDPSearch.c \
 			anatomy_menu.c \
@@ -167,7 +172,8 @@ CSOURCES		= \
 			view_menu.c \
 			view_utils.c \
 			view2DPaintingCb.c \
-			viewFixedPointUtils.c
+			viewFixedPointUtils.c \
+			WlzXmExtFF_FSBUtils.c
 endif
 
 # List of all header files that are available outside of either this archive
@@ -249,7 +255,6 @@ LIBDIRS			= . \
 endif
 ifeq ($(UNIXTYPE), DARWIN)
 LIBDIRS			= . \
-			  $(SYSLIB) \
 			../../Core/libAlc \
 			../../Core/libbibfile \
 			../../Core/libAlg \
@@ -316,18 +321,18 @@ INCLUDES_ALL		= $(sort $(INCLUDES_PUB) $(INCLUDES_PRV))
 OBJECTS			= $(CSOURCES:%.c=%.o)
 
 # List of libraries to link (modify as required).
-EXTRA_LIBS		= tiff m gen
+EXTRA_LIBS		= tiff jpeg m gen
 X11LIBS         	= Xt Xmu X11 Xext
 ifeq 		($(UNIXTYPE), SUNOS5)
-EXTRA_LIBS		= tiff m gen socket nsl
+EXTRA_LIBS		= tiff jpeg m gen socket nsl
 X11LIBS         	= Xt Xmu X11  Xi Xext
 endif
 ifeq	 	($(UNIXTYPE), LINUX2)
-EXTRA_LIBS		= tiff m SM ICE dl pthread
+EXTRA_LIBS		= tiff jpeg m SM ICE dl pthread
 X11LIBS         	= Xt Xmu Xp X11 Xext
 endif
 ifeq	 	($(UNIXTYPE), DARWIN)
-EXTRA_LIBS		= langinfo tiff m
+EXTRA_LIBS		= langinfo tiff jpeg m
 X11LIBS         	= Xt X11 Xmu Xp
 endif
 
