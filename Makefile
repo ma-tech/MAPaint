@@ -261,8 +261,8 @@ LIBRARIES		= hguGL HguXm HguX Wlz bibfile Alg Alc \
 			$(OPENGLLIBS) $(MOTIFLIBS) $(X11LIBS) $(EXTRA_LIBS)
 
 # Basic flags for controlling compilation (modify as required).
-CDEBUG			= -g
-COPTIMISE		=
+#CDEBUG			= -g
+#COPTIMISE		=
 
 DEFINES			= -D$(UNIXTYPE) $(UNIXFLAGS) -D__EXTENSIONS__
 CPPFLAGS		= $(INCDIRS:%=-I%) $(DEFINES)
@@ -435,11 +435,6 @@ endif
 #			$(OS_POSTLINK) $@
 
 $(OBJECTS):		%.o: %.c $(INCLUDES_PRV)
-ifeq ($(UNIXTYPE), SUNOS5)
-			$(CC) -v  -c -o $@ $(CPPFLAGS) $(CFLAGS) $<
-else
-			$(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $<
-endif
 
 # Targets to create executables, just a dependencies (modify as required).
 MAPaint.o:		MAPaint.c MAPaintResources.h MAPaintHelpResource.h $(INCLUDES_ALL)

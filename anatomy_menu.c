@@ -254,7 +254,7 @@ MenuItem *createAnatomyMenuItems(
     if((stat(newDirStr, &statBuf) == -1) ||
 #ifdef LINUX2 /* don't understand why I need to do this */
        ((statBuf.st_mode&__S_IFMT) != __S_IFDIR) ){
-#elif
+#else
        ((statBuf.st_mode&S_IFMT) != S_IFDIR) ){
 #endif /* LINUX2 */
       /* its an ordinary file - check for object or info file */
@@ -385,7 +385,7 @@ MenuItem *createAnatomyMenuItems(
     if((stat(newDirStr, &statBuf) == -1) ||
 #ifdef LINUX2 /* don't understand why I need to do this */
        ((statBuf.st_mode&__S_IFMT) != __S_IFDIR) ){
-#elif
+#else
        ((statBuf.st_mode&S_IFMT) != S_IFDIR) ){
 #endif /* LINUX2 */
       /* its an ordinary file */
@@ -467,7 +467,7 @@ void set_anatomy_menu(
       if((stat(dirStr, &statBuf) == -1) ||
 #ifdef LINUX2 /* don't understand why I need to do this */
 	 ((statBuf.st_mode&__S_IFMT) != __S_IFDIR) ){
-#elif
+#else
 	 ((statBuf.st_mode&S_IFMT) != S_IFDIR) ){
 #endif /* LINUX2 */
 	AlcFree((void *) dirStr);

@@ -245,6 +245,7 @@ static String  fallback_resources[] = {
     "*view_dialog*save_section.labelString:	Save",
     "*view_dialog*dismiss.labelString:		Dismiss",
     "*view_dialog*listen.labelString:		Listen",
+    "*view_dialog*listen.sensitive:		False",
     "*view_dialog*help.labelString:		Help",
     "*view_dialog*XmForm.horizontalSpacing:    	4",
     "*view_dialog*XmForm.verticalSpacing:      	4",

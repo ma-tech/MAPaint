@@ -219,6 +219,8 @@ static XrmOptionDescRec mapaint_options[] = {
    XrmoptionNoArg, "True"},
   {"-realign",	"*options_menu*realignment.sensitive",
    XrmoptionNoArg, "True"},
+  {"-listen",	"*view_dialog*listen.sensitive",
+   XrmoptionNoArg, "True"},
 };
 
 main(

@@ -84,7 +84,7 @@ WlzObject *warpTransformObj(
   int		ovlyIndex)
 {
   WlzObject	*rtnObj=NULL, *tmpObj;
-  Widget	toggle;
+  Widget	toggle=NULL;
   Boolean	toggleFlg;
   WlzErrorNum	errNum=WLZ_ERR_NONE;
 
@@ -110,7 +110,10 @@ WlzObject *warpTransformObj(
       break;
     }
     if( toggle ){
-      XtVaGetValues(toggle, XmNset, &toggleFlg, NULL);
+      toggleFlg = XmToggleButtonGetState(toggle);
+    }
+    else {
+      toggleFlg = False;
     }
   }
   else {
@@ -139,7 +142,10 @@ WlzObject *warpTransformObj(
       break;
     }
     if( toggle ){
-      XtVaGetValues(toggle, XmNset, &toggleFlg, NULL);
+      toggleFlg = XmToggleButtonGetState(toggle);
+    }
+    else {
+      toggleFlg = False;
     }
   }
   else {
@@ -173,7 +179,10 @@ WlzObject *warpTransformObj(
       break;
     }
     if( toggle ){
-      XtVaGetValues(toggle, XmNset, &toggleFlg, NULL);
+      toggleFlg = XmToggleButtonGetState(toggle);
+    }
+    else {
+      toggleFlg = False;
     }
   }
   else {
@@ -227,10 +236,11 @@ XImage	*warpCreateXImage(
     height = src_height*winStruct->mag;
   }
 
-  XtVaSetValues(winStruct->canvas,
+  XtResizeWidget(winStruct->canvas, width, height, 0);
+/*  XtVaSetValues(winStruct->canvas,
 		XmNwidth, width,
 		XmNheight, height,
-		NULL);
+		NULL);*/
 
   gVWSp = WlzGreyValueMakeWSp(obj, NULL);
   dst_data = (UBYTE *) AlcMalloc(((win_att.depth == 8)?1:4)
