@@ -589,7 +589,7 @@ void fixed_2_cb(
       WlzObject	*tmpObj;
       if( tmpObj = WlzGetSectionFromObject(globals.orig_obj,
 					   wlzViewStr,
-					   WLZ_INTERPOLATION_LINEAR,
+					   WLZ_INTERPOLATION_NEAREST,
 					   &errNum) ){
 	view_struct->view_object = WlzAssignObject(tmpObj, NULL);
       }
@@ -673,9 +673,9 @@ void fixed_2_cb(
 
   /* define the two orthogonal axes
      first the normalised direction vector between the fixed points */
-  x = wlzViewStr->fixed.vtX - wlzViewStr->fixed_2.vtX;
-  y = wlzViewStr->fixed.vtY - wlzViewStr->fixed_2.vtY;
-  z = wlzViewStr->fixed.vtZ - wlzViewStr->fixed_2.vtZ;
+  x = wlzViewStr->fixed_2.vtX - wlzViewStr->fixed.vtX;
+  y = wlzViewStr->fixed_2.vtY - wlzViewStr->fixed.vtY;
+  z = wlzViewStr->fixed_2.vtZ - wlzViewStr->fixed.vtZ;
   s = sqrt( (double) x*x + y*y + z*z + 0.00001 );
   if( s <= .001 ){
     x = 1.0; y = z = 0.0;

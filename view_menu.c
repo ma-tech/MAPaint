@@ -714,7 +714,7 @@ static void saveSectionCb(
     WlzObject	*tmpObj;
     if( tmpObj = WlzGetSectionFromObject(globals.orig_obj,
 					 wlzViewStr,
-					 WLZ_INTERPOLATION_LINEAR, &errNum) ){
+					 WLZ_INTERPOLATION_NEAREST, &errNum) ){
       view_struct->view_object = WlzAssignObject(tmpObj, NULL);
     }
     else {

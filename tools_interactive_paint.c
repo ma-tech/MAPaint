@@ -755,7 +755,7 @@ static void thresholdCanvasMotionEventHandler(
       WlzObject *tmpObj;
       if( tmpObj = WlzGetSectionFromObject(globals.orig_obj,
 					   view_struct->wlzViewStr,
-					   WLZ_INTERPOLATION_LINEAR,
+					   WLZ_INTERPOLATION_NEAREST,
 					   &errNum) ){
 	view_struct->view_object = WlzAssignObject(tmpObj, NULL);
       }
@@ -872,7 +872,7 @@ void MAPaintThreshold2DInit(
     WlzObject *tmpObj;
     if( tmpObj = WlzGetSectionFromObject(globals.orig_obj,
 					 view_struct->wlzViewStr,
-					 WLZ_INTERPOLATION_LINEAR, &errNum) ){
+					 WLZ_INTERPOLATION_NEAREST, &errNum) ){
       view_struct->view_object = WlzAssignObject(tmpObj, NULL);
     }
     else {
@@ -1085,7 +1085,7 @@ void MAPaintThreshold2DCb(
 	WlzObject *tmpObj;
 	if( tmpObj = WlzGetSectionFromObject(globals.orig_obj,
 					     view_struct->wlzViewStr,
-					     WLZ_INTERPOLATION_LINEAR,
+					     WLZ_INTERPOLATION_NEAREST,
 					     &errNum) ){
 	  view_struct->view_object = WlzAssignObject(tmpObj, NULL);
 	}

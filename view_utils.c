@@ -93,14 +93,21 @@ int reset_view_struct(
     return 1;
   }
 
-  /* set the limits set the slider values here */
+  /* set the limits set the slider values here -
+     may need to increment distance */
   minz = wlzViewStr->minvals.vtZ;
   maxz = wlzViewStr->maxvals.vtZ;
-  if( wlzViewStr->dist < wlzViewStr->minvals.vtZ )
-    wlzViewStr->dist = wlzViewStr->minvals.vtZ;
-  if( wlzViewStr->dist > wlzViewStr->maxvals.vtZ )
-    wlzViewStr->dist = wlzViewStr->maxvals.vtZ;
   z = wlzViewStr->dist;
+  if( wlzViewStr->dist < wlzViewStr->minvals.vtZ ){
+    z = wlzViewStr->minvals.vtZ;
+  }
+  if( wlzViewStr->dist > wlzViewStr->maxvals.vtZ ){
+    z = wlzViewStr->maxvals.vtZ;
+  }
+  if( z != wlzViewStr->dist ){
+    Wlz3DSectionIncrementDistance(wlzViewStr, z - wlzViewStr->dist);
+    z = wlzViewStr->dist;
+  }
 
   HGU_XmSetSliderRange( view_struct->slider, minz, maxz );
   HGU_XmSetSliderValue( view_struct->slider, z );
