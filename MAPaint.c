@@ -498,7 +498,7 @@ main(
 
   globals.topl    = topl;
   globals.app_con = app_con;
-  globals.app_name = "MAPaint";
+  globals.app_name = nameStr;
   globals.sectViewFlg = 0;
 
   /* initialise the colormap */
