@@ -89,8 +89,7 @@ CSOURCES		= \
 			view_menu.c \
 			view_utils.c \
 			view2DPaintingCb.c \
-			viewFixedPointUtils.c \
-			WlzXmExtFF_FSBUtils.c
+			viewFixedPointUtils.c
 
 ifeq ($(UNIXTYPE), LINUX2)
 CSOURCES		= \
@@ -149,8 +148,7 @@ CSOURCES		= \
 			view_menu.c \
 			view_utils.c \
 			view2DPaintingCb.c \
-			viewFixedPointUtils.c \
-			WlzXmExtFF_FSBUtils.c
+			viewFixedPointUtils.c
 endif
 ifeq ($(UNIXTYPE), DARWIN)
 CSOURCES		= \
@@ -209,8 +207,7 @@ CSOURCES		= \
 			view_menu.c \
 			view_utils.c \
 			view2DPaintingCb.c \
-			viewFixedPointUtils.c \
-			WlzXmExtFF_FSBUtils.c
+			viewFixedPointUtils.c
 endif
 
 # List of all header files that are available outside of either this archive

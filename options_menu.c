@@ -486,7 +486,7 @@ Widget	topl)
       sprintf(globals.autosave_file, "%s/%s.%d", dirstr, filestr, getpid());
     }
     
-    /* no autosave in sectioView mode */
+    /* no autosave in sectionView mode */
     if( globals.sectViewFlg ){
       globals.autosavetimeoutID = 0;
     }

@@ -248,7 +248,7 @@ void warpReadSourceCb(
   Widget		scrw;
 
   /* check we can get the object */
-  if( (obj = WlzXmReadExtFFObject(warp_read_src_dialog,
+  if( (obj = HGU_XmReadExtFFObject(warp_read_src_dialog,
 				  cbs,
 				  &(warpGlobals.srcFileType),
 				  &errNum)) == NULL ){
@@ -380,7 +380,7 @@ void warpReadSourcePopupCb(
 
   /* now use generic Ext format dialog */
   if( warp_read_src_dialog == NULL ){
-    warp_read_src_dialog = WlzXmCreateExtFFObjectFSB(view_struct->dialog,
+    warp_read_src_dialog = HGU_XmCreateExtFFObjectFSB(view_struct->dialog,
 						     "warp_read_src_dialog",
 						     warpReadSourceCb,
 						     client_data);
@@ -397,7 +397,7 @@ void warpReadSourcePopupCb(
 		  warpResetCWDCb, client_data);
 
     /* set jpeg default */
-    WlzXmExtFFObjectFSBSetType(warp_read_src_dialog, WLZEFF_FORMAT_JPEG);
+    HGU_XmExtFFObjectFSBSetType(warp_read_src_dialog, WLZEFF_FORMAT_JPEG);
   }
 
   XtManageChild(warp_read_src_dialog);

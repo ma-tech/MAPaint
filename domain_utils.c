@@ -464,3 +464,15 @@ void setDomainIncrement(
   return;
 }
 
+int domainChanged(void)
+{
+  int	i;
+
+  for(i=1; i < 33; i++){
+    if( globals.domain_changed_since_saved[i] ){
+      return 1;
+    }
+  }
+  return 0;
+}
+

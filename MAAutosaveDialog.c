@@ -43,7 +43,7 @@ void autosave_all_domains(void)
   int		i;
 
   /* get the autosave file */
-  if( (fp = fopen(globals.autosave_file, "w")) != NULL )
+  if( (fp = fopen(globals.autosave_file, "wb")) != NULL )
   {
 
     /* save the object data  - this could be more efficient (not much) */
@@ -187,11 +187,11 @@ static void autosave_on_cb(
   Widget	control, dialog = (Widget) client_data;
 
   /* make the controls sensitive */
-  if( (control = XtNameToWidget(dialog, "*.autosave_time")) )
+  if( (control = XtNameToWidget(dialog, "*.On")) )
   {
-    XtSetSensitive(control, True);
+    XtSetSensitive(control, False);
   }
-  if( (control = XtNameToWidget(dialog, "*.autosave_file")) )
+  if( (control = XtNameToWidget(dialog, "*.Off")) )
   {
     XtSetSensitive(control, True);
   }
@@ -225,13 +225,13 @@ static void autosave_off_cb(
   globals.autosavetimeoutID = 0;
 
   /* make the controls insensitive */
-  if( (control = XtNameToWidget(dialog, "*.autosave_time")) )
+  if( (control = XtNameToWidget(dialog, "*.Off")) )
   {
     XtSetSensitive(control, False);
   }
-  if( (control = XtNameToWidget(dialog, "*.autosave_file")) )
+  if( (control = XtNameToWidget(dialog, "*.On")) )
   {
-    XtSetSensitive(control, False);
+    XtSetSensitive(control, True);
   }
 
   return;
@@ -287,21 +287,7 @@ static void autosave_recover_install_cb(
   XtVaGetValues(toggle, XmNuserData, &domain, NULL);
 
   /* add to the current domain */
-  switch( globals.current_domain ){
-  case DOMAIN_1:
-  case DOMAIN_2:
-  case DOMAIN_3:
-  case DOMAIN_4:
-  case DOMAIN_5:
-    set_grey_values_from_domain(domain, globals.obj,
-				globals.current_col,
-				globals.cmapstruct->ovly_planes );
-    break;
-  case MASK_DOMAIN:
-  case GREYS_DOMAIN:
-  default:
-    break;
-  }
+  setDomain(domain, globals.current_domain, NULL);
 
   return;
 }
@@ -330,17 +316,28 @@ static Widget create_autosave_domains_dialog(
 		  dialog);
     XtAddCallback(install, XmNactivateCallback, display_all_views_cb,
 		  NULL);
+    HGU_XmAddToolTip(globals.topl, install,
+		     "Press to install the selected domain"
+		     "into the current-domain");
   }
 
   control = XtNameToWidget( dialog, "*.control" );
   XtVaSetValues(control,
 		XmNradioBehavior,	True,
 		XmNradioAlwaysOne,	True,
+		XmNorientation,		XmVERTICAL,
+		XmNnumColumns,		4,
+		XmNpacking,		XmPACK_COLUMN,
 		NULL);
 		  
   /* create the toggles */
   for(i=1; i < 33; i++)
   {
+    /* only show defined domains */
+    if( domains[i] == NULL ){
+      continue;
+    }
+
     if( domain_names[i] )
     {
       name = domain_names[i];
@@ -398,7 +395,7 @@ static void autosave_recover_cb(
     return;
   }
 
-  if( (fp = fopen(HGU_XmGetTextLineValue( widget ), "r")) == NULL )
+  if( (fp = fopen(HGU_XmGetTextLineValue( widget ), "rb")) == NULL )
   {
     HGU_XmUserError(globals.topl,
 		    "Autosave recover:\n"
@@ -528,6 +525,8 @@ static void autosave_recover_cb(
     }
   }
 
+  /* if only if domains found */
+  if( allDomainsObj ){
   for(i=1; i < 33; i++)
   {
     domain = globals.priority_to_domain_lut[i];
@@ -575,6 +574,21 @@ static void autosave_recover_cb(
   }
 
   WlzFreeObj( obj );
+  }
+  else {
+    /* put up help dialog to say nothing found */
+    HGU_XmUserError(globals.topl,
+		    "Autosave recover:\n"
+		    "    No domains found in this autosave file.\n"
+		    "    Possibly the file was not saved after domains\n"
+		    "    had been defined or the painting was still\n"
+		    "    in progress. You could read the autosave file\n"
+		    "    in as a reference object to check if any\n"
+		    "    domains are present then use threshold to\n"
+		    "    extract any that are visible.\n",
+		    XmDIALOG_FULL_APPLICATION_MODAL);
+  }
+
   autosave_recover_flag = False;
   return;
 }
@@ -599,6 +613,7 @@ Widget create_autosave_dialog(
   if( (widget = XtNameToWidget(dialog, "*.On")) != NULL ){
     XtAddCallback(widget, XmNactivateCallback, autosave_on_cb,
 		  XtParent(dialog));
+    XtSetSensitive(widget, False);
   }
 
   if( (widget = XtNameToWidget(dialog, "*.Off")) != NULL ){

@@ -743,6 +743,27 @@ void warpIORead(
 	/* check for view parameters - reset dst image if necessary */
 	if( !strncmp(bibfileRecord->name, "Wlz3DSectionViewParams", 22) ){
 	  oldScale = wlzViewStr->scale;
+
+	  /* going to reset the section view therefore need to check
+	     in any existing domains (discard?) and get the new
+	     domains for the new view.
+	     Note re-setting done more than once therefore wrap the
+	     whole process with the install and re-acquire the domains.
+	  */
+	  /* check for domain changes and clear undo lists */
+	  if( domainChanged() ){
+	    if( HGU_XmUserConfirm(
+		  view_struct->dialog,
+		  "The destination image is about to change.\n"
+		  "    Do you want to install the domains\n"
+		  "    changed in this view?\n\n"
+		  "Select Install or Ignore below",
+		  "Install", "Ignore", 0) ){
+	      installViewDomains(view_struct);
+	    }
+	  }
+	  clearUndoDomains();
+
 	  WlzEffBibParse3DSectionViewParamsRecord(bibfileRecord, wlzViewStr);
 	  view_struct->controlFlag &= ~MAPAINT_FIXED_LINE_SET;
 
@@ -835,6 +856,9 @@ void warpIORead(
 	  XClearWindow(dpy, win);
 	  display_view_cb(w, (XtPointer) view_struct, call_data);
 	  view_feedback_cb(w, (XtPointer) view_struct, NULL);
+
+	  /* re-acquire the view domains for painting */
+	  getViewDomains(view_struct);
 
 	  /* clear previous domains */
 	  view_struct_clear_prev_obj( view_struct );

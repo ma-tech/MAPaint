@@ -13,7 +13,7 @@
 *   Author Name :  richard						*
 *   Author Login:  richard@hgu.mrc.ac.uk				*
 *   Date        :  Tue Nov  4 17:21:20 2003				*
-*   $Revision$								*
+*   $Revision$					       		*
 *   $Name$								*
 *   Synopsis    : 							*
 *************************************************************************

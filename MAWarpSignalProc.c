@@ -56,7 +56,7 @@ void warpReadSignalCb(
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check we can get the object */
-  if( (obj = WlzXmReadExtFFObject(warp_read_sgnl_dialog,
+  if( (obj = HGU_XmReadExtFFObject(warp_read_sgnl_dialog,
 				  cbs,
 				  &(warpGlobals.sgnlFileType),
 				  &errNum)) == NULL ){
@@ -190,7 +190,7 @@ void warpReadSignalPopupCb(
 
   /* now use generic Ext format dialog */
   if( warp_read_sgnl_dialog == NULL ){
-    warp_read_sgnl_dialog = WlzXmCreateExtFFObjectFSB(view_struct->dialog,
+    warp_read_sgnl_dialog = HGU_XmCreateExtFFObjectFSB(view_struct->dialog,
 						     "warp_read_sgnl_dialog",
 						     warpReadSignalCb,
 						     client_data);
@@ -207,7 +207,7 @@ void warpReadSignalPopupCb(
 		  warpResetCWDCb, client_data);
 
     /* set jpeg default */
-    WlzXmExtFFObjectFSBSetType(warp_read_sgnl_dialog, WLZEFF_FORMAT_JPEG);
+    HGU_XmExtFFObjectFSBSetType(warp_read_sgnl_dialog, WLZEFF_FORMAT_JPEG);
   }
 
   XtManageChild(warp_read_sgnl_dialog);

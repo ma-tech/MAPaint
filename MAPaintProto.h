@@ -136,6 +136,8 @@ extern void setEMAGEDomainsAndColoursCb(
   XtPointer	client_data,
   XtPointer	call_data);
 
+extern int domainChanged(void);
+
 /* file_menu.c */
 extern MenuItem		*file_menu_items;
 

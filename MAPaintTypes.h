@@ -279,6 +279,8 @@ typedef struct _PaintGlobals{
   String		theiler_stage;
   String		logfile;
   FILE			*logfileFp;
+  String		resourceFile;
+  AlcDLPList		*fileList;
 
   /* main_work_area globals */
   Widget		canvas;
