@@ -37,9 +37,9 @@ DomainSelection getSelectedDomainType(
 
   /* determine selected colour and get domain should get this in Wlz not
      rely on the ximage */
-  if(x < 0 || x >= view_struct->ximage->width ||
-     y < 0 || y >= view_struct->ximage->height ){
-    return( NULL );
+  if((x < 0) || (x >= view_struct->ximage->width) ||
+     (y < 0) || (y >= view_struct->ximage->height) ){
+    return( GREYS_DOMAIN ); /* HACK WAS return( NULL ); WHAT SHOULD THIS BE? */
   }
 
   sel_domain = imageValueToDomain

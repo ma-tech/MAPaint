@@ -19,15 +19,6 @@
 
 #include <MAPaint.h>
 
-#ifdef SUNOS5
-/* XIL stuff for test */
-#include <xil/xil.h>
-
-extern XilSystemState	paintXILState;
-#else /* SUNOS5 */
-extern void		*paintXILState;
-#endif /* SUNOS5 */
-
 static void display_scaled_image(
   Display		*dpy,
   Window		win,
@@ -44,96 +35,62 @@ static void display_scaled_image(
   XWindowAttributes	win_att;
   int			x_exp, y_exp, width_exp, height_exp;
 
-#ifdef SUNOS5
-  XilImage		xilSrcImage, xilDstImage;
-  XilStorage 		storage;
-#endif /* SUNOS5 */
-
-  if( paintXILState == NULL ){
-    if( XGetWindowAttributes(dpy, win, &win_att) == 0 )
-    {
-      return;
-    }
-
-    /* get exposed region */
-    if( event ){
-      x_exp = event->x / scale;
-      y_exp = event->y / scale;
-      width_exp = event->width / scale + 2;
-      height_exp = event->height / scale + 2;
-    }
-    else {
-      /* should get the region actually visible here  - done elsewhere*/
-      x_exp = 0;
-      y_exp = 0;
-      width_exp = widthp;
-      height_exp = heightp;
-    }
-    widthp = WLZ_MIN(widthp, x_exp + width_exp);
-    heightp = WLZ_MIN(heightp, y_exp + height_exp);
-
-    scaled_data = (UBYTE *) AlcMalloc(sizeof(UBYTE) * width_exp * height_exp *
-				      scale * scale);
-    scaled_image = XCreateImage(dpy, win_att.visual, win_att.depth,
-				ZPixmap, 0, (char *) scaled_data,
-				width_exp*scale,
-				height_exp*scale, 8, width_exp*scale);
-
-    data = (UBYTE *) view_struct->ximage->data;
-    for(yp=y_exp; yp < heightp; yp++)
-    {
-      linedata = data + (yp*view_struct->ximage->bytes_per_line) + x_exp;
-      line1data = scaled_data;
-      for(xp=x_exp; xp < widthp; xp++, linedata++)
-      {
-	for(i=0; i < scale; i++, line1data++)
-	{
-	  *line1data = *linedata;
-	}
-      }
-      scaled_data += width_exp * scale;
-      for(i=1; i < scale; i++, scaled_data += width_exp * scale)
-      {
-	memcpy((void *) scaled_data,
-	       (const void *) (scaled_data - width_exp * scale),
-	       width_exp * scale);
-      }
-    }
-
-    XPutImage(dpy, win, globals.gc_greys, scaled_image, 0, 0,
-	      x_exp*scale, y_exp*scale, width_exp*scale, height_exp*scale);
-    XFlush(dpy);
-    AlcFree((void *) scaled_image->data);
-    scaled_image->data = NULL;
-    XDestroyImage(scaled_image);
+  if( XGetWindowAttributes(dpy, win, &win_att) == 0 )
+  {
+    return;
   }
-#ifdef SUNOS5
+
+  /* get exposed region */
+  if( event ){
+    x_exp = event->x / scale;
+    y_exp = event->y / scale;
+    width_exp = event->width / scale + 2;
+    height_exp = event->height / scale + 2;
+  }
   else {
-    /* do it with XIL! */
-    /* create a source image */
-    xilSrcImage = xil_create(paintXILState, widthp, heightp, 1, XIL_BYTE);
-    xil_export(xilSrcImage);
-    storage = xil_storage_create(paintXILState, xilSrcImage);
-    xil_storage_set_pixel_stride(storage, 0, 1);
-    xil_storage_set_scanline_stride(storage, 0,
-				    view_struct->ximage->bytes_per_line);
-    xil_storage_set_data(storage, 0, (void *) ximage->data);
-    xil_set_storage_with_copy(xilSrcImage, storage);
-    xil_import(xilSrcImage, TRUE);
-    xil_storage_destroy(storage);
-
-    /* create the display image */
-    xilDstImage = xil_create_from_window(paintXILState, dpy, win);
-
-    /* display the scaled image */
-    xil_scale(xilSrcImage, xilDstImage, "nearest",
-	      (float) scale, (float) scale);
-
-    /* destroy the XIL images */
-    xil_destroy(xilSrcImage);
-    xil_destroy(xilDstImage);
+    /* should get the region actually visible here  - done elsewhere*/
+    x_exp = 0;
+    y_exp = 0;
+    width_exp = widthp;
+    height_exp = heightp;
   }
-#endif /* SUNOS5 */
+  widthp = WLZ_MIN(widthp, x_exp + width_exp);
+  heightp = WLZ_MIN(heightp, y_exp + height_exp);
+
+  scaled_data = (UBYTE *) AlcMalloc(sizeof(UBYTE) * width_exp * height_exp *
+				    scale * scale);
+  scaled_image = XCreateImage(dpy, win_att.visual, win_att.depth,
+			      ZPixmap, 0, (char *) scaled_data,
+			      width_exp*scale,
+			      height_exp*scale, 8, width_exp*scale);
+
+  data = (UBYTE *) view_struct->ximage->data;
+  for(yp=y_exp; yp < heightp; yp++)
+  {
+    linedata = data + (yp*view_struct->ximage->bytes_per_line) + x_exp;
+    line1data = scaled_data;
+    for(xp=x_exp; xp < widthp; xp++, linedata++)
+    {
+      for(i=0; i < scale; i++, line1data++)
+      {
+	*line1data = *linedata;
+      }
+    }
+    scaled_data += width_exp * scale;
+    for(i=1; i < scale; i++, scaled_data += width_exp * scale)
+    {
+      memcpy((void *) scaled_data,
+	     (const void *) (scaled_data - width_exp * scale),
+	     width_exp * scale);
+    }
+  }
+
+  XPutImage(dpy, win, globals.gc_greys, scaled_image, 0, 0,
+	    x_exp*scale, y_exp*scale, width_exp*scale, height_exp*scale);
+  XFlush(dpy);
+  AlcFree((void *) scaled_image->data);
+  scaled_image->data = NULL;
+  XDestroyImage(scaled_image);
 
   return;
 }
@@ -154,86 +111,52 @@ static void display_scaled_down_image(
   XWindowAttributes	win_att;
   int			x_exp, y_exp, width_exp, height_exp;
 
-#ifdef SUNOS5
-  XilImage		xilSrcImage, xilDstImage;
-  XilStorage 		storage;
-#endif /* SUNOS5 */
-
-  if( paintXILState == NULL ){
-    if( XGetWindowAttributes(dpy, win, &win_att) == 0 )
-    {
-      return;
-    }
-
-    /* get exposed region */
-    if( event ){
-      x_exp = event->x;
-      y_exp = event->y;
-      width_exp = event->width;
-      height_exp = event->height;
-    }
-    else {
-      /* should get the region actually visible here  - done elsewhere */
-      x_exp = 0;
-      y_exp = 0;
-      width_exp = widthp / scale;
-      height_exp = heightp / scale;
-    }
-    widthp = WLZ_MIN(widthp / scale, x_exp + width_exp);
-    heightp = WLZ_MIN(heightp / scale, y_exp + height_exp);
-
-    scaled_data = (UBYTE *) AlcMalloc(sizeof(UBYTE) * width_exp * height_exp);
-    scaled_image = XCreateImage(dpy, win_att.visual, win_att.depth,
-				ZPixmap, 0, (char *) scaled_data,
-				width_exp, height_exp, 8, width_exp);
-
-    data = (UBYTE *) view_struct->ximage->data;
-    for(yp=y_exp; yp < heightp; yp++)
-    {
-      linedata = data + (yp * scale * view_struct->ximage->bytes_per_line) +
-	x_exp * scale;
-      scaled_data = (UBYTE *) scaled_image->data + (yp-y_exp) * width_exp;
-      for(xp=x_exp; xp < widthp; xp++, scaled_data++, linedata += scale)
-      {
-	*scaled_data = *linedata;
-      }
-    }
-
-    XPutImage(dpy, win, globals.gc_greys, scaled_image, 0, 0,
-	      x_exp, y_exp, width_exp, height_exp);
-
-    XFlush(dpy);
-    AlcFree((void *) scaled_image->data);
-    scaled_image->data = NULL;
-    XDestroyImage(scaled_image);
+  if( XGetWindowAttributes(dpy, win, &win_att) == 0 )
+  {
+    return;
   }
-#ifdef SUNOS5
+
+  /* get exposed region */
+  if( event ){
+    x_exp = event->x;
+    y_exp = event->y;
+    width_exp = event->width;
+    height_exp = event->height;
+  }
   else {
-    /* do it with XIL! */
-    /* create a source image */
-    xilSrcImage = xil_create(paintXILState, widthp, heightp, 1, XIL_BYTE);
-    xil_export(xilSrcImage);
-    storage = xil_storage_create(paintXILState, xilSrcImage);
-    xil_storage_set_pixel_stride(storage, 0, 1);
-    xil_storage_set_scanline_stride(storage, 0,
-				    view_struct->ximage->bytes_per_line);
-    xil_storage_set_data(storage, 0, (void *) ximage->data);
-    xil_set_storage_with_copy(xilSrcImage, storage);
-    xil_import(xilSrcImage, TRUE);
-    xil_storage_destroy(storage);
-
-    /* create the display image */
-    xilDstImage = xil_create_from_window(paintXILState, dpy, win);
-
-    /* display the down-scaled image */
-    xil_scale(xilSrcImage, xilDstImage, "nearest",
-	      1.0 / (float) scale, 1.0 / (float) scale);
-
-    /* destroy the XIL images */
-    xil_destroy(xilSrcImage);
-    xil_destroy(xilDstImage);
+    /* should get the region actually visible here  - done elsewhere */
+    x_exp = 0;
+    y_exp = 0;
+    width_exp = widthp / scale;
+    height_exp = heightp / scale;
   }
-#endif /* SUNOS5 */
+  widthp = WLZ_MIN(widthp / scale, x_exp + width_exp);
+  heightp = WLZ_MIN(heightp / scale, y_exp + height_exp);
+
+  scaled_data = (UBYTE *) AlcMalloc(sizeof(UBYTE) * width_exp * height_exp);
+  scaled_image = XCreateImage(dpy, win_att.visual, win_att.depth,
+			      ZPixmap, 0, (char *) scaled_data,
+			      width_exp, height_exp, 8, width_exp);
+
+  data = (UBYTE *) view_struct->ximage->data;
+  for(yp=y_exp; yp < heightp; yp++)
+  {
+    linedata = data + (yp * scale * view_struct->ximage->bytes_per_line) +
+      x_exp * scale;
+    scaled_data = (UBYTE *) scaled_image->data + (yp-y_exp) * width_exp;
+    for(xp=x_exp; xp < widthp; xp++, scaled_data++, linedata += scale)
+    {
+      *scaled_data = *linedata;
+    }
+  }
+
+  XPutImage(dpy, win, globals.gc_greys, scaled_image, 0, 0,
+	    x_exp, y_exp, width_exp, height_exp);
+
+  XFlush(dpy);
+  AlcFree((void *) scaled_image->data);
+  scaled_image->data = NULL;
+  XDestroyImage(scaled_image);
 
   return;
 }

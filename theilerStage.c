@@ -64,12 +64,13 @@ void theiler_stage_setup_cb(
 }
 
 
-static void set_theiler_stage_cb(
+void set_theiler_stage_cb(
   Widget	w,
   XtPointer	client_data,
   XtPointer	call_data)
 {
   String	file_str;
+  String	theilerName=(String) client_data;
   FILE		*fp;
   WlzObject	*obj;
   
@@ -77,8 +78,8 @@ static void set_theiler_stage_cb(
   if( globals.theiler_stage ){
     AlcFree((void *) globals.theiler_stage);
   }
-  if( globals.theiler_stage = (String) AlcMalloc(strlen(XtName(w)) + 1) ){
-    sprintf(globals.theiler_stage, "%s", XtName(w));
+  if( globals.theiler_stage = (String) AlcMalloc(strlen(theilerName) + 1) ){
+    sprintf(globals.theiler_stage, "%s", theilerName);
   }
   else {
     return;
@@ -172,7 +173,7 @@ void theiler_menu_init(
       menu_items[stage].accel_text = NULL;
       menu_items[stage].item_set = False;
       menu_items[stage].callback = set_theiler_stage_cb;
-      menu_items[stage].callback_data = NULL;
+      menu_items[stage].callback_data = strdup(dp->d_name);
       menu_items[stage].help_callback = NULL;
       menu_items[stage].help_callback_data = NULL;
       menu_items[stage].tear_off_model = XmTEAR_OFF_DISABLED;

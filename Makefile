@@ -18,13 +18,13 @@ OPENGLHOME		= /opt/Mesa
 OPENGL_INC_DIR          = $(OPENGLHOME)/include
 OPENGL_LIB_DIR		= $(OPENGLHOME)/lib
 ifeq ($(UNIXTYPE), IRIX5)
-OPENGL_LIB_DIR		= $(OPENGLHOME)/lib.32
+OPENGL_LIB_DIR		= $(OPENGLHOME)/lib
 endif
 ifeq ($(UNIXTYPE), IRIX6)
-OPENGL_LIB_DIR		= $(OPENGLHOME)/lib.n32
+OPENGL_LIB_DIR		= $(OPENGLHOME)/lib
 endif
 ifeq ($(UNIXTYPE), IRIX646)
-OPENGL_LIB_DIR		= $(OPENGLHOME)/lib64
+OPENGL_LIB_DIR		= $(OPENGLHOME)/lib
 endif
 
 # Names of executables to be built (modify as required).
@@ -46,11 +46,17 @@ CSOURCES		= \
 			MAPaint.c \
 			MAPaintUndoDomain.c \
 			MARealignmentDialog.c \
+			MASaveSequenceDialog.c \
+			MAPaintSocket.c \
 			MATrackDomain.c \
 			MAWarpInput2DDialog.c \
+			MAWarpInputUtils.c \
+			MAWarpInputInteractUtils.c \
+			MAWarpInputXUtils.c \
 			MAPMSnake.c \
 			NalgsDPSearch.c \
 			anatomy_menu.c \
+			bibfileIOUtils.c \
 			domain_menu.c \
 			domain_utils.c \
 			file_menu.c \
@@ -87,7 +93,8 @@ INCLUDES_PRV		= \
 			MAPaintTypes.h \
 			MAPaintProto.h \
 			MAPaintHelp.h \
-			HGU_Tablet.h
+			HGU_Tablet.h \
+			MAWarp.h
 
 # List of all troff sources for manual pages, these should have the appropriate
 # extension (eg cat.1) (modify as required).
@@ -121,6 +128,15 @@ INCDIRS			= .  \
 # List of library search paths (modify as required).
 ifeq ($(UNIXTYPE), IRIX5)
 LIBDIRS			= \
+			../../Core/libAlc \
+			../../Core/libbibfile \
+			../../Core/libAlg \
+			../../Core/libWlz \
+			../../Core/libWlzExtFF \
+			../../Core/libReconstruct \
+			../../HGUX/libHguX \
+			../../HGUX/libHguXm \
+			../../HGUX/libhguGL \
 			  $(OPENGL_LIB_DIR) \
 			  $(SYSLIB) \
 			  $(HGU_LIB_DIR)
@@ -142,12 +158,32 @@ LIBDIRS			= \
 			  $(MOTIF_LIB_DIR)
 endif
 ifeq ($(UNIXTYPE), IRIX646)
-LIBDIRS			= $(OPENGL_LIB_DIR) \
+LIBDIRS			=  \
+			../../Core/libAlc \
+			../../Core/libbibfile \
+			../../Core/libAlg \
+			../../Core/libWlz \
+			../../Core/libWlzExtFF \
+			../../Core/libReconstruct \
+			../../HGUX/libHguX \
+			../../HGUX/libHguXm \
+			../../HGUX/libhguGL \
+			  $(OPENGL_LIB_DIR) \
 			  $(SYSLIB) \
 			  $(HGU_LIB_DIR)
 endif
 ifeq ($(UNIXTYPE), IRIX6)
-LIBDIRS			= $(OPENGL_LIB_DIR) \
+LIBDIRS			=  \
+			../../Core/libAlc \
+			../../Core/libbibfile \
+			../../Core/libAlg \
+			../../Core/libWlz \
+			../../Core/libWlzExtFF \
+			../../Core/libReconstruct \
+			../../HGUX/libHguX \
+			../../HGUX/libHguXm \
+			../../HGUX/libhguGL \
+			  $(OPENGL_LIB_DIR) \
 			  $(SYSLIB) \
 			  $(HGU_LIB_DIR)
 endif
@@ -173,7 +209,7 @@ OBJECTS			= $(CSOURCES:%.c=%.o)
 # List of libraries to link (modify as required).
 ifeq 		($(UNIXTYPE), SUNOS5)
 EXTRA_LIBS		= m gen socket nsl
-X11LIBS         	= xil Xt Xmu X11  Xi Xext
+X11LIBS         	= Xt Xmu X11  Xi Xext
 else
 EXTRA_LIBS		= m gen
 X11LIBS         	= Xt Xmu X11 Xext

@@ -35,7 +35,7 @@ static String  fallback_resources[] = {
 
     /* Theiler stage directory for the anatomy menu 
        this default should be changed when delivered */
-    "MAPaint.theilerDir: /opt/MouseAtlas/cdrom/reconstructions",
+    "MAPaint.theilerDir: /cdrom/cdrom0/macd/reconstructions",
 
     /* fonts and backgrounds */
     "MAPaint*background:		grey85",
@@ -118,6 +118,7 @@ static String  fallback_resources[] = {
     "*XmFileSelectionBox*file_type*vff.labelString: Sunvision VFF",
     "*XmFileSelectionBox*file_type*pic.labelString: BioRad Confocal",
     "*XmFileSelectionBox*file_type*vtk.labelString: Visualization Toolkit VTK",
+    "*XmFileSelectionBox*file_type*ipl.labelString: IPLab image",
     "*XmFileSelectionBox*file_type*pgm.labelString: pgm",
 
     /* domain dialogs */
@@ -243,6 +244,7 @@ static String  fallback_resources[] = {
     /* view dialog */
     "*view_dialog*save_section.labelString:	Save",
     "*view_dialog*dismiss.labelString:		Dismiss",
+    "*view_dialog*listen.labelString:		Listen",
     "*view_dialog*help.labelString:		Help",
     "*view_dialog*XmForm.horizontalSpacing:    	4",
     "*view_dialog*XmForm.verticalSpacing:      	4",
@@ -313,6 +315,8 @@ static String  fallback_resources[] = {
     "*options_menu*colormap.mnemonic:		C",
     "*options_menu*autosave_opts.labelString:	Autosave...",
     "*options_menu*autosave_opts.mnemonic:	A",
+    "*options_menu*save_seq_opts.labelString:	Save sequence...",
+    "*options_menu*save_seq_opts.mnemonic:	Q",
 
     /* colormap dialog */
     "*colormap_dialog_popup.mappedWhenManaged:	False",
@@ -339,6 +343,13 @@ static String  fallback_resources[] = {
     "*autosave_dialog*autosave_file.labelString:Autosave save file:    ",
     "*autosave_dialog*autosave_recover_file.labelString:Autosave recover file:",
     "*autosave_domains_dialog.dialogTitle:     	Autosave recover domains",
+
+    /* save sequence dialog */
+    "*save_seq_dialog_popup.mappedWhenManaged:	False",
+    "*save_seq_dialog.dialogTitle:		Save Image Sequence controls",
+    "*save_seq_dialog*save_seq_time.labelString:Save Sequence time (sec):    ",
+    "*save_seq_dialog*save_seq_file.labelString:Save Sequence filename:    ",
+    "*save_seq_dialog*row_row_column*toggle.labelString: ",
 
     /* tool controls dialog */
     "*tool_control_dialog.dialogTitle:		   Painting Tool Controls",
@@ -445,30 +456,73 @@ static String  fallback_resources[] = {
     "*view_dialog*realignment_form*src_poly.labelString:	Src",
     "*view_dialog*realignment_form*dst_poly.labelString:	Dst",
     "*view_dialog*realignment_form*poly_mode_select_label.labelString: Mode:",
+    "*view_dialog*realignment_form*polyline.labelString: Polyline",
+    "*view_dialog*realignment_form*straight_line.labelString: Straight lines",
     "*view_dialog*realignment_form*reset.labelString:	Reset",
+    "*view_dialog*realignment_form*apply.labelString:	Apply",
     "*view_dialog*realignment_form*import.labelString:	Import",
     "*view_dialog*realignment_form*undo.labelString:	Undo",
     "*view_dialog*realignment_form*read.labelString:	Read",
     "*view_dialog*realignment_form*write.labelString:	Write",
+    "*view_dialog*realignment_form*XmDrawnButton.pushButtonEnabled: True",
+    "*view_dialog*realignment_form*XmDrawnButton.alignment: XmALIGNMENT_CENTER",
+    "*view_dialog*realignment_form*overlay_select.labelString:	Overlay type:",
+    "*view_dialog*realignment_form*overlay_input.labelString: Read overlay",
+    "*view_dialog*realignment_form*overlay_adjust_label.labelString: Overlay adjust:",
+    "*view_dialog*realignment_form*shift_left_right.labelString: Shift X",
+    "*view_dialog*realignment_form*shift_up_down.labelString: Shift Y",
+    "*view_dialog*realignment_form*scale_left_right.labelString: Scale X",
+    "*view_dialog*realignment_form*scale_up_down.labelString: Scale Y",
+    "*view_dialog*realignment_form*rotate.labelString: Rotate",
+    "*view_dialog*realignment_form*overlay_reset.labelString: Reset",
+    "*view_dialog*realignment_form*overlay_delete.labelString: Delete",
+    "*realign_read_ovly_dialog.dialogTitle:	Read Realign Overlay Object",
+    "*realign_read_ovly_dialog.pattern:		*.wlz",
 
     /* warping dialog */
     "*view_dialog*warp_input_2d_frame_title.labelString: 2D warp input controls",
     "*view_dialog*warp_input_2d_form*src_read.labelString: 	Source",
-    "*view_dialog*warp_input_2d_form*src_transf.labelString: 	Transform",
     "*view_dialog*warp_input_2d_form*i_o.labelString:		I/O",
-    "*view_dialog*warp_input_2d_form*apply.labelString:		Apply",
+    "*view_dialog*warp_input_2d_form*import.labelString:	Import",
+    "*view_dialog*warp_input_2d_form*warp_data_write.labelString: Write warp data",
+    "*view_dialog*warp_input_2d_form*warp_data_read.labelString: Read warp data",
+    "*view_dialog*warp_input_2d_form*warped_image_write.labelString: Write warped source",
     "*warp2DInteractDialog.width:		720",
     "*warp2DInteractDialog.height:		512",
+    "*warp2DInteractDialog.delete_last: Delete last",
+    "*warp2DInteractDialog.delete_all:	Delete all",
+    "*warp2DInteractDialog.dismiss:	Dismiss",
+    "*warp2DInteractDialog.help:	Help",
     "*warp2DInteractDialog*b_1.labelString:	mag",
     "*warp2DInteractDialog*b_2.labelString:	rot",
     "*warp2DInteractDialog*b_3.labelString:	flip",
     "*warp2DInteractDialog*b_4.labelString:	>o<",
     "*warp2DInteractDialog*b_5.labelString:	mesh",
+
+    "*view_dialog*warp_sgnl_frame*b_1.labelString:	read",
+    "*view_dialog*warp_sgnl_frame*b_2.labelString:	mag",
+    "*view_dialog*warp_sgnl_frame*b_3.labelString:	invert",
+
+    "*view_dialog*warp_sgnl_frame_title.labelString: Signal processing controls",
+    "*view_dialog*warp_sgnl_controls_form*normalise.labelString: Normalise",
+    "*view_dialog*warp_sgnl_controls_form*histo_equalise.labelString: Histogram equalise",
+    "*view_dialog*warp_sgnl_controls_form*shade_correction.labelString: Shade correction",
+    "*view_dialog*warp_sgnl_controls_form*gauss_smooth.labelString: Gauss smoothing",
+    "*view_dialog*warp_sgnl_controls_form*gauss_width.labelString: Gauss width:",
+    "*view_dialog*warp_sgnl_controls_form*map_it.labelString: Map the data",
+    "*view_dialog*warp_sgnl_controls_form*undo_map.labelString: Undo mapped data",
+    "*view_dialog*warp_sgnl_controls_form*install_data.labelString: Install mapped data",
+    "*view_dialog*warp_sgnl_controls_form*thresh_range_low.labelString: Threshold low val: ",
+    "*view_dialog*warp_sgnl_controls_form*thresh_range_high.labelString: Threshold high val:",
+
     "*view_dialog*warp_input_2d_form*mesh_method.labelString: Mesh generation method:",
     "*view_dialog*warp_input_2d_form*mesh_min_dist.labelString:	Mesh min distance:",
     "*view_dialog*warp_input_2d_form*mesh_max_dist.labelString:	Mesh max distance:",
+    "*view_dialog*warp_input_2d_form*mesh_function.labelString: Interpolation function:",
     "*warp_read_src_dialog.dialogTitle:		Read Warp Input Source Object",
     "*warp_read_src_dialog.pattern:		*.wlz",
+    "*warp_read_sgnl_dialog.dialogTitle:	Read Signal Object",
+    "*warp_read_sgnl_dialog.pattern:		*.wlz",
     
 
     /* help_menu */

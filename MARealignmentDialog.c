@@ -34,11 +34,450 @@ extern Widget create_view_window_dialog(Widget topl,
 					double phi,
 					WlzDVertex3 *fixed);
 
+extern DisplayBound(Display	*dpy,
+		    Window	win,
+		    GC		gc,
+		    WlzBoundList	*bound);
+
+void realignSetImage(ThreeDViewStruct *view_struct);
+void realignDisplayPolysCb(Widget w, XtPointer client_data,
+			   XtPointer call_data);
+void realignDisplayOverlayCb(Widget w, XtPointer client_data,
+			   XtPointer call_data);
+
+/* realignment globals */
+typedef enum {
+  MAREALIGN_BOUNDARY_TYPE	= 0,
+  MAREALIGN_DITHERED_TYPE,
+  MAREALIGN_EDGE_TYPE
+} MARealignOverlayType;
+
 static int			alignBufferSize=100;
 static XPoint			*srcPoly=NULL, *dstPoly=NULL, *tmpPoly=NULL;
 static WlzObject		*origPaintedObject=NULL;
 static WlzObject		*origRefObj=NULL, *origObj=NULL;
 static WlzObject		*transformsObj=NULL;
+static WlzObject		*overlayObj=NULL, *ovlyObj=NULL;
+static MARealignOverlayType	overlayType=MAREALIGN_BOUNDARY_TYPE;
+static Widget			realign_read_ovly_dialog = NULL;
+static int			x_shift=0, y_shift=0;
+static double			x_scale=1.0, y_scale=1.0;
+static double			theta=0.0;
+
+void setOverlayTypeCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  Widget	canvas;
+
+  if( client_data ){
+    overlayType = (MARealignOverlayType) client_data;
+  }
+
+  if( paint_key->canvas ){
+    XtCallCallbacks(paint_key->canvas, XmNexposeCallback, NULL);
+  }
+
+  return;
+}
+
+void realignDisplayOverlayCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
+  Display		*dpy = XtDisplay(view_struct->canvas);
+  Window		win = XtWindow(view_struct->canvas);
+  GC			gc = globals.gc_set;
+
+  /* work on the boundary only for now */
+  /* the coordinates should be as required for the canvas window */
+  if(view_struct && ovlyObj &&
+     (ovlyObj->type == WLZ_BOUNDLIST)){
+    (void) HGU_XColourFromNameGC(dpy, globals.cmap, globals.gc_set,
+				 "blue");
+    DisplayBound(dpy, win, gc, ovlyObj->domain.b);
+  }
+
+  return;
+}
+
+void realignSetOverlay(
+  ThreeDViewStruct	*view_struct)
+{
+  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
+  int			dst_height, src_height, tx, ty;
+  double		scale;
+  WlzObject		*obj1=NULL, *obj2;
+  WlzAffineTransform	*trans;
+  double		spX, spY;
+
+  /* regenerate the image to be displayed */
+  /* rescale the original */
+  if( overlayObj ){
+    dst_height = view_struct->ximage->height;
+    src_height = overlayObj->domain.i->lastln -
+      overlayObj->domain.i->line1 + 1;
+    scale = wlzViewStr->scale * dst_height / src_height;
+    spX = (overlayObj->domain.i->lastkl + overlayObj->domain.i->kol1) / 2;
+    spY = (overlayObj->domain.i->lastln + overlayObj->domain.i->line1) / 2;
+    trans = WlzAffineTransformFromSpinSqueeze(spX, spY, theta,
+					      scale*x_scale,
+					      scale*y_scale, NULL);
+    obj1 = WlzAffineTransformObj(overlayObj, trans,
+				 WLZ_INTERPOLATION_NEAREST, NULL);
+    WlzFreeAffineTransform(trans);
+  }
+  /* translate to the centre */
+  if( obj1 ){
+    obj1 = WlzAssignObject(obj1, NULL);
+    tx = (view_struct->ximage->width * wlzViewStr->scale -
+	  obj1->domain.i->lastkl -
+	  obj1->domain.i->kol1) / 2 + x_shift * wlzViewStr->scale;
+    ty = (view_struct->ximage->height  * wlzViewStr->scale -
+	  obj1->domain.i->lastln -
+	  obj1->domain.i->line1) / 2 + y_shift * wlzViewStr->scale;
+    obj2 = WlzShiftObject(obj1, tx, ty, 0, NULL);
+    WlzFreeObj(obj1);
+    obj1 = WlzAssignObject(obj2, NULL);
+  }
+  /* generate the object to be displayed */
+  if( obj1 ){
+    switch( overlayType ){
+    default:
+    case MAREALIGN_DITHERED_TYPE:
+    case MAREALIGN_EDGE_TYPE:
+    case MAREALIGN_BOUNDARY_TYPE:
+      if( ovlyObj ){
+	WlzFreeObj(ovlyObj);
+      }
+      ovlyObj = WlzAssignObject(WlzObjToBoundary(obj1, 1, NULL), NULL);
+      break;
+    }
+  }
+
+  return;
+}
+
+void realignShiftLROverlayCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  XmPushButtonCallbackStruct
+    *cbs = (XmPushButtonCallbackStruct *) call_data;
+  int	incr=0;
+
+  switch( cbs->event->type ){
+  case ButtonPress:
+  case ButtonRelease:
+    if( cbs->event->xbutton.state&ShiftMask ){
+      incr = 5;
+    }
+    else {
+      incr = 1;
+    }
+    if( cbs->event->xbutton.state&(Mod1Mask|Mod2Mask) ){
+      incr = -incr;
+    }
+    break;
+  case KeyPress:
+  case KeyRelease:
+    break;
+  }
+
+  x_shift += incr;
+
+  realignSetImage(view_struct);
+  realignDisplayPolysCb(w, client_data, call_data);
+  realignSetOverlay(view_struct);
+  realignDisplayOverlayCb(w, client_data, call_data);
+
+  return;
+}
+
+void realignShiftUDOverlayCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  XmPushButtonCallbackStruct
+    *cbs = (XmPushButtonCallbackStruct *) call_data;
+  int	incr=0;
+
+  switch( cbs->event->type ){
+  case ButtonPress:
+  case ButtonRelease:
+    if( cbs->event->xbutton.state&ShiftMask ){
+      incr = 5;
+    }
+    else {
+      incr = 1;
+    }
+    if( cbs->event->xbutton.state&(Mod1Mask|Mod2Mask) ){
+      incr = -incr;
+    }
+    break;
+  case KeyPress:
+  case KeyRelease:
+    break;
+  }
+
+  y_shift += incr;
+
+  realignSetImage(view_struct);
+  realignDisplayPolysCb(w, client_data, call_data);
+  realignSetOverlay(view_struct);
+  realignDisplayOverlayCb(w, client_data, call_data);
+
+  return;
+}
+
+void realignScaleLROverlayCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  XmPushButtonCallbackStruct
+    *cbs = (XmPushButtonCallbackStruct *) call_data;
+  double	incr=1.0;
+
+  switch( cbs->event->type ){
+  case ButtonPress:
+  case ButtonRelease:
+    if( cbs->event->xbutton.state&ShiftMask ){
+      incr = 1.1;
+    }
+    else {
+      incr = 1.01;
+    }
+    if( cbs->event->xbutton.state&(Mod1Mask|Mod2Mask) ){
+      incr = 1.0 / incr;
+    }
+    break;
+  case KeyPress:
+  case KeyRelease:
+    break;
+  }
+
+  x_scale *= incr;
+
+  realignSetImage(view_struct);
+  realignDisplayPolysCb(w, client_data, call_data);
+  realignSetOverlay(view_struct);
+  realignDisplayOverlayCb(w, client_data, call_data);
+
+  return;
+}
+
+void realignScaleUDOverlayCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  XmPushButtonCallbackStruct
+    *cbs = (XmPushButtonCallbackStruct *) call_data;
+  double	incr=1.0;
+
+  switch( cbs->event->type ){
+  case ButtonPress:
+  case ButtonRelease:
+    if( cbs->event->xbutton.state&ShiftMask ){
+      incr = 1.1;
+    }
+    else {
+      incr = 1.01;
+    }
+    if( cbs->event->xbutton.state&(Mod1Mask|Mod2Mask) ){
+      incr = 1.0 / incr;
+    }
+    break;
+  case KeyPress:
+  case KeyRelease:
+    break;
+  }
+
+  y_scale *= incr;
+
+  realignSetImage(view_struct);
+  realignDisplayPolysCb(w, client_data, call_data);
+  realignSetOverlay(view_struct);
+  realignDisplayOverlayCb(w, client_data, call_data);
+
+  return;
+}
+
+void realignRotateOverlayCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  XmPushButtonCallbackStruct
+    *cbs = (XmPushButtonCallbackStruct *) call_data;
+  double	incr=0.0;
+
+  switch( cbs->event->type ){
+  case ButtonPress:
+  case ButtonRelease:
+    if( cbs->event->xbutton.state&ShiftMask ){
+      incr = 5.0;
+    }
+    else {
+      incr = 1.0;
+    }
+    if( cbs->event->xbutton.state&(Mod1Mask|Mod2Mask) ){
+      incr = -incr;
+    }
+    break;
+  case KeyPress:
+  case KeyRelease:
+    break;
+  }
+  incr *= WLZ_M_PI / 180.0;
+
+  theta += incr;
+
+  realignSetImage(view_struct);
+  realignDisplayPolysCb(w, client_data, call_data);
+  realignSetOverlay(view_struct);
+  realignDisplayOverlayCb(w, client_data, call_data);
+
+  return;
+}
+
+void realignResetOverlayCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+
+  x_shift = 0;
+  y_shift = 0;
+  x_scale = 1.0;
+  y_scale = 1.0;
+  theta = 0.0;
+
+  realignSetImage(view_struct);
+  realignDisplayPolysCb(w, client_data, call_data);
+  realignSetOverlay(view_struct);
+  realignDisplayOverlayCb(w, client_data, call_data);
+
+  return;
+}
+
+void realignDeleteOverlayCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+
+  if( overlayObj ){
+    WlzFreeObj(overlayObj);
+    overlayObj = NULL;
+  }
+  if( ovlyObj ){
+    WlzFreeObj(ovlyObj);
+    ovlyObj = NULL;
+  }
+
+  realignSetImage((ThreeDViewStruct *) client_data);
+  realignDisplayPolysCb(w, client_data, call_data);
+
+  return;
+}
+
+void realignReadOverlayCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
+  XmFileSelectionBoxCallbackStruct *cbs =
+    (XmFileSelectionBoxCallbackStruct *) call_data;
+  String		fileStr;
+  FILE			*fp;
+  WlzErrorNum		errNum;
+  WlzObject		*obj;
+
+  /* check we can open the file and save the filename */
+  if( (fp = HGU_XmGetFilePointer(view_struct->dialog, cbs->value,
+				 cbs->dir, "r")) == NULL ){
+    return;
+  }
+
+  /* read the new source object - ready to extend to other types */
+  obj = WlzEffReadObj(fp, NULL, WLZEFF_FORMAT_WLZ, &errNum);
+  fclose(fp);
+
+  /* check the object */
+  if( errNum == WLZ_ERR_NONE ){
+    if( obj ){
+      switch( obj->type ){
+      case WLZ_2D_DOMAINOBJ:
+	/* set the overlay object */
+	if( overlayObj ){
+	  WlzFreeObj(overlayObj);
+	}
+	overlayObj = WlzAssignObject(obj, &errNum);
+	realignResetOverlayCb(w, client_data, call_data);
+	break;
+
+      default:
+	WlzFreeObj(obj);
+	HGU_XmUserError(globals.topl,
+			"Read Realign Overlay Object:\n"
+			"    Wrong object type, please select\n"
+			"    another image file.",
+			XmDIALOG_FULL_APPLICATION_MODAL);
+	break;
+      }
+    }
+  }
+
+  return;
+}
+
+void realignReadOverlayPopupCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
+  Arg		arg[1];
+  Visual	*visual;
+
+  /* get the visual explicitly */
+  visual = HGU_XmWidgetToVisual(globals.topl);
+  XtSetArg(arg[0], XmNvisual, visual);
+
+  if( realign_read_ovly_dialog == NULL ){
+    realign_read_ovly_dialog =
+      XmCreateFileSelectionDialog(view_struct->dialog,
+				  "realign_read_ovly_dialog", arg, 1);
+
+    XtAddCallback(realign_read_ovly_dialog, XmNokCallback,
+		  realignReadOverlayCb, client_data);
+    XtAddCallback(realign_read_ovly_dialog, XmNokCallback,
+		  PopdownCallback, NULL);
+    XtAddCallback(realign_read_ovly_dialog, XmNcancelCallback, 
+		  PopdownCallback, NULL);
+  }
+
+  XtManageChild(realign_read_ovly_dialog);
+  PopupCallback(w, (XtPointer) XtParent(realign_read_ovly_dialog), NULL);
+
+  return;
+}
 
 void realignmentCb(
   Widget		w,
@@ -209,6 +648,7 @@ void resetRealignPolyCb(
 
   realignSetImage(view_struct);
   realignDisplayPolysCb(w, client_data, call_data);
+  realignDisplayOverlayCb(w, client_data, call_data);
   return;
 }
 
@@ -365,28 +805,36 @@ static void realignUpdateTransformsObj(
 {
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   int		i, p, nPlanes = view_struct->ximage->height;
-  int		x, y, origWidth;
-  int		kol1, kol2, line1, line2, plane1, plane2;
+  int		xp, yp;
+  int		origWidth;
+  double	x, y;
+  double	kol1, kol2, line1, line2;
+  int		plane1, plane2;
   WlzAffineTransform	*newTrans, *tmpTrans;
 
   /* fill transforms as required */
   for(i=0; i < nPlanes; i++){
     /* get true coordinates and build the new transform */
-    origWidth = wlzViewStr->maxvals.vtX - wlzViewStr->minvals.vtX + 1;
-    x = srcPoly[i].x / wlzViewStr->scale - alignBufferSize;
-    x = WLZ_MAX(0, x);
-    x = WLZ_MIN(x, origWidth);
-    y = i;
-    kol1 = (int) (wlzViewStr->xp_to_x[x] + wlzViewStr->yp_to_x[y]);
-    line1 = (int) (wlzViewStr->xp_to_y[x] + wlzViewStr->yp_to_y[y]);
-    plane1 = (int) (wlzViewStr->xp_to_z[x] + wlzViewStr->yp_to_z[y]);
+    origWidth = WLZ_NINT(wlzViewStr->maxvals.vtX) -
+      WLZ_NINT(wlzViewStr->minvals.vtX) + 1;
+    x = srcPoly[i].x - alignBufferSize;
+    xp = WLZ_NINT(x);
+    xp = WLZ_MAX(0, xp);
+    xp = WLZ_MIN(xp, origWidth);
+    yp = i;
+    kol1 = wlzViewStr->xp_to_x[xp] + wlzViewStr->yp_to_x[yp];
+    line1 = wlzViewStr->xp_to_y[xp] + wlzViewStr->yp_to_y[yp];
+    x = wlzViewStr->xp_to_z[xp] + wlzViewStr->yp_to_z[yp];
+    plane1 = WLZ_NINT(x);
 
-    x = dstPoly[i].x / wlzViewStr->scale - alignBufferSize;
-    x = WLZ_MAX(0, x);
-    x = WLZ_MIN(x, origWidth);
-    kol2 = (int) (wlzViewStr->xp_to_x[x] + wlzViewStr->yp_to_x[y]);
-    line2 = (int) (wlzViewStr->xp_to_y[x] + wlzViewStr->yp_to_y[y]);
-    plane2 = (int) (wlzViewStr->xp_to_z[x] + wlzViewStr->yp_to_z[y]);
+    x = dstPoly[i].x - alignBufferSize;
+    xp = WLZ_NINT(x);
+    xp = WLZ_MAX(0, xp);
+    xp = WLZ_MIN(xp, origWidth);
+    kol2 = wlzViewStr->xp_to_x[xp] + wlzViewStr->yp_to_x[yp];
+    line2 = wlzViewStr->xp_to_y[xp] + wlzViewStr->yp_to_y[yp];
+    x = wlzViewStr->xp_to_z[xp] + wlzViewStr->yp_to_z[yp];
+    plane2 = WLZ_NINT(x);
 
     if( plane1 != plane2 ){
       HGU_XmUserError(view_struct->dialog,
@@ -397,8 +845,8 @@ static void realignUpdateTransformsObj(
       return;
     }
     newTrans = WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
-					  (double) kol2 - kol1,
-					  (double) line2 - line1,
+					  kol2 - kol1,
+					  line2 - line1,
 					  0.0, 1.0, 0.0, 0.0,
 					  0.0, 0.0, 0.0, 0, NULL);
 
@@ -435,6 +883,16 @@ void applyRealignTransCb(
   WlzObject	*newOrigObj, *newObj;
   Widget	widget;
 
+  /* check for transforms obj */
+  if( transformsObj == NULL ){
+    HGU_XmUserError(view_struct->dialog,
+		    "Something wrong here. Please\n"
+		    "dismiss this realignment dialog\n"
+		    "and try again.",
+		    XmDIALOG_FULL_APPLICATION_MODAL);
+    return;
+  }
+
   /* check we really want to do this */
   if( !HGU_XmUserConfirm(view_struct->dialog,
 			 "Do you really want to transform\n"
@@ -457,19 +915,6 @@ void applyRealignTransCb(
   HGU_XmSetHourGlassCursor(XtParent(view_struct->dialog));
 
   /* set up a transform object and update with current */
-  if( transformsObj == NULL ){
-    if( !(transformsObj =
-	  WlzAssignObject(WlzMakeTransformObj3D(origObj, NULL), NULL)) ){
-      HGU_XmUserError(view_struct->dialog,
-		      "Failed to allocate memory for this\n"
-		      "operation. Probably you need to restart\n"
-		      "MAPaint and try again or make a smaller\n"
-		      "reference image",
-		      XmDIALOG_FULL_APPLICATION_MODAL);
-      return;
-    }
-    transformsUpdatedFlg = 0;
-  }
   if( !transformsUpdatedFlg ){
     realignUpdateTransformsObj(view_struct);
   }
@@ -507,7 +952,7 @@ void applyRealignTransCb(
   /* unset hour glass */
   HGU_XmUnsetHourGlassCursor(globals.topl);
   HGU_XmUnsetHourGlassCursor(XtParent(view_struct->dialog));
-  realignResetTransformsObj();
+/*  realignResetTransformsObj();*/
 
   return;
 }
@@ -548,11 +993,8 @@ void undoRealignTransCb(
     XtCallCallbacks(widget, XmNvalueChangedCallback, (XtPointer) &tmpcbs);
   }
 
-  /* clear the transform object */
-  if( transformsObj ){
-    WlzFreeObj(transformsObj);
-    transformsObj = NULL;
-  }
+  /* reset the transform object */
+  realignResetTransformsObj();
 
   return;
 }
@@ -594,6 +1036,16 @@ void writeRealignTransCb(
   static char	unknownS[] = "unknown";
   time_t	tmpTime;
 
+  /* check the view is valid for this operation: pitch == 90 */
+  if( fabs(wlzViewStr->phi - WLZ_M_PI_2) > 1.0e-2 ){
+    HGU_XmUserError(view_struct->dialog,
+		    "Invalid pitch value. For this\n"
+		    "operation please set pitch = 90.0\n"
+		    "and redefine the alignment",
+		    XmDIALOG_FULL_APPLICATION_MODAL);
+    return;
+  }
+
   /* get a bib-file filename */
   if( fileStr =
      HGU_XmUserGetFilename(globals.topl,
@@ -632,7 +1084,9 @@ void writeRealignTransCb(
       return;
     }
   }
-  realignUpdateTransformsObj(view_struct);
+  if( !transformsUpdatedFlg ){
+    realignUpdateTransformsObj(view_struct);
+  }
 
   /* run through the transform list writing a bibfile for each
      plane. Use correct plane numbers but do not define a
@@ -912,6 +1366,8 @@ void realignment_input_cb(
   int			i;
   Widget		widget;
   Boolean		toggleSet;
+  Display		*dpy=XtDisplay(w);
+  Window		win=XtWindow(w);
 
   /* switch on event type */
   switch( cbs->event->type ){
@@ -950,6 +1406,7 @@ void realignment_input_cb(
 	}
 	realignSetImage(view_struct);
 	realignDisplayPolysCb(w, client_data, call_data);
+	realignDisplayOverlayCb(w, client_data, call_data);
 	lastX = x;
 	lastY = y;
 	break;
@@ -989,13 +1446,17 @@ void realignment_input_cb(
      }
      break;
 
-   case MotionNotify:
-     if( cbs->event->xmotion.state & Button1Mask ){
-	x = cbs->event->xmotion.x / wlzViewStr->scale;
-	y = cbs->event->xmotion.y / wlzViewStr->scale;
-	if( y == lastY ){
-	  break;
+  case MotionNotify:
+    if( cbs->event->xmotion.state & Button1Mask ){
+      x = cbs->event->xmotion.x / wlzViewStr->scale;
+      y = cbs->event->xmotion.y / wlzViewStr->scale;
+      if( y == lastY ){
+	dstPoly[y].x = x;
+	if( setSrcPolyFlg ){
+	  srcPoly[y].x = dstPoly[y].x;
 	}
+      }
+      else {
 	if( (y < 0) || (y >= view_struct->ximage->height) ){
 	  break;
 	}
@@ -1007,15 +1468,17 @@ void realignment_input_cb(
 	    srcPoly[i].x = dstPoly[i].x;
 	  }
 	}
-	realignSetImage(view_struct);
-	realignDisplayPolysCb(w, client_data, call_data);
-	if( !lineModeFlg ){
-	  lastX = x;
-	  lastY = y;
-	}
-     }
+      }
+      realignSetImage(view_struct);
+      realignDisplayPolysCb(w, client_data, call_data);
+      realignDisplayOverlayCb(w, client_data, call_data);
+      if( !lineModeFlg ){
+	lastX = x;
+	lastY = y;
+      }
+    }
 
-     if( cbs->event->xmotion.state & Button2Mask )
+    if( cbs->event->xmotion.state & Button2Mask )
      {
 	x = cbs->event->xmotion.x / wlzViewStr->scale;
 	y = cbs->event->xmotion.y / wlzViewStr->scale;
@@ -1031,25 +1494,40 @@ void realignment_input_cb(
      break;
 
   case KeyPress:
+    x = cbs->event->xkey.x;
+    y = cbs->event->xkey.y;
     switch( XLookupKeysym(&(cbs->event->xkey), 0) ){
 	
     case XK_Right:
     case XK_f:
+      XWarpPointer(dpy, win, win, x, y, 1, 1, x+1, y);
+      x += 1;
       break;
 
     case XK_Up:
     case XK_p:
+      XWarpPointer(dpy, win, win, x, y, 1, 1, x, y-1);
+      y -= 1;
       break;
 
     case XK_Left:
     case XK_b:
+      XWarpPointer(dpy, win, win, x, y, 1, 1, x-1, y);
+      x -= 1;
       break;
 
     case XK_Down:
     case XK_n:
+      XWarpPointer(dpy, win, win, x, y, 1, 1, x, y+1);
+      y += 1;
       break;
 
     }
+    cbs->event->type = MotionNotify;
+    cbs->event->xmotion.state = Button1Mask;
+    cbs->event->xmotion.x = x;
+    cbs->event->xmotion.y = y;
+    realignment_input_cb(w, client_data, call_data);
     break;
 
   default:
@@ -1072,6 +1550,16 @@ static void realignment_setup_cb(
   WlzIBox2	newSize;
   int		width, height;
   int		i;
+
+  /* check if painting */
+  if( paint_key && (paint_key != view_struct) ){
+    return;
+  }
+
+  /* check the view is valid for this operation: pitch == 90 */
+  if( fabs(wlzViewStr->phi - WLZ_M_PI_2) > 1.0e-2 ){
+    return;
+  }
 
   if( cbs->set == True ){
     /* install a new painted_image and redisplay */
@@ -1116,21 +1604,27 @@ static void realignment_setup_cb(
     /* set the image, display the polyline and redisplay */
     realignSetImage(view_struct);
     realignDisplayPolysCb(view_struct->canvas, client_data, call_data);
+    realignSetOverlay(view_struct);
+    realignDisplayOverlayCb(view_struct->canvas, client_data, call_data);
 
     XtAddCallback(view_struct->canvas, XmNexposeCallback,
 		  realignDisplayPolysCb, view_struct);
+    XtAddCallback(view_struct->canvas, XmNexposeCallback,
+		  realignDisplayOverlayCb, view_struct);
   }
   else {
     /* clear stored data */
     XtRemoveCallback(view_struct->canvas, XmNexposeCallback,
 		     realignDisplayPolysCb, view_struct);
+    XtRemoveCallback(view_struct->canvas, XmNexposeCallback,
+		     realignDisplayOverlayCb, view_struct);
     reset_view_struct(view_struct);
     display_view_cb(widget, client_data, call_data);
     AlcFree((void *) srcPoly);
     AlcFree((void *) dstPoly);
     AlcFree((void *) tmpPoly);
-    WlzFreeObj(origPaintedObject);
     srcPoly = dstPoly = tmpPoly = NULL;
+    WlzFreeObj(origPaintedObject);
     origPaintedObject = NULL;
   }
   return;
@@ -1169,8 +1663,21 @@ static void realignment_controls_cb(
 		      "selected for painting. Please quit\n"
 		      "painting and try again.",
 		      XmDIALOG_FULL_APPLICATION_MODAL);
+      XtVaSetValues(widget, XmNset, False, NULL);
       return;
     }
+
+    /* check the view is valid for this operation: pitch == 90 */
+    if( fabs(wlzViewStr->phi - WLZ_M_PI_2) > 1.0e-2 ){
+      HGU_XmUserError(view_struct->dialog,
+		      "Invalid pitch value. For this\n"
+		      "operation please set pitch = 90.0\n"
+		      "and redefine the alignment",
+		      XmDIALOG_FULL_APPLICATION_MODAL);
+      XtVaSetValues(widget, XmNset, False, NULL);
+      return;
+    }
+
     wasManaged = False;
     shellHeight += cntrlFormHeight;
   }
@@ -1242,6 +1749,22 @@ static MenuItem poly_menu_itemsP[] = {		/* poly_menu items */
   NULL,
 };
 
+static MenuItem overlay_type_itemsP[] = {		/* poly_menu items */
+  {"boundary", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   setOverlayTypeCb, (XtPointer) MAREALIGN_BOUNDARY_TYPE,
+   HGU_XmHelpStandardCb, NULL,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"dithered", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   setOverlayTypeCb, (XtPointer) MAREALIGN_DITHERED_TYPE,
+   HGU_XmHelpStandardCb, NULL,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"edge", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   setOverlayTypeCb, (XtPointer) MAREALIGN_EDGE_TYPE,
+   HGU_XmHelpStandardCb, NULL,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  NULL,
+};
+
 Widget createRealignmentDialog(
   Widget	topl)
 {
@@ -1297,7 +1820,7 @@ Widget createRealignmentDialog(
   XtAddCallback(title, XmNvalueChangedCallback, realignment_setup_cb,
 		view_struct);
 
-  /* now the controls */
+  /* now the polyline controls */
   option_menu = HGU_XmBuildMenu(form, XmMENU_OPTION, "poly_select", 0,
 				XmTEAR_OFF_DISABLED, poly_menu_itemsP);
   XtVaSetValues(option_menu,
@@ -1381,6 +1904,80 @@ Widget createRealignmentDialog(
   widget = radio_box;
   XtManageChild(widget);
 
+  /* now the overlay controls */
+  option_menu = HGU_XmBuildMenu(form, XmMENU_OPTION, "overlay_select", 0,
+				XmTEAR_OFF_DISABLED, overlay_type_itemsP);
+  XtVaSetValues(option_menu,
+		XmNtopAttachment,	XmATTACH_WIDGET,
+		XmNtopWidget,		widget,
+		XmNleftAttachment,	XmATTACH_FORM,
+		NULL);
+  XtManageChild(option_menu);
+
+  button = XtVaCreateManagedWidget("overlay_input",
+				   xmPushButtonWidgetClass, form,
+				   XmNtopAttachment,XmATTACH_OPPOSITE_WIDGET,
+				   XmNtopWidget,	option_menu,
+				   XmNbottomAttachment,	XmATTACH_OPPOSITE_WIDGET,
+				   XmNbottomWidget,	option_menu,
+				   XmNleftAttachment,	XmATTACH_WIDGET,
+				   XmNleftWidget,	option_menu,
+				   NULL);
+  XtAddCallback(button, XmNactivateCallback, realignReadOverlayPopupCb,
+		view_struct);
+  widget = option_menu;
+
+  /* buttons to adjust the overlay */
+  radio_box = XmCreateRowColumn(form, "overlay_adjust_rc", NULL, 0);
+  XtVaSetValues(radio_box,
+		XmNorientation, XmHORIZONTAL,
+		XmNtopAttachment,  XmATTACH_WIDGET,
+		XmNtopWidget, widget,
+		XmNleftAttachment, XmATTACH_FORM,
+		XmNpacking, XmPACK_TIGHT,
+		NULL);
+  label = XtVaCreateManagedWidget("overlay_adjust_label",
+				  xmLabelWidgetClass, radio_box,
+				  XmNborderWidth,	0,
+				  NULL);
+  button = XtVaCreateManagedWidget("shift_left_right",
+				   xmPushButtonWidgetClass, radio_box,
+				   NULL);
+  XtAddCallback(button, XmNactivateCallback, realignShiftLROverlayCb,
+		view_struct);
+  button = XtVaCreateManagedWidget("shift_up_down",
+				   xmPushButtonWidgetClass, radio_box,
+				   NULL);
+  XtAddCallback(button, XmNactivateCallback, realignShiftUDOverlayCb,
+		view_struct);
+  button = XtVaCreateManagedWidget("scale_left_right",
+				   xmPushButtonWidgetClass, radio_box,
+				   NULL);
+  XtAddCallback(button, XmNactivateCallback, realignScaleLROverlayCb,
+		view_struct);
+  button = XtVaCreateManagedWidget("scale_up_down",
+				   xmPushButtonWidgetClass, radio_box,
+				   NULL);
+  XtAddCallback(button, XmNactivateCallback, realignScaleUDOverlayCb,
+		view_struct);
+  button = XtVaCreateManagedWidget("rotate",
+				   xmPushButtonWidgetClass, radio_box,
+				   NULL);
+  XtAddCallback(button, XmNactivateCallback, realignRotateOverlayCb,
+		view_struct);
+  button = XtVaCreateManagedWidget("overlay_reset",
+				   xmPushButtonWidgetClass, radio_box,
+				   NULL);
+  XtAddCallback(button, XmNactivateCallback, realignResetOverlayCb,
+		view_struct);
+  button = XtVaCreateManagedWidget("overlay_delete",
+				   xmPushButtonWidgetClass, radio_box,
+				   NULL);
+  XtAddCallback(button, XmNactivateCallback, realignDeleteOverlayCb,
+		view_struct);
+  XtManageChild(radio_box);
+  widget = radio_box;
+
   /* now some buttons */
   realign_controls_actions[0].callback = resetRealignPolyCb;
   realign_controls_actions[0].client_data = view_struct;
@@ -1395,12 +1992,12 @@ Widget createRealignmentDialog(
   buttons = HGU_XmCreateWActionArea(form,
 				    realign_controls_actions,
 				    XtNumber(realign_controls_actions),
-				    xmPushButtonWidgetClass);
+				    xmDrawnButtonWidgetClass);
 
   /* set the buttons attachments */
   XtVaSetValues(buttons,
 		XmNtopAttachment,	XmATTACH_WIDGET,
-		XmNtopWidget,		option_menu,
+		XmNtopWidget,		widget,
 		XmNleftAttachment,	XmATTACH_FORM,
 		XmNrightAttachment,	XmATTACH_FORM,
 		NULL);
@@ -1417,6 +2014,22 @@ Widget createRealignmentDialog(
   origObj = WlzAssignObject(globals.obj, NULL);
   XtAddCallback(dialog, XmNdestroyCallback, realignmentDestroyCb,
 		view_struct);
+
+  /* create a transforms object with the identity transform
+     - this is the current product of all alignment operations */
+  if( !(transformsObj =
+	WlzAssignObject(WlzMakeTransformObj3D(origObj, NULL), NULL)) ){
+    HGU_XmUserError(view_struct->dialog,
+		    "Failed to allocate memory for this\n"
+		    "operation. Probably you need to restart\n"
+		    "MAPaint and try again or make a smaller\n"
+		    "reference image",
+		    XmDIALOG_FULL_APPLICATION_MODAL);
+    realignmentDestroyCb(dialog, (XtPointer) view_struct, NULL);
+    return NULL;
+  }
+  realignResetTransformsObj();
+  transformsUpdatedFlg = 0;
 
   return( dialog );
 }

@@ -107,6 +107,9 @@ static MenuItem options_menu_itemsP[] = {	/* option_menu items */
   {"autosave_opts", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    autosave_opts_cb, NULL, NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"save_seq_opts", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   save_seq_opts_cb, NULL, NULL, NULL,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
   NULL,
 };
 
@@ -117,6 +120,7 @@ extern Widget	reviewDialog;
 extern Widget	surgeryDialog;
 extern Widget	colormap_dialog;
 extern Widget	autosave_dialog;
+extern Widget	save_seq_dialog;
 
 static XtIntervalId	domain_review_timeoutId;
 
@@ -465,9 +469,15 @@ Widget	topl)
       sprintf(globals.autosave_file, "%s/%s.%d", dirstr, filestr, getpid());
     }
     
-    globals.autosavetimeoutID =
+    /* no autosave in sectioView mode */
+    if( globals.sectViewFlg ){
+      globals.autosavetimeoutID = 0;
+    }
+    else {
+      globals.autosavetimeoutID =
 	XtAppAddTimeOut(globals.app_con, globals.autosave_time*1000,
 			autosavetimeout_cb, NULL);
+    }
 
     /* create the autosave controls */
     autosave_dialog = create_autosave_dialog( topl );
@@ -481,6 +491,29 @@ Widget	topl)
     globals.currentPaintActionInitFunc = MAPaintDraw2DInit;
     globals.currentPaintActionQuitFunc = MAPaintDraw2DQuit;
     globals.review_domain_obj = NULL;
+
+    /* remove the editing options in sectionView mode */
+    if( globals.sectViewFlg ){
+      char nameBuf[64];
+      int i;
+      for(i=0; options_menu_itemsP[i].name != NULL; i++){
+	if( strstr(options_menu_itemsP[i].name, "colormap") ){
+	  continue;
+	}
+	else if( options_menu_itemsP[i].name ){
+	  sprintf(nameBuf, "*.options_menu*%s",
+		  options_menu_itemsP[i].name);
+	  if( widget = XtNameToWidget(topl, nameBuf) ){
+	    XtSetSensitive(widget, False);
+	  }
+	}
+      }
+    }
+
+    /* create the save sequence controls */
+    save_seq_dialog = create_save_seq_dialog( topl );
+    XtManageChild( save_seq_dialog );
+    HGU_XmSaveRestoreAddWidget( save_seq_dialog, NULL, NULL, NULL, NULL );
 
     return;
 }

@@ -97,6 +97,60 @@ void MAOpenGLDisplayBoundList(
   
   return;
 }
+void MAOpenGLDisplayXBoundList(
+  WlzBoundList *bndlist,
+  float		x)
+{
+  WlzIVertex2	*vtxs;
+  int		i, step;
+
+  if( bndlist == NULL || bndlist->poly == NULL )
+  {
+    return;
+  }
+  vtxs = bndlist->poly->vtx;
+  step = bndlist->poly->nvertices / 40;
+  step = (step > 0) ? step : 1;
+
+  glBegin(GL_LINE_LOOP);
+  for(i=0; i < bndlist->poly->nvertices; i += step)
+  {
+    glVertex3f((GLfloat) x, (GLfloat) vtxs[i].vtY, (GLfloat) vtxs[i].vtX);
+  }
+  glEnd();
+
+  MAOpenGLDisplayXBoundList( bndlist->next, x );
+  
+  return;
+}
+
+void MAOpenGLDisplayYBoundList(
+  WlzBoundList *bndlist,
+  float		y)
+{
+  WlzIVertex2	*vtxs;
+  int		i, step;
+
+  if( bndlist == NULL || bndlist->poly == NULL )
+  {
+    return;
+  }
+  vtxs = bndlist->poly->vtx;
+  step = bndlist->poly->nvertices / 40;
+  step = (step > 0) ? step : 1;
+
+  glBegin(GL_LINE_LOOP);
+  for(i=0; i < bndlist->poly->nvertices; i += step)
+  {
+    glVertex3f((GLfloat) vtxs[i].vtX, (GLfloat) y, (GLfloat) vtxs[i].vtY);
+  }
+  glEnd();
+
+  MAOpenGLDisplayYBoundList( bndlist->next, y );
+  
+  return;
+}
+
 
 void MAOpenGLDisplayDomainIndex(
 WlzObject	*obj,

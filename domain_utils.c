@@ -147,7 +147,7 @@ void setGreyValuesFromObject(
   WlzObject		*obj1, *obj2;
   WlzIntervalWSpace	iwsp1, iwsp2;
   WlzGreyWSpace		gwsp1, gwsp2;
-  int			x, y, z, l, k, p;
+  int			x, y, z, i, l, k, p;
   WlzPixelV		min, max, Min, Max;
 
   /* check the objects */
@@ -194,9 +194,43 @@ void setGreyValuesFromObject(
   while( WlzNextGreyInterval( &iwsp1 ) == WLZ_ERR_NONE &&
 	WlzNextGreyInterval( &iwsp2 ) == WLZ_ERR_NONE )
   {
-    memcpy((void *) gwsp1.u_grintptr.ubp,
-	   (const void *) gwsp2.u_grintptr.ubp,
-	   (size_t) (iwsp1.rgtpos - iwsp1.lftpos + 1));
+    switch( gwsp2.pixeltype ){
+    case WLZ_GREY_LONG:
+      for(i=0; i < iwsp1.colrmn; i++){
+	gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.lnp[i]);
+      }
+      break;
+
+    case WLZ_GREY_INT:
+      for(i=0; i < iwsp1.colrmn; i++){
+	gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.inp[i]);
+      }
+      break;
+
+    case WLZ_GREY_SHORT:
+      for(i=0; i < iwsp1.colrmn; i++){
+	gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.shp[i]);
+      }
+      break;
+
+    case WLZ_GREY_UBYTE:
+      memcpy((void *) gwsp1.u_grintptr.ubp,
+	     (const void *) gwsp2.u_grintptr.ubp,
+	     (size_t) (iwsp1.rgtpos - iwsp1.lftpos + 1));
+      break;
+
+    case WLZ_GREY_FLOAT:
+      for(i=0; i < iwsp1.colrmn; i++){
+	gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.flp[i]);
+      }
+      break;
+
+    case WLZ_GREY_DOUBLE:
+      for(i=0; i < iwsp1.colrmn; i++){
+	gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.dbp[i]);
+      }
+      break;
+    }
   }
   WlzGreySetRange(obj1, min, max, Min, Max);
   WlzFreeObj( obj1 );

@@ -124,10 +124,10 @@ void MAPaintAffine2DQuit(
   return;
 }
 
-#define MAXXPOINTS	512
+#define MAXXPOINTS	1024
 static XPoint	xpoints[MAXXPOINTS];
 
-static void DisplayPoly(
+void DisplayPoly(
   Display		*dpy,
   Window		win,
   GC			gc,
@@ -154,7 +154,7 @@ static void DisplayPoly(
   return;
 }
 
-static void DisplayBound(
+void DisplayBound(
   Display	*dpy,
   Window	win,
   GC		gc,
@@ -170,6 +170,9 @@ static void DisplayBound(
 
   /* display the next bound elements */
   DisplayBound(dpy, win, gc, bound->next);
+
+  /* display the down bound elements */
+  DisplayBound(dpy, win, gc, bound->down);
 
   return;
 }

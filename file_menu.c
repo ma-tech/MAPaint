@@ -60,6 +60,10 @@ static MenuItem file_type_menu_itemsP[] = {   /* file_menu items */
    image_type_cb, (XtPointer) WLZEFF_FORMAT_SLC,
    HGU_XmHelpStandardCb, SEC_INPUT_DATA_FORMATS,
    XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"ipl", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   image_type_cb, (XtPointer) WLZEFF_FORMAT_IPL,
+   HGU_XmHelpStandardCb, SEC_INPUT_DATA_FORMATS,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
   NULL,
 };
 
@@ -199,18 +203,29 @@ static Widget	new_obj_dialog, read_obj_dialog;
 static Widget	write_obj_dialog;
 static char 	*refFileList[]={NULL, NULL, NULL, NULL, NULL,
 				NULL, NULL, NULL, NULL, NULL};
+static WlzEffFormat refImageTypeList[]=
+{WLZEFF_FORMAT_WLZ, WLZEFF_FORMAT_WLZ, WLZEFF_FORMAT_WLZ,
+ WLZEFF_FORMAT_WLZ, WLZEFF_FORMAT_WLZ, WLZEFF_FORMAT_WLZ,
+ WLZEFF_FORMAT_WLZ, WLZEFF_FORMAT_WLZ, WLZEFF_FORMAT_WLZ,
+ WLZEFF_FORMAT_WLZ};
 
 /* reference file list manipulation procedures */
 void ReferenceFileListPush(
-  char *fileStr)
+  char 		*fileStr,
+  WlzEffFormat	image_type)
 {
   int	i;
 
   if( fileStr ){
+    if( refFileList[9] ){
+      AlcFree((void *) refFileList[9]);
+    }
     for(i=9; i > 0; i--){
       refFileList[i] = refFileList[i-1];
+      refImageTypeList[i] = refImageTypeList[i-1];
     }
     refFileList[0] = strdup(fileStr);
+    refImageTypeList[0] = image_type;
   }
 
   return;
@@ -224,7 +239,7 @@ void ReferenceFileListWrite(
   fprintf(fp, "Reference file list:\n");
   for(i=0; i < 10; i++){
     if( refFileList[i] ){
-      fprintf(fp, "%s\n", refFileList[i]);
+      fprintf(fp, "%s, %d\n", refFileList[i], refImageTypeList[i]);
     }
     else {
       break;
@@ -236,71 +251,86 @@ void ReferenceFileListWrite(
 }
 
 void ReferenceFileListCb(
-Widget	w,
-XtPointer	client_data,
-XtPointer	call_data)
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
 {
   int	fileIndex = ((int) client_data) - 1;
-  FILE	*fp;
+  FILE	*fp=NULL;
+  WlzEffFormat	image_type = refImageTypeList[fileIndex];
 
   if( refFileList[fileIndex] ){
     WlzObject 	*obj;
 
-    /* open the reference object file and install */
-    if( (fp = fopen(refFileList[fileIndex], "r")) ){
-      HGU_XmSetHourGlassCursor(globals.topl);
-      if( obj = WlzReadObj( fp, NULL ) ){
-	switch( obj->type ){
-	  WlzDomain	domain;
-	  WlzValues	values;
-	  WlzObject	*newObj;
-
-	case WLZ_2D_DOMAINOBJ:
-	  domain.p = WlzMakePlaneDomain(WLZ_PLANEDOMAIN_DOMAIN, 0, 0,
-					obj->domain.i->line1,
-					obj->domain.i->lastln,
-					obj->domain.i->kol1,
-					obj->domain.i->lastkl,
-					NULL);
-	  domain.p->domains[0] = WlzAssignDomain(obj->domain, NULL);
-	  values.vox = WlzMakeVoxelValueTb(WLZ_VOXELVALUETABLE_GREY,
-					   0, 0, WlzGetBackground(obj, NULL),
-					   NULL, NULL);
-	  values.vox->values[0] = WlzAssignValues(obj->values, NULL);
-	  newObj = WlzMakeMain(WLZ_3D_DOMAINOBJ, domain, values,
-			       NULL, NULL, NULL);
-	  WlzFreeObj(obj);
-	  obj = newObj;
-	  break;
-
-	case WLZ_3D_DOMAINOBJ:
-	  break;
-
-	default:
-	  HGU_XmUserError(globals.topl,
-			  "Read Reference Object:\n"
-			  "    The reference object must be a 2- or 3-D\n"
-			  "    grey-level image. Please select an alternate\n"
-			  "    object",
-			  XmDIALOG_FULL_APPLICATION_MODAL);
-	  WlzFreeObj( obj );
-	  /* set hour glass cursor */
-	  HGU_XmUnsetHourGlassCursor(globals.topl);
-	  return;
-	}
-	if( fileIndex ){
-	  ReferenceFileListPush(refFileList[fileIndex]);
-	}
-	install_paint_reference_object( obj );
+    /* get the file pointer or file name if ics format */
+    if( image_type != WLZEFF_FORMAT_ICS )
+    {
+      if( (fp = fopen(refFileList[fileIndex], "r")) == NULL )
+      {
+	return;
       }
-      (void) fclose( fp );
-
-      /* set the title of the top-level window */
-      set_topl_title(refFileList[fileIndex]);
-      globals.file = refFileList[fileIndex];
-
-      HGU_XmUnsetHourGlassCursor(globals.topl);
     }
+  
+    /* read the new reference object */
+    HGU_XmSetHourGlassCursor(globals.topl);
+    obj = WlzEffReadObj(fp, refFileList[fileIndex], image_type, NULL);
+
+    /* close the file pointer if non NULL */
+    if( fp )
+    {
+      (void) fclose( fp );
+    }
+
+    if( obj ){
+      switch( obj->type ){
+	WlzDomain	domain;
+	WlzValues	values;
+	WlzObject	*newObj;
+
+      case WLZ_2D_DOMAINOBJ:
+	domain.p = WlzMakePlaneDomain(WLZ_PLANEDOMAIN_DOMAIN, 0, 0,
+				      obj->domain.i->line1,
+				      obj->domain.i->lastln,
+				      obj->domain.i->kol1,
+				      obj->domain.i->lastkl,
+				      NULL);
+	domain.p->domains[0] = WlzAssignDomain(obj->domain, NULL);
+	values.vox = WlzMakeVoxelValueTb(WLZ_VOXELVALUETABLE_GREY,
+					 0, 0, WlzGetBackground(obj, NULL),
+					 NULL, NULL);
+	values.vox->values[0] = WlzAssignValues(obj->values, NULL);
+	newObj = WlzMakeMain(WLZ_3D_DOMAINOBJ, domain, values,
+			     NULL, NULL, NULL);
+	WlzFreeObj(obj);
+	obj = newObj;
+	break;
+
+      case WLZ_3D_DOMAINOBJ:
+	break;
+
+      default:
+	HGU_XmUserError(globals.topl,
+			"Read Reference Object:\n"
+			"    The reference object must be a 2- or 3-D\n"
+			"    grey-level image. Please select an alternate\n"
+			"    object",
+			XmDIALOG_FULL_APPLICATION_MODAL);
+	WlzFreeObj( obj );
+	/* set hour glass cursor */
+	HGU_XmUnsetHourGlassCursor(globals.topl);
+	return;
+      }
+      if( fileIndex ){
+	ReferenceFileListPush(refFileList[fileIndex], image_type);
+      }
+      install_paint_reference_object( obj );
+    }
+
+    /* set the title of the top-level window */
+    set_topl_title(refFileList[0]);
+    globals.file = refFileList[0];
+
+    HGU_XmUnsetHourGlassCursor(globals.topl);
   }
 
   return;
@@ -337,6 +367,88 @@ XtPointer	call_data)
 }
 
 static XmStringCharSet charset = XmSTRING_DEFAULT_CHARSET;
+extern void MAOpenGLDisplayYBoundList(WlzBoundList *bndlist,
+				      float		y);
+extern void MAOpenGLDisplayXBoundList(WlzBoundList *bndlist,
+				      float		x);
+
+WlzErrorNum Wlz3DSectionTransformXPoly(
+  WlzPolygonDomain	*poly,
+  WlzThreeDViewStruct	*viewStr)
+{
+  WlzIVertex2	*vtxs;
+  WlzDVertex3	vtx;
+  int		i;
+
+  if( poly == NULL ){
+    return WLZ_ERR_NONE;
+  }
+
+  vtxs = poly->vtx;
+  for(i=0; i < poly->nvertices; i++, vtxs++){
+    vtx.vtX = vtxs->vtX;
+    vtx.vtY = vtxs->vtY;
+    Wlz3DSectionTransformInvVtx(&vtx, viewStr);
+    vtxs->vtX = vtx.vtZ;
+    vtxs->vtY = vtx.vtY;
+  }
+
+  return WLZ_ERR_NONE;
+}  
+
+WlzErrorNum Wlz3DSectionTransformXBound(
+  WlzBoundList		*bndlist,
+  WlzThreeDViewStruct	*viewStr)
+{
+  if( bndlist == NULL ){
+    return WLZ_ERR_NONE;
+  }
+
+  Wlz3DSectionTransformXBound(bndlist->next, viewStr);
+  Wlz3DSectionTransformXBound(bndlist->down, viewStr);
+  Wlz3DSectionTransformXPoly(bndlist->poly, viewStr);
+
+  return WLZ_ERR_NONE;
+}
+
+WlzErrorNum Wlz3DSectionTransformYPoly(
+  WlzPolygonDomain	*poly,
+  WlzThreeDViewStruct	*viewStr)
+{
+  WlzIVertex2	*vtxs;
+  WlzDVertex3	vtx;
+  int		i;
+
+  if( poly == NULL ){
+    return WLZ_ERR_NONE;
+  }
+
+  vtxs = poly->vtx;
+  for(i=0; i < poly->nvertices; i++, vtxs++){
+    vtx.vtX = vtxs->vtX;
+    vtx.vtY = vtxs->vtY;
+    Wlz3DSectionTransformInvVtx(&vtx, viewStr);
+    vtxs->vtX = vtx.vtX;
+    vtxs->vtY = vtx.vtZ;
+  }
+
+  return WLZ_ERR_NONE;
+}  
+
+WlzErrorNum Wlz3DSectionTransformYBound(
+  WlzBoundList		*bndlist,
+  WlzThreeDViewStruct	*viewStr)
+{
+  if( bndlist == NULL ){
+    return WLZ_ERR_NONE;
+  }
+
+  Wlz3DSectionTransformYBound(bndlist->next, viewStr);
+  Wlz3DSectionTransformYBound(bndlist->down, viewStr);
+  Wlz3DSectionTransformYPoly(bndlist->poly, viewStr);
+
+  return WLZ_ERR_NONE;
+}
 
 void setup_ref_display_list_cb(
 Widget	w,
@@ -345,6 +457,7 @@ XtPointer	call_data)
 {
 
   WlzPlaneDomain	*planedmn;
+  WlzThreeDViewStruct	*viewStr;
 
   if( globals.obj == NULL || globals.obj->type != WLZ_3D_DOMAINOBJ ||
      globals.ref_display_list == 0){
@@ -393,14 +506,21 @@ XtPointer	call_data)
 
   if( globals.fb_obj && (globals.fb_obj->type == WLZ_3D_DOMAINOBJ) ){
     WlzObject		*obj1, *boundobj;
-    WlzPlaneDomain	*planedmn;
     WlzValues		values;
-    int			z;
+    int			z, step;
 
-    glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 0.0));
-
+    /* establish the step size */
     planedmn = globals.fb_obj->domain.p;
-    for(z=planedmn->plane1; z <= planedmn->lastpl; z += 10)
+    step = (planedmn->lastkl - planedmn->kol1) / 6;
+    z = (planedmn->lastln - planedmn->line1) / 6;
+    step = WLZ_MIN(step, z);
+    z = (planedmn->lastpl - planedmn->plane1) / 6;
+    step = WLZ_MIN(step, z);
+
+    /* set up const z boundaries */
+    glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 1.0));
+    (void) glLineWidth( (GLfloat) 2.0 );
+    for(z=planedmn->plane1+step/2; z <= planedmn->lastpl; z += step)
     {
       values.core = NULL;
       obj1 = WlzMakeMain(WLZ_2D_DOMAINOBJ,
@@ -416,6 +536,52 @@ XtPointer	call_data)
 	}
       }
       WlzFreeObj( obj1 );
+    }
+    (void) glLineWidth( (GLfloat) 1.0 );
+
+    /* set up const y boundaries */
+    glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 0.0));
+    viewStr = WlzMake3DViewStruct(WLZ_3D_VIEW_STRUCT, NULL);
+    viewStr->theta = WLZ_M_PI / 2.0;
+    viewStr->phi = WLZ_M_PI / 2.0;
+    viewStr->dist = planedmn->line1 - step/2;
+    WlzInit3DViewStruct(viewStr, globals.fb_obj);
+    for(z=viewStr->dist+step; z <= planedmn->lastln; z += step)
+    {
+      Wlz3DSectionIncrementDistance(viewStr, (double) step);
+      if( obj1 = WlzGetSectionFromObject(globals.fb_obj, viewStr, NULL) ){
+	boundobj = WlzObjToBoundary(obj1, 1, NULL);
+	if( boundobj != NULL )
+	{
+	  /* convert boundary coordinates to voxel coordinates */
+	  Wlz3DSectionTransformYBound(boundobj->domain.b, viewStr);
+	  MAOpenGLDisplayYBoundList(boundobj->domain.b, (float) z);
+	  WlzFreeObj( boundobj );
+	}
+	WlzFreeObj( obj1 );
+      }
+    }
+
+    /* set up const x boundaries */
+    glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 0.0));
+    viewStr->theta = 0.0;
+    viewStr->phi = WLZ_M_PI / 2.0;
+    viewStr->dist = planedmn->kol1 - step/2;
+    WlzInit3DViewStruct(viewStr, globals.fb_obj);
+    for(z=viewStr->dist+step; z <= planedmn->lastkl; z += step)
+    {
+      Wlz3DSectionIncrementDistance(viewStr, (double) step);
+      if( obj1 = WlzGetSectionFromObject(globals.fb_obj, viewStr, NULL) ){
+	boundobj = WlzObjToBoundary(obj1, 1, NULL);
+	if( boundobj != NULL )
+	{
+	  /* convert boundary coordinates to voxel coordinates */
+	  Wlz3DSectionTransformXBound(boundobj->domain.b, viewStr);
+	  MAOpenGLDisplayXBoundList(boundobj->domain.b, (float) z);
+	  WlzFreeObj( boundobj );
+	}
+	WlzFreeObj( obj1 );
+      }
     }
   }
 
@@ -437,14 +603,68 @@ void install_paint_reference_object(
   WlzObject	*obj)
 {
   Widget		toggle;
+  WlzPixelV		bckgrnd;
   WlzPixelV		min, max, Min, Max;
 
   if( globals.orig_obj != NULL )
     WlzFreeObj( globals.orig_obj );
   globals.orig_obj = WlzAssignObject(obj, NULL);
+  obj = NULL;
 
   /* check input object for grey-value type
      convert if necessary */
+  bckgrnd = WlzGetBackground(globals.orig_obj, NULL);
+  Min.type = WLZ_GREY_INT;
+  Max.type = WLZ_GREY_INT;
+  Min.v.inv = 0;
+  Max.v.inv = 255;
+  
+  switch( bckgrnd.type ){
+  case WLZ_GREY_LONG:
+    WlzGreyRange(globals.orig_obj, &min, &max);
+    if( (min.v.lnv < 0) || (max.v.lnv > 255) ){
+      obj = WlzConvertPix(globals.orig_obj, WLZ_GREY_INT, NULL);
+      WlzGreySetRange(obj, min, max, Min, Max);
+      bckgrnd = WlzGetBackground(obj, NULL);
+    }
+    break;
+  case WLZ_GREY_INT:
+    WlzGreyRange(globals.orig_obj, &min, &max);
+    if( (min.v.inv < 0) || (max.v.inv > 255) ){
+      obj = WlzConvertPix(globals.orig_obj, WLZ_GREY_INT, NULL);
+      WlzGreySetRange(obj, min, max, Min, Max);
+      bckgrnd = WlzGetBackground(obj, NULL);
+    }
+    break;
+  case WLZ_GREY_SHORT:
+    WlzGreyRange(globals.orig_obj, &min, &max);
+    if( (min.v.shv < 0) || (max.v.shv > 255) ){
+      obj = WlzConvertPix(globals.orig_obj, WLZ_GREY_SHORT, NULL);
+      WlzGreySetRange(obj, min, max, Min, Max);
+      bckgrnd = WlzGetBackground(obj, NULL);
+    }
+    break;
+  case WLZ_GREY_FLOAT:
+    WlzGreyRange(globals.orig_obj, &min, &max);
+    if( (min.v.flv < 0) || (max.v.flv > 255) ){
+      obj = WlzConvertPix(globals.orig_obj, WLZ_GREY_INT, NULL);
+      WlzGreySetRange(obj, min, max, Min, Max);
+      bckgrnd = WlzGetBackground(obj, NULL);
+    }
+    break;
+  case WLZ_GREY_DOUBLE:
+    WlzGreyRange(globals.orig_obj, &min, &max);
+    if( (min.v.dbv < 0) || (max.v.dbv > 255) ){
+      obj = WlzConvertPix(globals.orig_obj, WLZ_GREY_INT, NULL);
+      WlzGreySetRange(obj, min, max, Min, Max);
+      bckgrnd = WlzGetBackground(obj, NULL);
+    }
+    break;
+
+  case WLZ_GREY_UBYTE:
+    break;
+
+  }
 
   /* copy for later transform for display purposes,
      the original is kept for IP purposes note pixconvert loses
@@ -452,9 +672,17 @@ void install_paint_reference_object(
   if( globals.obj != NULL ){
     WlzFreeObj( globals.obj );
   }
-  globals.obj = WlzAssignObject(WlzConvertPix(globals.orig_obj,
-					      WLZ_GREY_UBYTE, NULL),
-				NULL);
+  if( obj ){
+    globals.obj =
+      WlzAssignObject(WlzConvertPix(obj, WLZ_GREY_UBYTE, NULL), NULL);
+    WlzFreeObj(globals.orig_obj);
+    globals.orig_obj = WlzAssignObject(obj, NULL);
+  }
+  else {
+    globals.obj =
+      WlzAssignObject(WlzConvertPix(globals.orig_obj,
+				    WLZ_GREY_UBYTE, NULL), NULL);
+  }
   min.type = WLZ_GREY_UBYTE;
   max.type = WLZ_GREY_UBYTE;
   Min.type = WLZ_GREY_UBYTE;
@@ -466,10 +694,10 @@ void install_paint_reference_object(
   WlzGreySetRange(globals.obj, min, max, Min, Max);
 
   /* also convert the background values */
-  min = WlzGetBackground(globals.orig_obj, NULL);
-  WlzValueConvertPixel(&min, min, WLZ_GREY_INT);
+/*  min = WlzGetBackground(globals.orig_obj, NULL);*/
+  WlzValueConvertPixel(&bckgrnd, bckgrnd, WLZ_GREY_INT);
   max.type = WLZ_GREY_INT;
-  max.v.inv = ((min.v.inv * (Max.v.ubv - Min.v.ubv)) / 255) + Min.v.ubv;
+  max.v.inv = ((bckgrnd.v.inv * (Max.v.ubv - Min.v.ubv)) / 255) + Min.v.ubv;
   WlzSetBackground(globals.obj, max);
 
   /* fill blank planes here - should be a resource option */
@@ -501,20 +729,29 @@ void install_paint_reference_object(
 void set_topl_title(
   String	name)
 {
-  String	name_return, class_return;
+  String	class_return;
   char		str_buff[64];
   int		i, basename_start;
 
-  /* get the top level dialog and application name */
-  XtGetApplicationNameAndClass(XtDisplay(globals.topl),
-			       &name_return, &class_return);
-  /* get file basename */
-  for(i=0, basename_start=0; i < strlen(name); i++){
-    if( name[i] == '/' ){
-      basename_start = i+1;
-    }
+  if( globals.app_name == NULL ){
+    /* get the top level dialog and application name */
+    XtGetApplicationNameAndClass(XtDisplay(globals.topl),
+				 &globals.app_name, &class_return);
   }
-  (void) sprintf(str_buff, "%s: %s", name_return, name+basename_start);
+  
+  if( name ){
+    /* get file basename */
+    for(i=0, basename_start=0; i < strlen(name); i++){
+      if( name[i] == '/' ){
+	basename_start = i+1;
+      }
+    }
+    sprintf(str_buff, "%s: %s", globals.app_name, name+basename_start);
+  }
+  else {
+    sprintf(str_buff, "%s", globals.app_name);
+  }
+
   XtVaSetValues(globals.topl, XtNtitle, str_buff, NULL);
 
   return;
@@ -635,7 +872,7 @@ XtPointer	call_data)
     if(icsfile ||
        (icsfile = HGU_XmGetFileStr(globals.topl, cbs->value, cbs->dir)) )
     {
-      ReferenceFileListPush(icsfile);
+      ReferenceFileListPush(icsfile, image_type);
       if( XmStringGetLtoR(cbs->value, XmSTRING_DEFAULT_CHARSET, &icsfile) )
       {
 	set_topl_title(icsfile);
@@ -711,37 +948,38 @@ XtPointer	call_data)
 }
 
 void quit_cb(
-Widget	w,
-XtPointer	client_data,
-XtPointer	call_data)
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
 {
-    int		i;
-    char	str_buf[128];
-    String	str;
-    FILE	*fp;
+  int		i;
+  char	str_buf[128];
+  String	str;
+  FILE	*fp;
 
-    /* make sure we are mapped and at the top */
-    XtMapWidget( globals.topl );
+  /* make sure we are mapped and at the top */
+  XtMapWidget( globals.topl );
 
-    /* use a dialog widget to confirm exit */
-    if( !HGU_XmUserConfirm(globals.topl, "Really quit?", "Yes", "No", 1 ) )
-	return;
+  /* use a dialog widget to confirm exit */
+  if( !HGU_XmUserConfirm(globals.topl, "Really quit?", "Yes", "No", 1 ) )
+    return;
 
-    /* save domains */
-    save_domains();
-    clear_autosave();
+  /* save domains */
+  save_domains();
+  clear_autosave();
 
-    /* use a dialog widget to double confirm exit  - last possible cop out */
-    if( !HGU_XmUserConfirm(globals.topl, "Really really quit?",
-			   "Yes", "No", 1 ) )
-	return;
+  /* use a dialog widget to double confirm exit  - last possible cop out */
+  if( !HGU_XmUserConfirm(globals.topl, "Really really quit?",
+			 "Yes", "No", 1 ) )
+    return;
 
-    /* kill the help viewer */
-    HGU_XmHelpDestroyViewer();
+  /* kill the help viewer */
+  HGU_XmHelpDestroyViewer();
 
-    XtDestroyWidget( globals.topl );
+  XtDestroyWidget( globals.topl );
 
-    /* write the mapaint config file */
+  /* write the mapaint config file */
+  if( !globals.sectViewFlg ){
     sprintf(str_buf, "%s/%s", getenv("HOME"), ".mapaint");
     if( fp = fopen(str_buf, "w") ){
       fprintf(fp,
@@ -756,7 +994,8 @@ XtPointer	call_data)
 
       fclose(fp);
     }
-    exit( 0 );
+  }
+  exit( 0 );
 }
 
 static void image_type_cb(
@@ -811,6 +1050,11 @@ static void image_type_cb(
      XtAddCallback(read_obj_dialog, XmNokCallback,
 		   read_reference_object_cb, (XtPointer) WLZEFF_FORMAT_SLC);
      pattern_str = XmStringCreateSimple( "*.slc" );
+     break;
+   case WLZEFF_FORMAT_IPL:
+     XtAddCallback(read_obj_dialog, XmNokCallback,
+		   read_reference_object_cb, (XtPointer) WLZEFF_FORMAT_IPL);
+     pattern_str = XmStringCreateSimple( "*.ipl" );
      break;
   }
 
@@ -912,7 +1156,7 @@ void fileMenuPopupCb(
 	    len--;
 	  }
 	  if( len ){
-	    sprintf(strBuf, "%d/ %.4s .../%s", i, refFileList[i-1],
+	    sprintf(strBuf, "%d/ %.16s .../%s", i, refFileList[i-1],
 		    refFileList[i-1] + len);
 	  }
 	  else {
@@ -951,8 +1195,9 @@ void file_menu_init(
   XmString	xmstr;
   Visual	*visual;
   Arg		arg[1];
-  char		fileStr[128];
+  char		fileStr[128], *tmpStr;
   FILE 		*fp;
+  WlzEffFormat	image_type=WLZEFF_FORMAT_WLZ;
 
   /* get the visual explicitly */
   visual = HGU_XmWidgetToVisual(topl);
@@ -1043,8 +1288,12 @@ void file_menu_init(
   globals.fb_obj    = NULL;
 
   /* setup the theiler directory and menu item */
+  tmpStr = globals.base_theiler_dir;
   XtGetApplicationResources(topl, &globals, set_att_res,
 			    XtNumber(set_att_res), NULL, 0);
+  if( tmpStr ){
+    globals.base_theiler_dir = tmpStr;
+  }
   theiler_menu_init( topl );
 
   /* check for an initial reference file */
@@ -1092,18 +1341,77 @@ void file_menu_init(
 	  /* set hour glass cursor */
 	  HGU_XmUnsetHourGlassCursor(globals.topl);
 	  return;
+
 	}
-	ReferenceFileListPush(initial_reference_file);
+	ReferenceFileListPush(initial_reference_file, image_type);
 	install_paint_reference_object( obj );
+
+	/* set the globals reference file */
+	globals.file = initial_reference_file;
+
+	/* set the title of the top-level window */
+	set_topl_title(globals.file);
+      }
+      else {
+	/* if it fails to read, check the file name
+	   or the file content for special options */
+	if( strstr(initial_reference_file, "MAPaint") ){
+	  /* standard MAPaint startup */
+	  globals.app_name = "MAPaint";
+	  /* set the title of the top-level window */
+	  set_topl_title(globals.file);
+	}
+	else if( strstr(initial_reference_file, "SectionView") ){
+	  /* restricted section view startup */
+	  globals.app_name = "SectionView";
+	  globals.sectViewFlg = 1;
+	  /* set the title of the top-level window */
+	  set_topl_title(globals.file);
+	}
+	else if( strstr(initial_reference_file, "ts14") ){
+	  /* load in ts14 anatomy etc. */
+	  globals.app_name = "SectionView";
+	  globals.sectViewFlg = 1;
+	  set_theiler_stage_cb(topl, "ts14", NULL);
+	}
+	else {
+	  char	strBuf[33];
+	  /* check the content */
+	  rewind(fp);
+	  fscanf(fp, "%32s", strBuf);
+	  if( strstr(strBuf, "MAPaint") ){
+	    /* standard MAPaint startup */
+	    globals.app_name = "MAPaint";
+	    /* set the title of the top-level window */
+	    set_topl_title(globals.file);
+	  }
+	  else if( strstr(strBuf, "SectionView") ){
+	    /* restricted section view startup */
+	    globals.app_name = "SectionView";
+	    globals.sectViewFlg = 1;
+	    /* set the title of the top-level window */
+	    set_topl_title(globals.file);
+	  }
+	  else if( strstr(strBuf, "ts14") ){
+	    /* load in ts14 anatomy etc. */
+	    globals.app_name = "SectionView";
+	    globals.sectViewFlg = 1;
+	    set_theiler_stage_cb(topl, "ts14", NULL);
+	  }
+	}
+
+	/* set the globals reference file */
+	globals.file = NULL;
       }
       (void) fclose( fp );
 
-      /* set the title of the top-level window */
-      set_topl_title(initial_reference_file);
-      globals.file = initial_reference_file;
-
       HGU_XmUnsetHourGlassCursor(topl);
     }
+  }
+
+  /* reset the colormap */
+  if( globals.sectViewFlg == 1 ){
+    init_paint_cmapstruct(globals.topl);
   }
 
   /* check for an initial domain file */
@@ -1126,22 +1434,32 @@ void file_menu_init(
   }
 
   /* initialise the reference file list */
-  sprintf(fileStr, "%s/%s", getenv("HOME"), ".mapaint");
-  if( fp = fopen(fileStr, "r") ){
-    char inBuf[128];
-    int i=0;
+  if( !globals.sectViewFlg ){
+    sprintf(fileStr, "%s/%s", getenv("HOME"), ".mapaint");
+    if( fp = fopen(fileStr, "r") ){
+      char inBuf[128];
+      int i=0, j;
 
-    while( fgets(&(inBuf[0]), 127, fp) ){
-      if( strncmp(inBuf, "Reference file list:", 20) ){
-	continue;
+      while( fgets(&(inBuf[0]), 127, fp) ){
+	if( strncmp(inBuf, "Reference file list:", 20) ){
+	  continue;
+	}
+	while((fgets(&(inBuf[0]), 127, fp)) &&
+	      (strncmp(inBuf, "End file list", 13)) &&
+	      (i < 10)){
+	  refFileList[i] = strdup(inBuf);
+	  for(j=0; j < strlen(refFileList[i]); j++){
+	    if((refFileList[i][j] == ',') ||
+	       (refFileList[i][j] == '\n')){
+	      refFileList[i][j] = '\0';
+	      break;
+	    }
+	  }
+	  sscanf(&(inBuf[j]), ", %d", &(refImageTypeList[i]));
+	  i++;
+	}
+	break;
       }
-      while( fgets(&(inBuf[0]), 127, fp) &&
-	     strncmp(inBuf, "End file list", 13) ){
-	inBuf[strlen(inBuf)-1] = '\0';
-	refFileList[i] = strdup(inBuf);
-	i++;
-      }
-      break;
     }
   }
 

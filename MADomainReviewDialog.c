@@ -857,9 +857,9 @@ XtPointer		call_data)
     fixed.vtZ = (globals.obj->domain.p->plane1 +
 		 globals.obj->domain.p->lastpl)/2;
     viewDialog = create_view_window_dialog(globals.topl, 0.0, 0.0, &fixed);
-    reviewViewStr = global_view_list->view_struct;
+/*    reviewViewStr = global_view_list->view_struct;*/
     XtVaGetValues(viewDialog, XmNuserData, &reviewViewStr, NULL);
-
+    reviewViewStr->noPaintingFlag = 1;
     button = XtNameToWidget(viewDialog, "*dismiss");
     XtSetSensitive(button, False);
   }
@@ -904,7 +904,7 @@ XtPointer		call_data)
   getViewDomains(reviewViewStr);
 
   /* make the view insensitive */
-  XtSetSensitive(reviewViewStr->canvas, False);
+/*  XtSetSensitive(reviewViewStr->canvas, False);*/
   XtSetSensitive(reviewViewStr->slider, False);
   XtSetSensitive(reviewViewStr->controls, False);
 

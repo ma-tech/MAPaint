@@ -230,6 +230,11 @@ Widget	canvas)
       cmpstr->num_solid_overlays = 27;
     }
 
+    if( globals.sectViewFlg ){
+      cmpstr->num_overlays = 5;
+      cmpstr->num_solid_overlays = 0;
+    }
+
     cmpstr->ovly_planes  = 224;
     cmpstr->ovly_cols[0] = 32;
     cmpstr->ovly_cols[1] = 64;

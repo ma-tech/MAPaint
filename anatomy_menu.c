@@ -42,18 +42,79 @@ static AnatObjItem *anatObjItems=NULL;
 static int numAnatObjItems=0;
 static int maxAnatObjItems=0;
 
-String getAnatNameFromCoord(
+String getAnatShortNameFromCoord(
   int k,
   int l,
   int p)
 {
   String 	name="no anatomy";
-  int		i;
+  int		i, i_min, vol, vol_min;
+  int		domainIndexList[32];
+  int		numDomains=0;
 
+  /* edit this so that the name returned is of the
+     smallest domain that contains the coordinate */
   for(i=0; i < numAnatObjItems; i++){
-    if( anatObjItems[i].domain && WlzInsideDomain(anatObjItems[i].domain,
-			(double) p, (double) l, (double) k, NULL) ){
-      return anatObjItems[i].shortName;
+    if(anatObjItems[i].domain &&
+       WlzInsideDomain(anatObjItems[i].domain,
+		       (double) p, (double) l, (double) k, NULL) ){
+      domainIndexList[numDomains++] = i;
+    }
+  }
+  if( numDomains ){
+    if( numDomains == 1) {
+      return anatObjItems[domainIndexList[0]].shortName;
+    }
+    else {
+      i_min = 0;
+      vol_min = WlzVolume(anatObjItems[domainIndexList[0]].domain, NULL);
+      for(i=1; i < numDomains; i++){
+	vol = WlzVolume(anatObjItems[domainIndexList[i]].domain, NULL);
+	if( vol < vol_min ){
+	  i_min = i;
+	}
+      }
+      return anatObjItems[domainIndexList[i_min]].shortName;
+    }
+  }
+
+  return name;
+}
+
+String getAnatFullNameFromCoord(
+  int k,
+  int l,
+  int p)
+{
+  String 	name="no anatomy";
+  int		i, i_min, vol, vol_min;
+  int		domainIndexList[32];
+  int		numDomains=0;
+
+  /* edit this so that the name returned is of the
+     smallest domain that contains the coordinate */
+  for(i=0; i < numAnatObjItems; i++){
+    if(anatObjItems[i].domain &&
+       WlzInsideDomain(anatObjItems[i].domain,
+		       (double) p, (double) l, (double) k, NULL) ){
+      domainIndexList[numDomains++] = i;
+    }
+  }
+  if( numDomains ){
+    if( numDomains == 1) {
+      return anatObjItems[domainIndexList[0]].fullName;
+    }
+    else {
+      i_min = 0;
+      vol_min = WlzVolume(anatObjItems[domainIndexList[0]].domain, NULL);
+      for(i=1; i < numDomains; i++){
+	vol = WlzVolume(anatObjItems[domainIndexList[i]].domain, NULL);
+	if( vol < vol_min ){
+	  vol_min = vol;
+	  i_min = i;
+	}
+      }
+      return anatObjItems[domainIndexList[i_min]].fullName;
     }
   }
 
@@ -74,16 +135,34 @@ void read_anatomy_cb(
   /* open the object file and read the domain */
   if( fileStr ){
     if( (fp = fopen(fileStr, "r")) == NULL ){
-      /* should say something here */
+      HGU_XmUserError(globals.topl,
+		      "Read Anatomy Domain:\n"
+		      "    Failed to open the file for the\n"
+		      "    selected anatomy component. Please\n"
+		      "    report this error to the Mouse\n"
+		      "    Atlas team",
+		      XmDIALOG_FULL_APPLICATION_MODAL);
       return;
     }
   }
   else {
-    /* should say something here */
+    HGU_XmUserError(globals.topl,
+		    "Read Anatomy Domain:\n"
+		    "    NULL file string for the \n"
+		    "    selected anatomy component. Please\n"
+		    "    report this error to the Mouse\n"
+		    "    Atlas team",
+		    XmDIALOG_FULL_APPLICATION_MODAL);
     return;
   }
   if( (anatObj = WlzReadObj(fp, NULL)) == NULL ){
-    /* should say something here */
+    HGU_XmUserError(globals.topl,
+		    "Read Anatomy Domain:\n"
+		    "    Can't read the domain for the \n"
+		    "    selected anatomy component. Please\n"
+		    "    report this error to the Mouse\n"
+		    "    Atlas team",
+		    XmDIALOG_FULL_APPLICATION_MODAL);
     (void) fclose(fp);
     return;
   }
@@ -152,7 +231,7 @@ MenuItem *createAnatomyMenuItems(
   MenuItem	*items=NULL;
   struct dirent *dp;
   DIR		*dfd;
-  int		numDirs, dirIndex;
+  int		i, numDirs, dirIndex;
   String	newDirStr;
   String	objFileStr=NULL, infoFileStr=NULL;
   String	str;
@@ -185,12 +264,24 @@ MenuItem *createAnatomyMenuItems(
 	  anatObjItems = (AnatObjItem *)
 	    AlcRealloc(anatObjItems,  sizeof(AnatObjItem)*maxAnatObjItems);
 	}
-	anatObjItems[numAnatObjItems].shortName = 
-	  (String)AlcMalloc(strlen(name)+1);
-	strcpy(anatObjItems[numAnatObjItems].shortName, name);
-	anatObjItems[numAnatObjItems].fullName = 
-	  (String)AlcMalloc(strlen(dirStr)+1);
-	strcpy(anatObjItems[numAnatObjItems].fullName, dirStr);
+
+	/* copy the short name and strip underlines */
+	anatObjItems[numAnatObjItems].shortName = strdup(name);
+	for(i=0; i < strlen(name); i++){
+	  if(name[i] == '_'){
+	    anatObjItems[numAnatObjItems].shortName[i] = ' ';
+	  }
+	}
+
+	/* find and copy the fullname */
+	anatObjItems[numAnatObjItems].fullName =
+	  strdup(strstr(dirStr, "anatomy") + 8);
+	for(i=0; i < strlen(anatObjItems[numAnatObjItems].fullName); i++){
+	  if(anatObjItems[numAnatObjItems].fullName[i] == '_'){
+	    anatObjItems[numAnatObjItems].fullName[i] = ' ';
+	  }
+	}
+
 	if( fp = fopen(objFileStr, "r") ){
 	  anatObjItems[numAnatObjItems].domain = WlzReadObj(fp, NULL);
 	  (void) fclose(fp);

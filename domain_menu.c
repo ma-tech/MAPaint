@@ -661,6 +661,82 @@ void set_domain_menu_entry(
     return;
 }
 
+int setDomain(
+  WlzObject		*obj,
+  DomainSelection	domain,
+  String		name_str)
+{
+  unsigned int	col;
+
+  /* check object */
+  if( (obj == NULL) || (obj->type != WLZ_3D_DOMAINOBJ) ){
+    return 1;
+  }
+
+  /* check which domain is selected */
+  switch( domain ){
+   case DOMAIN_1:
+   case DOMAIN_2:
+   case DOMAIN_3:
+   case DOMAIN_4:
+   case DOMAIN_5:
+   case DOMAIN_6:
+   case DOMAIN_7:
+   case DOMAIN_8:
+   case DOMAIN_9:
+   case DOMAIN_10:
+   case DOMAIN_11:
+   case DOMAIN_12:
+   case DOMAIN_13:
+   case DOMAIN_14:
+   case DOMAIN_15:
+   case DOMAIN_16:
+   case DOMAIN_17:
+   case DOMAIN_18:
+   case DOMAIN_19:
+   case DOMAIN_20:
+   case DOMAIN_21:
+   case DOMAIN_22:
+   case DOMAIN_23:
+   case DOMAIN_24:
+   case DOMAIN_25:
+   case DOMAIN_26:
+   case DOMAIN_27:
+   case DOMAIN_28:
+   case DOMAIN_29:
+   case DOMAIN_30:
+   case DOMAIN_31:
+   case DOMAIN_32:
+     col = globals.cmapstruct->ovly_cols[domain];
+     if( domain > globals.cmapstruct->num_overlays )
+     {
+       set_grey_values_from_domain( obj, globals.obj, col, 255);
+     }
+     else
+     {
+       set_grey_values_from_domain( obj, globals.obj, col,
+				    globals.cmapstruct->ovly_planes );
+     }
+
+     /* reset the menu-entry label */
+     if( name_str ){
+       set_domain_menu_entry(domain, name_str);
+     }
+     break;
+
+   case MASK_DOMAIN:
+     if( globals.mask_domain )
+       AlcFree( (void *) globals.mask_domain );
+     globals.mask_domain = WlzAssignObject(obj, NULL);
+     break;
+
+   case GREYS_DOMAIN:
+   default:
+     break;
+  }
+
+  return 0;
+}
 
 void read_domain_cb(
   Widget		w,
@@ -786,69 +862,13 @@ void read_domain_cb(
   if( obj == NULL ){
     return;
   }
-
-  /* check which domain is selected */
-  switch( globals.current_domain ){
-   case DOMAIN_1:
-   case DOMAIN_2:
-   case DOMAIN_3:
-   case DOMAIN_4:
-   case DOMAIN_5:
-   case DOMAIN_6:
-   case DOMAIN_7:
-   case DOMAIN_8:
-   case DOMAIN_9:
-   case DOMAIN_10:
-   case DOMAIN_11:
-   case DOMAIN_12:
-   case DOMAIN_13:
-   case DOMAIN_14:
-   case DOMAIN_15:
-   case DOMAIN_16:
-   case DOMAIN_17:
-   case DOMAIN_18:
-   case DOMAIN_19:
-   case DOMAIN_20:
-   case DOMAIN_21:
-   case DOMAIN_22:
-   case DOMAIN_23:
-   case DOMAIN_24:
-   case DOMAIN_25:
-   case DOMAIN_26:
-   case DOMAIN_27:
-   case DOMAIN_28:
-   case DOMAIN_29:
-   case DOMAIN_30:
-   case DOMAIN_31:
-   case DOMAIN_32:
-     if( globals.current_domain > globals.cmapstruct->num_overlays )
-     {
-       set_grey_values_from_domain( obj, globals.obj,
-				   globals.current_col, 255);
-     }
-     else
-     {
-       set_grey_values_from_domain( obj, globals.obj, globals.current_col,
-				    globals.cmapstruct->ovly_planes );
-     }
-     WlzFreeObj(obj);
-
-     /* reset the menu-entry label */
-     XmStringGetLtoR(cbs->value, XmSTRING_DEFAULT_CHARSET, &name_str);
-     set_domain_menu_entry(globals.current_domain, name_str);
-     AlcFree( (void *) name_str );
-
-     break;
-   case MASK_DOMAIN:
-     if( globals.mask_domain )
-       AlcFree( (void *) globals.mask_domain );
-     globals.mask_domain = WlzAssignObject(obj, NULL);
-     break;
-   case GREYS_DOMAIN:
-   default:
-     WlzFreeObj(obj);
-     break;
-  }
+  
+  /* get the name string and set the domain */
+  XmStringGetLtoR(cbs->value, XmSTRING_DEFAULT_CHARSET, &name_str);
+  obj = WlzAssignObject(obj, NULL);
+  setDomain(obj, globals.current_domain, name_str);
+  WlzFreeObj(obj);
+  AlcFree( (void *) name_str );
 
   /* set hour glass cursor */
   HGU_XmUnsetHourGlassCursor(globals.topl);
@@ -895,6 +915,76 @@ XtPointer	call_data)
     return;
 }
 
+int clearDomain(
+  DomainSelection	domain)
+{
+  WlzObject	*obj=NULL;
+
+  /* check which domain is selected */
+  switch( domain ){
+  case DOMAIN_1:
+  case DOMAIN_2:
+  case DOMAIN_3:
+  case DOMAIN_4:
+  case DOMAIN_5:
+  case DOMAIN_6:
+  case DOMAIN_7:
+  case DOMAIN_8:
+  case DOMAIN_9:
+  case DOMAIN_10:
+  case DOMAIN_11:
+  case DOMAIN_12:
+  case DOMAIN_13:
+  case DOMAIN_14:
+  case DOMAIN_15:
+  case DOMAIN_16:
+  case DOMAIN_17:
+  case DOMAIN_18:
+  case DOMAIN_19:
+  case DOMAIN_20:
+  case DOMAIN_21:
+  case DOMAIN_22:
+  case DOMAIN_23:
+  case DOMAIN_24:
+  case DOMAIN_25:
+  case DOMAIN_26:
+  case DOMAIN_27:
+  case DOMAIN_28:
+  case DOMAIN_29:
+  case DOMAIN_30:
+  case DOMAIN_31:
+  case DOMAIN_32:
+    obj = get_domain_from_object(globals.obj, domain);
+    break;
+  case MASK_DOMAIN:
+    if( globals.mask_domain )
+      WlzFreeObj(globals.mask_domain ); 
+    globals.mask_domain = NULL;
+    obj = NULL;
+    return 0;
+  case GREYS_DOMAIN:
+  default:
+    return 1;
+  }
+
+  if( domain > globals.cmapstruct->num_overlays )
+  {
+    set_grey_values_from_ref_object( obj, globals.orig_obj);
+  }
+  else
+  {
+    set_grey_values_from_domain(obj, globals.obj,
+				globals.cmapstruct->ovly_cols[0],
+				globals.cmapstruct->ovly_planes );
+  }
+
+  if( obj ){
+    WlzFreeObj( obj );
+  }
+
+  return 0;
+}
+
 void clear_domain_cb(
 Widget		w,
 XtPointer	client_data,
@@ -915,64 +1005,9 @@ XtPointer	call_data)
 	return;
 
     /* check which domain is selected */
-    switch( globals.current_domain ){
-    case DOMAIN_1:
-    case DOMAIN_2:
-    case DOMAIN_3:
-    case DOMAIN_4:
-    case DOMAIN_5:
-    case DOMAIN_6:
-    case DOMAIN_7:
-    case DOMAIN_8:
-    case DOMAIN_9:
-    case DOMAIN_10:
-    case DOMAIN_11:
-    case DOMAIN_12:
-    case DOMAIN_13:
-    case DOMAIN_14:
-    case DOMAIN_15:
-    case DOMAIN_16:
-    case DOMAIN_17:
-    case DOMAIN_18:
-    case DOMAIN_19:
-    case DOMAIN_20:
-    case DOMAIN_21:
-    case DOMAIN_22:
-    case DOMAIN_23:
-    case DOMAIN_24:
-    case DOMAIN_25:
-    case DOMAIN_26:
-    case DOMAIN_27:
-    case DOMAIN_28:
-    case DOMAIN_29:
-    case DOMAIN_30:
-    case DOMAIN_31:
-    case DOMAIN_32:
-	obj = get_domain_from_object(globals.obj, globals.current_domain);
-	break;
-    case MASK_DOMAIN:
-	if( globals.mask_domain )
-	    WlzFreeObj(globals.mask_domain ); 
-	globals.mask_domain = NULL;
-	obj = NULL;
-	break;
-    case GREYS_DOMAIN:
-    default:
-	return;
+    if( clearDomain(globals.current_domain) ){
+      /* report an error */
     }
-
-    if( globals.current_domain > globals.cmapstruct->num_overlays )
-    {
-      set_grey_values_from_ref_object( obj, globals.orig_obj);
-    }
-    else
-    {
-      set_grey_values_from_domain(obj, globals.obj,
-				  globals.cmapstruct->ovly_cols[0],
-				  globals.cmapstruct->ovly_planes );
-    }
-
-    WlzFreeObj( obj );
     display_all_views_cb(w, client_data, call_data);
 
     /* set hour glass cursor */

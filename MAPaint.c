@@ -201,7 +201,7 @@ void abort_signal_handler(int sig)
     if( HGU_XmUserConfirm(globals.topl,
 			  "Save a core file?",
 			  "Yes", "No", 1) )
-	abort();
+	abort(); 
 	
     exit( 1 );
 }
@@ -238,6 +238,22 @@ char	**argv)
 
     /* check for command line reference image */
     if( argc > 1 ){
+      if(strcmp(argv[1], "-cdrom") == 0){
+	int i;
+	if( argc > 2){
+	  globals.base_theiler_dir = strdup(argv[2]);
+	  for(i=1; i < argc-2; i++){
+	    argv[i] = argv[i+2];
+	  }
+	}
+	else {
+	  for(i=1; i < argc-1; i++){
+	    argv[i] = argv[i+1];
+	  }
+	}
+      }
+    }
+    if( argc > 1 ){
       initial_reference_file = argv[1];
     }
     else {
@@ -258,6 +274,8 @@ char	**argv)
 
     globals.topl    = topl;
     globals.app_con = app_con;
+    globals.app_name = "MAPaint";
+    globals.sectViewFlg = 0;
 
     /* install a private colormap */
     HGU_XmCreatePrivateColormap( topl );

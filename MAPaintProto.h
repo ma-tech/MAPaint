@@ -41,12 +41,18 @@ extern MenuItem	*anatomy_menu_items;
 extern void 	anatomy_menu_init(Widget topl);
 
 extern void 	set_anatomy_menu(Widget topl);
-extern String 	getAnatNameFromCoord(int k, int l, int p);
-
+extern String 	getAnatShortNameFromCoord(int k, int l, int p);
+extern String 	getAnatFullNameFromCoord(int k, int l, int p);
 
 /* domain_menu.c */
 extern MenuItem		*domain_menu_items;
 extern MenuItem		*select_menu_items;
+
+extern int setDomain(WlzObject		*obj,
+		     DomainSelection	domain,
+		     String		name_str);
+
+extern int clearDomain(DomainSelection	domain);
 
 extern void addSelectDomainCallback(XtCallbackProc	callback,
 				    XtPointer		clientData);
@@ -157,7 +163,10 @@ extern void theiler_menu_init(Widget	topl);
 extern void theiler_stage_setup_cb(Widget	w,
 				   XtPointer	client_data,
 				   XtPointer	call_data);
-
+extern void set_theiler_stage_cb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data);
 
 /* options_menu.c and tools_*.c */
 extern MenuItem		*options_menu_items;
@@ -379,6 +388,13 @@ extern void autosavetimeout_cb(XtPointer	client_data,
 
 extern Widget create_autosave_dialog(Widget	topl);
 
+/* MASaveSequenceDialog.c */
+extern void save_seq_opts_cb(Widget	w,
+			     XtPointer	client_data,
+			     XtPointer	call_data);
+
+extern Widget create_save_seq_dialog(Widget	topl);
+
 /* MAOpenGLUtils.c */
 extern void MAOpenGLDisplayBoundList(WlzBoundList 	*bndlist,
 				     float		z);
@@ -432,6 +448,11 @@ extern void display_pointer_feedback_informationV(
   int			x, 
   int			y,
   int			sel_domain);
+
+extern void popupDrawnButtonCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data);
 
 /* view2DPaintingCb.c */
 extern void canvas_2D_painting_cb(Widget          w,
@@ -542,6 +563,9 @@ extern void controls_io_read_cb	(Widget		w,
 				 XtPointer	client_data,
 				 XtPointer	call_data);
 
+extern int controls_io_quiet_read(String	fileStr,
+				  ThreeDViewStruct	*view_struct);
+
 extern void setupFixed_1_Menu(Widget		widget,
 			      ThreeDViewStruct	*view_struct);
 extern void setupFixed_2_Menu(Widget		widget,
@@ -555,6 +579,49 @@ extern void setupUpIOMenu(Widget		widget,
 
 extern void setViewSliderSensitivities(ThreeDViewStruct	*view_struct,
 				       Boolean		bool);
+
+extern void PostIt(
+  Widget	pb,
+  XtPointer	client_data,
+  XEvent	*event,
+  Boolean	*continue_to_dispatch);
+
+/* bibfileIOUtils.c */
+#include <bibFile.h>
+
+extern WlzErrorNum write_Wlz3DSectionViewParams_Record(
+  FILE			*fp,
+  WlzThreeDViewStruct	*wlzViewStr);
+
+extern WlzErrorNum parse_Wlz3DSectionViewParams_Record(
+  BibFileRecord		*bibfileRecord,
+  WlzThreeDViewStruct	*wlzViewStr);
+
+extern WlzErrorNum write_WlzWarpTransformParams_Record(
+  FILE			*fp,
+  WlzBasisFnType	basisFnType,
+  WlzMeshGenMethod	meshMthd,
+  int			meshMinDst,
+  int	 		meshMaxDst);
+
+extern WlzErrorNum parse_WlzWarpTransformParams_Record(
+  BibFileRecord		*bibfileRecord,
+  WlzBasisFnType	*basisFnType,
+  WlzMeshGenMethod	*meshMthd,
+  int			*meshMinDst,
+  int	 		*meshMaxDst);
+
+extern WlzErrorNum write_WlzTiePointVtxs_Record(
+  FILE		*fp,
+  int		index,
+  WlzDVertex3	dstVtx,
+  WlzDVertex3	srcVtx);
+
+extern WlzErrorNum parse_WlzTiePointVtxs_Record(
+  BibFileRecord		*bibfileRecord,
+  int		*index,
+  WlzDVertex3	*dstVtx,
+  WlzDVertex3	*srcVtx);
 
 /* from all over! */
 extern Widget	create_main_buttonbar	(Widget w); /* from main_buttonbar.c */
@@ -641,6 +708,15 @@ extern void undoCb(Widget	widget,
 extern void redoCb(Widget	widget,
 		   XtPointer	client_data,
 		   XtPointer	call_data);
+
+/* MAPaintSocket.c */
+extern void sockListenCb	(Widget		w,
+				 XtPointer	client_data,
+				 XtPointer	call_data);
+
+extern void sockCloseCb		(Widget		w,
+				 XtPointer	client_data,
+				 XtPointer	call_data);
 
 /* do not add anything after this line */
 #endif /* MAPAINTPROTO_H */

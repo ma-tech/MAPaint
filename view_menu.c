@@ -15,15 +15,6 @@
 
 #include <MAPaint.h>
 
-#ifdef SUNOS5
-/* XIL stuff */
-#include <xil/xil.h>
-
-XilSystemState	paintXILState=NULL;
-#else /* SUNOS5 */
-void *paintXILState=NULL;
-#endif /* SUNOS5 */
-
 /* menu item structures */
 
 static MenuItem view_menu_itemsP[] = {		/* file_menu items */
@@ -120,6 +111,7 @@ static ActionAreaItem   view_dialog_controls_actions[] = {
 static ActionAreaItem   view_dialog_actions[] = {
   {"save_section",	NULL,		NULL},
   {"dismiss",     	NULL,           NULL},
+  {"listen",     	NULL,           NULL},
   {"help",        	NULL,           NULL},
 };
 
@@ -300,6 +292,7 @@ void display_pointer_feedback_information(
   display_pointer_feedback_informationV(view_struct, x, y, sel_domain);
   return;
 }
+static char spacesBuf[256];
 
 void display_pointer_feedback_informationV(
   ThreeDViewStruct	*view_struct,
@@ -311,8 +304,9 @@ void display_pointer_feedback_informationV(
   int			widthp, heightp;
   WlzGreyValueWSpace	*gVWSp = NULL;
   int			kol, line, plane;
-  char			str_buf[128];
+  char			str_buf[512];
   String		domainName;
+  short			i, numCols, numSpaces;
   
   widthp  = wlzViewStr->maxvals.vtX - wlzViewStr->minvals.vtX + 1;
   heightp = wlzViewStr->maxvals.vtY - wlzViewStr->minvals.vtY + 1;
@@ -326,35 +320,48 @@ void display_pointer_feedback_informationV(
   plane = (int) (wlzViewStr->xp_to_z[x] + wlzViewStr->yp_to_z[y]);
 
   /* get the selected domain */
-  domainName = getAnatNameFromCoord(kol, line, plane);
+  domainName = getAnatFullNameFromCoord(kol, line, plane);
   sel_domain = WLZ_MAX(sel_domain, 0);
+
+  /* calculate the number of spaces */
+  XtVaGetValues(view_struct->text, XmNcolumns, &numCols, NULL);
+  numSpaces = strlen(domainName) - numCols - 1;
+  if( numSpaces = WLZ_MAX(numSpaces, 0) ){
+    for(i=0; i < numSpaces; i++){
+      spacesBuf[i] = ' ';
+    }
+  }
+  spacesBuf[numSpaces] = '\0';
 
   /* get the image grey-value */
   gVWSp = WlzGreyValueMakeWSp(globals.orig_obj, NULL);
   WlzGreyValueGet(gVWSp, (double) plane, (double) line, (double) kol);
   switch(gVWSp->gType){
   case WLZ_GREY_INT:
-    sprintf(str_buf, "(%d,%d,%d) %d: %s, %s", kol, line, plane,
-	    gVWSp->gVal[0].inv, domainName, globals.domain_name[sel_domain]);
+    sprintf(str_buf, "%s(%d,%d,%d) %d: %s\n%s", spacesBuf, kol, line, plane,
+	    gVWSp->gVal[0].inv, globals.domain_name[sel_domain], domainName);
     break;
   case WLZ_GREY_SHORT:
-    sprintf(str_buf, "(%d,%d,%d) %d: %s, %s", kol, line, plane,
-	    gVWSp->gVal[0].shv, domainName, globals.domain_name[sel_domain]);
+    sprintf(str_buf, "%s(%d,%d,%d) %d: %s\n%s", spacesBuf, kol, line, plane,
+	    gVWSp->gVal[0].shv, globals.domain_name[sel_domain], domainName);
     break;
   case WLZ_GREY_UBYTE:
-    sprintf(str_buf, "(%d,%d,%d) %d: %s, %s", kol, line, plane,
-	    gVWSp->gVal[0].ubv, domainName, globals.domain_name[sel_domain]);
+    sprintf(str_buf, "%s(%d,%d,%d) %d: %s\n%s", spacesBuf, kol, line, plane,
+	    gVWSp->gVal[0].ubv, globals.domain_name[sel_domain], domainName);
     break;
   case WLZ_GREY_FLOAT:
-    sprintf(str_buf, "(%d,%d,%d) %d: %s, %s", kol, line, plane,
-	    gVWSp->gVal[0].flv, domainName, globals.domain_name[sel_domain]);
+    sprintf(str_buf, "%s(%d,%d,%d) %f: %s\n%s", spacesBuf, kol, line, plane,
+	    gVWSp->gVal[0].flv, globals.domain_name[sel_domain], domainName);
     break;
   case WLZ_GREY_DOUBLE:
-    sprintf(str_buf, "(%d,%d,%d) %d: %s, %s", kol, line, plane,
-	    gVWSp->gVal[0].dbv, domainName, globals.domain_name[sel_domain]);
+    sprintf(str_buf, "%s(%d,%d,%d) %f: %s\n%s", spacesBuf, kol, line, plane,
+	    gVWSp->gVal[0].dbv, globals.domain_name[sel_domain], domainName);
     break;
   }
-  XtVaSetValues(view_struct->text, XmNvalue, str_buf, NULL);
+  XtVaSetValues(view_struct->text,
+		XmNvalue, 		str_buf,
+		NULL);
+  XmTextSetCursorPosition(view_struct->text, strlen(str_buf));
   WlzGreyValueFreeWSp(gVWSp);
 
   return;
@@ -411,7 +418,7 @@ void canvas_input_cb(
      switch( cbs->event->xbutton.button ){
 
       case Button1:
-	if( !view_struct->noPaintingFlag ){
+	if( (!view_struct->noPaintingFlag) && (!globals.sectViewFlg) ){
 	  paintingTrigger = 1;
 	}
 	break;
@@ -708,6 +715,7 @@ Widget create_view_window_dialog(
   WlzThreeDViewStruct	*wlzViewStr;
   ViewListEntry		*new_view_list;
   int			i, width, height;
+  Atom			WM_DELETE_WINDOW;
 
   dialog = HGU_XmCreateStdDialog(topl, "view_dialog",
 				 xmFormWidgetClass,
@@ -789,7 +797,10 @@ Widget create_view_window_dialog(
   /* create a widget for text feedback from the view */
   text = XtVaCreateManagedWidget("text", xmTextWidgetClass, form,
 				 XmNeditable,		False,
-				 XmNcursorPositionVisible,	False,
+				 XmNeditMode,		XmMULTI_LINE_EDIT,
+				 XmNrows,		2,
+				 XmNcursorPositionVisible,	True,
+				 XmNautoShowCursorPosition,	True,
 				 XmNtopAttachment,	XmATTACH_FORM,
 				 XmNleftAttachment,	XmATTACH_FORM,
 				 XmNrightAttachment,	XmATTACH_FORM,
@@ -1008,7 +1019,8 @@ Widget create_view_window_dialog(
 		NULL);
   view_struct->control_buttons = buttons;
 			
-  /* attach a time-delay pulldown menu to the fixed-point buttons
+  /* attach a time-delay (now right button)
+     pulldown menu to the fixed-point buttons
      each set of menu items needs the callback and data set */
   widget = XtNameToWidget(buttons, "*.fixed_1");
   setupFixed_1_Menu(widget, view_struct);
@@ -1037,10 +1049,17 @@ Widget create_view_window_dialog(
   }
 
   if( (widget = XtNameToWidget(dialog, "*.dismiss")) != NULL ){
+    XtAddCallback(widget, XmNactivateCallback, sockCloseCb,
+		  view_struct);
     XtAddCallback(widget, XmNactivateCallback, destroy_view_cb,
 		  view_struct);
     XtAddCallback(widget, XmNactivateCallback, destroy_cb,
 		  XtParent(dialog));
+  }
+
+  if( (widget = XtNameToWidget(dialog, "*.listen")) != NULL ){
+    XtAddCallback(widget, XmNactivateCallback, sockListenCb,
+		  view_struct);
   }
 
   if( (widget = XtNameToWidget(dialog, "*.help")) != NULL ){
@@ -1057,6 +1076,18 @@ Widget create_view_window_dialog(
   new_view_list->view_struct = view_struct;
   new_view_list->next = global_view_list;
   global_view_list = new_view_list;
+
+  /* add callbacks to the delete window protocol callback */
+  WM_DELETE_WINDOW = XmInternAtom(XtDisplay(globals.topl),
+				  "WM_DELETE_WINDOW", False);
+  XmAddWMProtocols(XtParent(dialog), &WM_DELETE_WINDOW, 1);
+  XmAddWMProtocolCallback(XtParent(dialog), WM_DELETE_WINDOW,
+			  sockCloseCb, (XtPointer) view_struct);
+  XmAddWMProtocolCallback(XtParent(dialog), WM_DELETE_WINDOW,
+			  destroy_view_cb, (XtPointer) view_struct);
+  XmAddWMProtocolCallback(XtParent(dialog), WM_DELETE_WINDOW,
+			  destroy_cb, XtParent(dialog));
+  
 
   return( dialog );
 }
@@ -1125,21 +1156,6 @@ int view_menu_init(
 			       "green");
   gc_values.plane_mask = 255;
   XChangeGC(dpy, globals.gc_set, GCPlaneMask, &gc_values);
-
-#ifdef SUNOS6
-  hostName = (char *) AlcMalloc(sizeof(char)*256);
-  if( gethostname(hostName, 256) ){
-    AlcFree((void *) hostName);
-    return 0;
-  }
-  if( !strncmp(hostName, (const char *) XDisplayName(NULL),
-	       strlen(hostName)) ||
-     !strncmp(":0.0", (const char *) XDisplayName(NULL), 4) ){
-    /* open XIL system */
-    paintXILState = xil_open();
-  }
-  AlcFree((void *) hostName);
-#endif /* SUNOS5 */
 
   /* initialise the undo list */
   initUndoList(0);

@@ -242,7 +242,9 @@ typedef void (*PaintActionQuitProc)(ThreeDViewStruct	*view_struct);
 typedef struct _PaintGlobals{
   
   Widget		topl;
-  XtAppContext	app_con;
+  XtAppContext		app_con;
+  char			*app_name;
+  int			sectViewFlg;
 
   /* file_menu globals */
   char			*file;

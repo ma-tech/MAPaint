@@ -182,7 +182,7 @@ void getViewDomains(
   /* clear any current domains */
   numOverlays = globals.cmapstruct->num_overlays +
     globals.cmapstruct->num_solid_overlays;
-  for(i=0; i < numOverlays; i++){
+  for(i=0; i <= numOverlays; i++){
     if( view_struct->curr_domain[i] ){
       WlzFreeObj(view_struct->curr_domain[i]);
       view_struct->curr_domain[i] = NULL;

@@ -27,1241 +27,20 @@
 #include <time.h>
 
 #include <MAPaint.h>
+#include <MAWarp.h>
 
-#define WARP_MAX_NUM_VTXS 128
-
-extern Widget create_view_window_dialog(Widget topl,
-					double theta,
-					double phi,
-					WlzDVertex3 *fixed);
+extern void view_canvas_highlight(
+  ThreeDViewStruct	*view_struct,
+  Boolean		highlight);
 
 static Widget create2DWarpDialog(Widget parent,
 				 ThreeDViewStruct *view_struct);
-typedef struct {
-  WlzObject		*obj;
-  Widget		canvas;
-  XImage		*ximage;
-  GC			gc;
-  double		mag;
-  int			rot;
-  int			transpose;
-  double		gamma;
-} MAPaintImageWinStruct;
-  
-typedef struct {
-  ThreeDViewStruct	*view_struct;
-  Widget		warp2DInteractDialog;
 
-  /* destination canvas and affine transform */
-  MAPaintImageWinStruct	dst;
-
-  /* source canvas and affine transform */
-  MAPaintImageWinStruct	src;
-
-  /* overlay canvas and affine transform */
-  MAPaintImageWinStruct	ovly;
-  
-  /* tie-points */
-  WlzDVertex2	dst_vtxs[WARP_MAX_NUM_VTXS];
-  WlzDVertex2	src_vtxs[WARP_MAX_NUM_VTXS];
-  int		num_vtxs;
-  int		sel_vtx;
-  int		tp_state;
-  GC		green_gc;
-  GC		red_gc;
-  GC		blue_gc;
-  GC		yellow_gc;
-  WlzAffineTransform	*affine;
-  WlzBasisFnTransform	*basisTr;
-  WlzMeshTransform	*meshTr;
-  int			meshErrFlg;
-  WlzMeshGenMethod	meshMthd;
-  int			meshMinDst;
-  int			meshMaxDst;
-
-} MAPaintWarp2DStruct;
-
-typedef enum
-{
-  TP_INACTIVE,
-  TP_DST_DEFINED,
-  TP_SRC_DEFINED,
-  TP_SELECTED
-} WarpTiePointState;
-
-static MAPaintWarp2DStruct warpGlobals;
-static Widget warp_read_src_dialog=NULL;
-static const char *warpErrStr;
-static char warpErrBuf[256];
-
-static WlzDVertex2 warpDisplayTransBack(
-  WlzDVertex2	vtx,
-  MAPaintImageWinStruct	*winStruct)
-{
-  WlzDVertex2	rtnVtx;
-  float		x, y;
-  int		width, height;	
-  WlzCompoundArray	*cobj;
-
-  if( winStruct->obj == NULL ){
-    rtnVtx.vtX = -1;
-    rtnVtx.vtY = -1;
-    return rtnVtx;
-  }
-
-  switch( winStruct->obj->type ){
-  case WLZ_2D_DOMAINOBJ:
-    width = winStruct->obj->domain.i->lastkl -
-      winStruct->obj->domain.i->kol1 + 1;
-    height = winStruct->obj->domain.i->lastln -
-      winStruct->obj->domain.i->line1 + 1;
-    break;
-
-  case WLZ_COMPOUND_ARR_1:
-  case WLZ_COMPOUND_ARR_2:
-    cobj = (WlzCompoundArray *) winStruct->obj;
-    if( cobj->n > 0 ){
-      width = (cobj->o[0])->domain.i->lastkl -
-	(cobj->o[0])->domain.i->kol1 + 1;
-      height = (cobj->o[0])->domain.i->lastln -
-	(cobj->o[0])->domain.i->line1 + 1;
-    }
-    else {
-      rtnVtx.vtX = -1;
-      rtnVtx.vtY = -1;
-      return rtnVtx;
-    }
-    break;
-
-  default:
-    rtnVtx.vtX = -1;
-    rtnVtx.vtY = -1;
-    return rtnVtx;
-  }
-
-  /* the back transform - floating point fashion */
-  x = vtx.vtX / winStruct->mag;
-  y = vtx.vtY / winStruct->mag;
-
-  switch( winStruct->rot ){
-  case 0:
-    rtnVtx.vtX = x;
-    rtnVtx.vtY = y;
-    break;
-
-  case 1:
-    rtnVtx.vtX = width - y - 1;
-    rtnVtx.vtY = x;
-    break;
-
-  case 2:
-    rtnVtx.vtX = width - x - 1;
-    rtnVtx.vtY = height - y - 1;
-    break;
-
-  case 3:
-    rtnVtx.vtX = y;
-    rtnVtx.vtY = height - x - 1;
-    break;
-  }
-
-  if( winStruct->transpose ){
-    rtnVtx.vtX = width - rtnVtx.vtX - 1;
-  }
-
-  return rtnVtx;
-}
-  
-static WlzDVertex2 warpDisplayTransFore(
-  WlzDVertex2	vtx,
-  MAPaintImageWinStruct	*winStruct)
-{
-  WlzDVertex2	rtnVtx;
-  float		x, y;
-  int		width, height;
-  WlzCompoundArray	*cobj;
-
-  if( winStruct->obj == NULL ){
-    rtnVtx.vtX = -1;
-    rtnVtx.vtY = -1;
-    return rtnVtx;
-  }
-
-  switch( winStruct->obj->type ){
-  case WLZ_2D_DOMAINOBJ:
-    width = winStruct->obj->domain.i->lastkl -
-      winStruct->obj->domain.i->kol1 + 1;
-    height = winStruct->obj->domain.i->lastln -
-      winStruct->obj->domain.i->line1 + 1;
-    break;
-
-  case WLZ_COMPOUND_ARR_1:
-  case WLZ_COMPOUND_ARR_2:
-    cobj = (WlzCompoundArray *) winStruct->obj;
-    if( cobj->n > 0 ){
-      width = (cobj->o[0])->domain.i->lastkl -
-	(cobj->o[0])->domain.i->kol1 + 1;
-      height = (cobj->o[0])->domain.i->lastln -
-	(cobj->o[0])->domain.i->line1 + 1;
-    }
-    else {
-      rtnVtx.vtX = -1;
-      rtnVtx.vtY = -1;
-      return rtnVtx;
-    }
-    break;
-
-  default:
-    rtnVtx.vtX = -1;
-    rtnVtx.vtY = -1;
-    return rtnVtx;
-  }
-  width *= winStruct->mag;
-  height *= winStruct->mag;
-
-  /* the foreward transform - floating point fashion */
-  x = vtx.vtX * winStruct->mag;
-  y = vtx.vtY * winStruct->mag;
-
-  if( winStruct->transpose ){
-    x = width - x - winStruct->mag;
-  }
-
-  switch( winStruct->rot ){
-  case 0:
-    rtnVtx.vtX = x;
-    rtnVtx.vtY = y;
-    break;
-
-  case 3:
-    rtnVtx.vtX = height - y - winStruct->mag;
-    rtnVtx.vtY = x;
-    break;
-
-  case 2:
-    rtnVtx.vtX = width - x - winStruct->mag;
-    rtnVtx.vtY = height - y - winStruct->mag;
-    break;
-
-  case 1:
-    rtnVtx.vtX = y;
-    rtnVtx.vtY = width - x - winStruct->mag;
-    break;
-  }
-
-  return rtnVtx;
-}
-  
-static void warpSetXImage(
-  MAPaintImageWinStruct *winStruct)
-{
-  XWindowAttributes	win_att;
-  Dimension		src_width, src_height, width, height;
-  UBYTE			*data, *dst_data, gammaLUT[256];
-  int			i, j;
-  WlzGreyValueWSpace	*gVWSp = NULL;
-  WlzObject		*obj = NULL;
-  WlzCompoundArray	*cobj;
-  int			cmpndFlg;
-
-  if( winStruct->ximage ){
-    AlcFree(winStruct->ximage->data);
-    winStruct->ximage->data = NULL;
-    XDestroyImage(winStruct->ximage);
-    winStruct->ximage = NULL;
-  }
-
-  if( !winStruct->obj ){
-    return;
-  }
-  else {
-    switch( winStruct->obj->type ){
-    case WLZ_2D_DOMAINOBJ:
-      obj = WlzAssignObject(winStruct->obj, NULL);
-      cmpndFlg = 0;
-      break;
-
-    case WLZ_COMPOUND_ARR_1:
-    case WLZ_COMPOUND_ARR_2:
-      cobj = (WlzCompoundArray *) winStruct->obj;
-      if( cobj->n > 0 ){
-	obj = WlzAssignObject((cobj->o)[0], NULL);
-	cmpndFlg = 1;
-/*	winStruct->gamma = 1.0;*/
-      }
-      break;
-
-    default:
-      return;
-    }
-  }
-  if( obj == NULL ){
-    return;
-  }
-
-  /* create the ximage using current mag and rotate */
-  if( XGetWindowAttributes(XtDisplay(winStruct->canvas),
-			   XtWindow(winStruct->canvas), &win_att) == 0 ){
-    return;
-  }
-  src_width = obj->domain.i->lastkl - obj->domain.i->kol1 + 1; 
-  src_height = obj->domain.i->lastln - obj->domain.i->line1 + 1;
-  if( (winStruct->rot)%2 ){
-    width = src_height*winStruct->mag;
-    height = src_width*winStruct->mag;
-  }
-  else {
-    width = src_width*winStruct->mag;
-    height = src_height*winStruct->mag;
-  }
-
-  XtVaSetValues(winStruct->canvas,
-		XmNwidth, width,
-		XmNheight, height,
-		NULL);
-
-  gVWSp = WlzGreyValueMakeWSp(obj, NULL);
-  dst_data = (UBYTE *) AlcMalloc(((win_att.depth == 8)?1:4)
-			     *width*height*sizeof(char));
-  data = dst_data;
-
-  /* set up the gamma LUT */
-  gammaLUT[0] = 0;
-  for(i=1; i < 256; i++){
-    double	val;
-    val = i;
-    gammaLUT[i] = (int) (pow(val/255, winStruct->gamma) * 255);
-  }
-
-  for(j=0; j < height; j++){
-    for(i=0; i < width; i++, data++){
-      WlzDVertex2 vtx1, vtx2;
-      vtx1.vtX = i;
-      vtx1.vtY = j;
-      vtx2 = warpDisplayTransBack(vtx1, winStruct);
-      WlzGreyValueGet(gVWSp, 0,
-		      vtx2.vtY + obj->domain.i->line1,
-		      vtx2.vtX + obj->domain.i->kol1);
-      switch( gVWSp->gType ){
-      default:
-      case WLZ_GREY_INT:
-	*data = *(gVWSp->gPtr[0].inp);
-	break;
-      case WLZ_GREY_SHORT:
-	*data = *(gVWSp->gPtr[0].shp);
-	break;
-      case WLZ_GREY_UBYTE:
-	*data = *(gVWSp->gPtr[0].ubp);
-	break;
-      case WLZ_GREY_FLOAT:
-	*data = *(gVWSp->gPtr[0].flp);
-	break;
-      case WLZ_GREY_DOUBLE:
-	*data = *(gVWSp->gPtr[0].dbp);
-	break;
-      }
-      if( win_att.depth == 24 ){
-	if( cmpndFlg ){
-	  data[1] = data[0];
-	  data[2] = data[0];
-	  data[3] = 255;
-	}
-	else {
-	  data[1] = gammaLUT[data[0]];
-	  data[2] = gammaLUT[data[0]];
-	  data[3] = gammaLUT[data[0]];
-	}	  
-	data += 3;
-      }
-    }
-  }
-  WlzGreyValueFreeWSp(gVWSp);
-  WlzFreeObj(obj);
-
-  winStruct->ximage = XCreateImage(XtDisplay(winStruct->canvas),
-				   win_att.visual, win_att.depth,
-				   ZPixmap, 0, (char *) dst_data,
-				   width, height, 8, 0);
-
-  return;
-}
-
-static void warpSetOvlyXImage(
-  MAPaintImageWinStruct *winStruct)
-{
-  XWindowAttributes	win_att;
-  Dimension		src_width, src_height, width, height;
-  UBYTE			*data, *dst_data, dataVal;
-  int			i, j, klOffset, lnOffset;
-  WlzGreyValueWSpace	*gVWSp = NULL;
-  WlzObject		*obj;
-  WlzCompoundArray	*cobj;
-  double		a, b;
-
-  if( !winStruct->ximage ){
-    return;
-  }
-
-  if( !winStruct->obj ){
-    return;
-  }
-  else {
-    switch( winStruct->obj->type ){
-
-    case WLZ_COMPOUND_ARR_1:
-    case WLZ_COMPOUND_ARR_2:
-      cobj = (WlzCompoundArray *) winStruct->obj;
-      if( cobj->n >= 2 ){
-	obj = WlzAssignObject((cobj->o)[1], NULL);
-	klOffset = (cobj->o)[0]->domain.i->kol1;
-	lnOffset = (cobj->o)[0]->domain.i->line1;
-      }
-      else {
-	obj = NULL;
-      }
-      break;
-
-    default:
-      return;
-    }
-  }
-  if( obj == NULL ){
-    return;
-  }
-
-  /* create the ximage using current mag and rotate */
-  if( XGetWindowAttributes(XtDisplay(winStruct->canvas),
-			   XtWindow(winStruct->canvas), &win_att) == 0 ){
-    return;
-  }
-  if( win_att.depth != 24 ){
-    WlzFreeObj(obj);
-    return;
-  }
-  width = winStruct->ximage->width;
-  height = winStruct->ximage->height;
-
-  gVWSp = WlzGreyValueMakeWSp(obj, NULL);
-  dst_data = (UBYTE *) winStruct->ximage->data;
-  data = dst_data;
-
-  /* set up mixing factors */
-  if( winStruct->gamma > 1.0){
-    a = (winStruct->gamma - 1.0) / 9.0 * 255;
-    b = (10.0 - winStruct->gamma) / 9.0;
-  }
-  else {
-    a = (1.0 - winStruct->gamma) / 0.9 * 255;
-    b = (winStruct->gamma - 0.1) / 0.9;
-  }
-
-  for(j=0; j < height; j++){
-    for(i=0; i < width; i++, data++){
-      WlzDVertex2 vtx1, vtx2;
-      vtx1.vtX = i;
-      vtx1.vtY = j;
-      vtx2 = warpDisplayTransBack(vtx1, winStruct);
-      WlzGreyValueGet(gVWSp, 0,
-		      vtx2.vtY + lnOffset,
-		      vtx2.vtX + klOffset);
-      switch( gVWSp->gType ){
-      default:
-      case WLZ_GREY_INT:
-	dataVal = *(gVWSp->gPtr[0].inp);
-	break;
-      case WLZ_GREY_SHORT:
-	dataVal = *(gVWSp->gPtr[0].shp);
-	break;
-      case WLZ_GREY_UBYTE:
-	dataVal = *(gVWSp->gPtr[0].ubp);
-	break;
-      case WLZ_GREY_FLOAT:
-	dataVal = *(gVWSp->gPtr[0].flp);
-	break;
-      case WLZ_GREY_DOUBLE:
-	dataVal = *(gVWSp->gPtr[0].dbp);
-	break;
-      }
-
-      if( winStruct->gamma >= 1.0){
-	data[3] = (int) (a + b * dataVal);
-      }
-      else {
-	data[1] = (int) (a + b * data[0]);
-	data[2] = data[1];
-	data[3] = dataVal;
-      }
-      data += 3;
-    }
-  }
-  WlzGreyValueFreeWSp(gVWSp);
-  WlzFreeObj(obj);
-
-  winStruct->ximage = XCreateImage(XtDisplay(winStruct->canvas),
-				   win_att.visual, win_att.depth,
-				   ZPixmap, 0, (char *) dst_data,
-				   width, height, 8, 0);
-
-  return;
-}
-
-static WlzErrorNum WlzSetMeshAffineProduct(
-  WlzMeshTransform	*meshTr,
-  WlzAffineTransform	*affineTr)
-{
-  WlzErrorNum	errNum=WLZ_ERR_NONE;
-  int		i;
-  WlzDVertex2	vtx;
-
-  /* check the mesh transform */
-  if( meshTr ){
-    if( meshTr->nodes == NULL ){
-      errNum = WLZ_ERR_PARAM_NULL;
-    }
-  }
-  else {
-    errNum = WLZ_ERR_PARAM_NULL;
-  }
-
-  /* check the affine transform */
-  if( errNum == WLZ_ERR_NONE ){
-    if( affineTr == NULL ){
-      errNum = WLZ_ERR_PARAM_NULL;
-    }
-  }
-
-  /* loop through nodes, resetting the displacement */
-  if( errNum == WLZ_ERR_NONE ){
-    for(i=0; i < meshTr->nNodes; i++){
-      vtx.vtX = meshTr->nodes[i].position.vtX +
-	meshTr->nodes[i].displacement.vtX;
-      vtx.vtY = meshTr->nodes[i].position.vtY +
-	meshTr->nodes[i].displacement.vtY;
-      vtx = WlzAffineTransformVertexD(affineTr, vtx, &errNum);
-      vtx.vtX -= meshTr->nodes[i].position.vtX;
-      vtx.vtY -= meshTr->nodes[i].position.vtY;
-      meshTr->nodes[i].displacement = vtx;
-    }
-  }
-
-  return errNum;
-}
-
-static void warpSetOvlyObject(void)
-{
-  WlzAffineTransform	*trans;
-  WlzObject		*transObj;
-  WlzErrorNum		errNum=WLZ_ERR_NONE;
-  WlzCompoundArray	*cobj;
-  WlzDVertex2		srcVtxs[WARP_MAX_NUM_VTXS];
-  WlzDVertex2		dstVtxs[WARP_MAX_NUM_VTXS];
-  int 			i, badElm;
-
-  /* define the affine transform from the tie points */
-  if( warpGlobals.num_vtxs < 1 ){
-    return;
-  }
-  if( !warpGlobals.src.obj ){
-    return;
-  }
-  for(i=0; i < warpGlobals.num_vtxs; i++){
-    srcVtxs[i] = warpGlobals.src_vtxs[i];
-    srcVtxs[i].vtX += warpGlobals.src.obj->domain.i->kol1;
-    srcVtxs[i].vtY += warpGlobals.src.obj->domain.i->line1;
-    dstVtxs[i] = warpGlobals.dst_vtxs[i];
-    dstVtxs[i].vtX += warpGlobals.dst.obj->domain.i->kol1;
-    dstVtxs[i].vtY += warpGlobals.dst.obj->domain.i->line1;
-  }
-  if( (trans = WlzAffineTransformLSq(warpGlobals.num_vtxs, srcVtxs,
-				     warpGlobals.num_vtxs, dstVtxs,
-				     WLZ_TRANSFORM_2D_NOSHEAR,
-				     &errNum)) == NULL ){
-    (void) WlzStringFromErrorNum(errNum, &warpErrStr);
-    sprintf(warpErrBuf,
-	    "2D Warp Object Input:\n"
-	    "    Failed to determine the best fit affine.\n"
-	    "    Please delete some of the tie-points\n"
-	    "    and try again.\n\n"
-	    "Wlz error: %s", warpErrStr);
-    HGU_XmUserError(globals.topl, warpErrBuf,
-		    XmDIALOG_FULL_APPLICATION_MODAL);
-    return;
-  }
-  if( warpGlobals.affine ){
-    WlzFreeAffineTransform(warpGlobals.affine);
-  }
-  warpGlobals.affine = WlzAssignAffineTransform(trans, NULL);
-
-  /* if < 4 tie-points, apply  transform to the source object */
-  if( warpGlobals.num_vtxs < 4 ){
-    if( transObj = WlzAffineTransformObj(warpGlobals.src.obj,
-					 trans, WLZ_INTERPOLATION_NEAREST,
-					 &errNum) ){
-      if( warpGlobals.ovly.obj ){
-	cobj = (WlzCompoundArray *) warpGlobals.ovly.obj;
-	if( cobj->n > 1 ){
-	  if( cobj->o[1] ){
-	    WlzFreeObj(cobj->o[1]);
-	  }
-	}
-	else {
-	  cobj->n = 2;
-	}
-	cobj->o[1] = WlzAssignObject(transObj, &errNum);
-      }
-      else {
-	WlzFreeObj(transObj);
-      }
-    }
-    else {
-      (void) WlzStringFromErrorNum(errNum, &warpErrStr);
-      sprintf(warpErrBuf,
-	      "2D Warp Object Input:\n"
-	      "    Failed to affine transform the\n"
-	      "    source object please move some\n"
-	      "    of the tie points and try again.\n\n"
-	      "Wlz error: %s", warpErrStr);
-      HGU_XmUserError(globals.topl, warpErrBuf,
-		      XmDIALOG_FULL_APPLICATION_MODAL);
-    }
-
-    return;
-  }
-
-  /* apply the inverse transform to the dst tie-points */
-  if( trans = WlzAffineTransformInverse(warpGlobals.affine, &errNum) ){
-    for(i=0; i < warpGlobals.num_vtxs; i++){
-      dstVtxs[i] = WlzAffineTransformVertexD(trans, dstVtxs[i], &errNum);
-    }
-  }
-  else {
-    return;
-  }
-
-  /* calculate the warp transform */
-  if( warpGlobals.basisTr ){
-    WlzBasisFnFreeTransform(warpGlobals.basisTr);
-  }
-  if( !(warpGlobals.basisTr =
-     WlzBasisFnTrFromCPts(WLZ_BASISFN_TPS, 0,
-			  warpGlobals.num_vtxs, srcVtxs,
-			  warpGlobals.num_vtxs, dstVtxs,
-			  &errNum)) ){
-
-    (void) WlzStringFromErrorNum(errNum, &warpErrStr);
-    sprintf(warpErrBuf,
-	    "2D Warp Object Input:\n"
-	    "    Failed to calculate the basis\n"
-	    "    transform, please move some\n"
-	    "    of the tie points and try again.\n\n"
-	    "Wlz error: %s", warpErrStr);
-    HGU_XmUserError(globals.topl, warpErrBuf,
-		    XmDIALOG_FULL_APPLICATION_MODAL);
-    return;
-  }
-
-  /* set the transform mesh and apply the affine transform */
-  if((errNum = WlzBasisFnSetMesh(warpGlobals.meshTr, warpGlobals.basisTr))
-     != WLZ_ERR_NONE){
-    (void) WlzStringFromErrorNum(errNum, &warpErrStr);
-    sprintf(warpErrBuf,
-	    "2D Warp Object Input:\n"
-	    "    Failed to apply the basis transform\n"
-	    "    to the mesh, please move some of\n"
-	    "    the tie points and try again.\n\n"
-	    "Wlz error: %s", warpErrStr);
-    HGU_XmUserError(globals.topl, warpErrBuf,
-		    XmDIALOG_FULL_APPLICATION_MODAL);
-    return;
-  }
-  WlzSetMeshAffineProduct(warpGlobals.meshTr, warpGlobals.affine);
-
-  /* verify the mesh */
-  if((errNum = WlzMeshTransformVerify(warpGlobals.meshTr, 1,
-				      &badElm, NULL)) != WLZ_ERR_NONE){
-    (void) WlzStringFromErrorNum(errNum, &warpErrStr);
-    sprintf(warpErrBuf,
-	    "2D Warp Object Input:\n"
-	    "    The tie-points set generate an invalid\n"
-	    "    mesh, please move some of the tie-points\n"
-	    "    or reset the mesh parameters and try again.\n\n"
-	    "Wlz error: %s", warpErrStr);
-    HGU_XmUserError(globals.topl, warpErrBuf,
-		    XmDIALOG_FULL_APPLICATION_MODAL);
-    warpGlobals.meshErrFlg = 1;
-
-    return;
-  }
-  warpGlobals.meshErrFlg = 0;
-
-  /* apply to the original object and reset the overlay object */
-  if( transObj = WlzMeshTransformObj(warpGlobals.src.obj,
-				     warpGlobals.meshTr,
-				     WLZ_INTERPOLATION_NEAREST,
-				     &errNum) ){
-    if( warpGlobals.ovly.obj ){
-      cobj = (WlzCompoundArray *) warpGlobals.ovly.obj;
-      if( cobj->n > 1 ){
-	if( cobj->o[1] ){
-	  WlzFreeObj(cobj->o[1]);
-	}
-      }
-      else {
-	cobj->n = 2;
-      }
-      cobj->o[1] = WlzAssignObject(transObj, &errNum);
-    }
-    else {
-      WlzFreeObj(transObj);
-    }
-  }
-  else {
-    (void) WlzStringFromErrorNum(errNum, &warpErrStr);
-    sprintf(warpErrBuf,
-	    "2D Warp Object Input:\n"
-	    "    Failed to apply the warp transform\n"
-	    "    to the source object, please move\n"
-	    "    some of the tie points and try again.\n\n"
-	    "Wlz error: %s", warpErrStr);
-    HGU_XmUserError(globals.topl, warpErrBuf,
-		    XmDIALOG_FULL_APPLICATION_MODAL);
-    return;
-  }
-
-  return;
-}
-
-static int warpCloseDstVtx(
-  int	x,
-  int	y)
-{
-  int	dx, dy, i;
-  WlzDVertex2	vtx1, vtx2;
-  int	delta;
-
-  vtx1.vtX = x;
-  vtx1.vtY = y;
-  vtx2 = 
-    warpDisplayTransBack(vtx1, &(warpGlobals.dst));
-  delta = 4 / warpGlobals.dst.mag;
-
-  for(i=0; i < warpGlobals.num_vtxs; i++){
-    dx = (int) (warpGlobals.dst_vtxs[i].vtX - vtx2.vtX);
-    dy = (int) (warpGlobals.dst_vtxs[i].vtY - vtx2.vtY);
-    dx = (dx < 0)?-dx:dx;
-    dy = (dy < 0)?-dy:dy;
-    if( (dx < delta) && (dy < delta) ){
-      return i;
-    }
-  }
-
-  return -1;
-}
-
-static int warpCloseSrcVtx(
-  int	x,
-  int	y)
-{
-  int	dx, dy, i;
-  WlzDVertex2	vtx1, vtx2;
-  int	delta;
-
-  vtx1.vtX = x;
-  vtx1.vtY = y;
-  vtx2 = 
-    warpDisplayTransBack(vtx1, &(warpGlobals.src));
-  delta = 4 / warpGlobals.src.mag;
-
-  for(i=0; i < warpGlobals.num_vtxs; i++){
-    dx = (int) warpGlobals.src_vtxs[i].vtX - vtx2.vtX;
-    dy = (int) warpGlobals.src_vtxs[i].vtY - vtx2.vtY;
-    dx = (dx < 0)?-dx:dx;
-    dy = (dy < 0)?-dy:dy;
-    if( (dx < delta) && (dy < delta) ){
-      return i;
-    }
-  }
-
-  return -1;
-}
-
-static void warpUndisplayVtx(
-  MAPaintImageWinStruct	*winStruct,
-  WlzDVertex2	vtx)
-{
-  int	x, y, width, height;
-  WlzDVertex2	vtx1;
-
-  if( winStruct->ximage ){
-
-    width = winStruct->ximage->width;
-    height = winStruct->ximage->height;
-    vtx1 = warpDisplayTransFore(vtx, winStruct);
-    
-    x = vtx1.vtX - 3;
-    y = vtx1.vtY - 3;
-
-    if( (x < -4) || (x >= width) || (y < -4) || (y >= height) ){
-      return;
-    }
-
-    x = (x < 0) ? 0 : x;
-    y = (y < 0) ? 0 : y;
-
-    width = WLZ_MIN(width - x, 8);
-    height = WLZ_MIN(height - y, 8);
-
-    XPutImage(XtDisplay(winStruct->canvas), XtWindow(winStruct->canvas),
-	      winStruct->gc, winStruct->ximage, x, y, x, y,
-	      width, height);
-    XFlush(XtDisplay(winStruct->canvas));
-  }
-
-  return;
-}
-
-static void warpDisplayTiePoints(void)
-{
-  Display	*dpy=XtDisplay(warpGlobals.dst.canvas);
-  Window	dst_win = XtWindow(warpGlobals.dst.canvas);
-  Window	src_win = XtWindow(warpGlobals.src.canvas);
-  GC		gc;
-  int		i, x, y;
-  WlzDVertex2	vtx1, vtx2;
-
-  /* check gc's */
-  if( warpGlobals.red_gc == (GC) -1 ){
-    XGCValues	values;
-
-    values.foreground = 0xff;
-    values.background = 0;
-    warpGlobals.red_gc = XCreateGC(dpy, dst_win,
-				   GCForeground|GCBackground,
-				   &values);
-    values.foreground = 0xff00;
-    warpGlobals.green_gc = XCreateGC(dpy, dst_win,
-				   GCForeground|GCBackground,
-				   &values);
-  }
-
-  for(i=0; i < warpGlobals.num_vtxs; i++){
-    if((warpGlobals.tp_state == TP_SELECTED) && (i == warpGlobals.sel_vtx)){
-      gc = warpGlobals.red_gc;
-    }
-    else {
-      gc = warpGlobals.green_gc;
-    }
-    vtx2 = warpDisplayTransFore(warpGlobals.dst_vtxs[i],
-				&(warpGlobals.dst));
-    x = (int) vtx2.vtX - 1;
-    y = (int) vtx2.vtY - 1;
-    XFillRectangle(dpy, dst_win, gc, x, y, 4, 4);
-
-    vtx2 = warpDisplayTransFore(warpGlobals.src_vtxs[i],
-				&(warpGlobals.src));
-    x = (int) vtx2.vtX - 1;
-    y = (int) vtx2.vtY - 1;
-    XFillRectangle(dpy, src_win, gc, x, y, 4, 4);
-  }
-
-  if( warpGlobals.tp_state == TP_DST_DEFINED ){
-    gc = warpGlobals.red_gc;
-
-    vtx2 = warpDisplayTransFore(warpGlobals.dst_vtxs[warpGlobals.num_vtxs],
-				&(warpGlobals.dst));
-    x = (int) vtx2.vtX - 1;
-    y = (int) vtx2.vtY - 1;
-    XFillRectangle(dpy, dst_win, gc, x, y, 4, 4);
-  }
-
-  if( warpGlobals.tp_state == TP_SRC_DEFINED ){
-    gc = warpGlobals.red_gc;
-    vtx2 = warpDisplayTransFore(warpGlobals.src_vtxs[warpGlobals.num_vtxs],
-				&(warpGlobals.src));
-    x = (int) vtx2.vtX - 1;
-    y = (int) vtx2.vtY - 1;
-    XFillRectangle(dpy, src_win, gc, x, y, 4, 4);
-  }
-
-  XFlush(dpy);
-  return;
-}
-
-void warpDisplayDstMeshCb(
-  Widget		w,
-  XtPointer		client_data,
-  XtPointer		call_data)
-{
-  MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmDrawingAreaCallbackStruct
-    *cbs = (XmDrawingAreaCallbackStruct *) call_data;
-  WlzMeshTransform	*meshTr = warpGlobals.meshTr;
-  int			elemIdx;
-  WlzMeshElem		*elem;
-  int			xOff, yOff;
-  Display	*dpy=XtDisplay(warpGlobals.src.canvas);
-  Window	dst_win = XtWindow(warpGlobals.dst.canvas);
-  GC		gc;
-
-  /* check there is a source image */
-  if( !warpGlobals.src.obj || !warpGlobals.meshTr ){
-    return;
-  }
-  xOff = warpGlobals.dst.obj->domain.i->kol1;
-  yOff = warpGlobals.dst.obj->domain.i->line1;
-
-  /* check the ximage */
-  if( !winStruct->ximage ){
-    warpSetXImage(winStruct);
-    warpSetOvlyXImage(winStruct);
-    if( !winStruct->ximage ){
-      return;
-    }
-  }
-
-  /* check the graphics context */
-  if( warpGlobals.yellow_gc == (GC) -1 ){
-    XGCValues	values;
-
-    values.foreground = 0xffff;
-    values.background = 0;
-    warpGlobals.yellow_gc = XCreateGC(dpy, dst_win,
-				      GCForeground|GCBackground,
-				      &values);
-  }
-  gc = warpGlobals.yellow_gc;
-
-  /* loop through the mesh displaying edges
-     - note this covers each edge twice */
-  elem = meshTr->elements;
-  for(elemIdx=0; elemIdx < meshTr->nElem; elemIdx++, elem++){
-    XPoint	points[4];
-    WlzDVertex2	vtx;
-    int		k;
-
-    for(k=0; k < 3; k++){
-      vtx = meshTr->nodes[elem->nodes[k]].position;
-      vtx.vtX += meshTr->nodes[elem->nodes[k]].displacement.vtX;
-      vtx.vtY += meshTr->nodes[elem->nodes[k]].displacement.vtY;
-      vtx.vtX -= xOff;
-      vtx.vtY -= yOff;
-      vtx = warpDisplayTransFore(vtx, winStruct);
-      points[k].x = vtx.vtX;
-      points[k].y = vtx.vtY;
-    }
-    points[3] = points[0];
-    
-    /* check for duff elements */
-    if( warpGlobals.meshErrFlg ){
-      if( WlzMeshElemVerify(meshTr, 1, elem, NULL) != WLZ_ERR_NONE ){
-	gc = warpGlobals.red_gc;
-      }
-      else {
-	gc = warpGlobals.yellow_gc;
-      }
-    }
-    XDrawLines(dpy, dst_win, gc, points, 4, CoordModeOrigin);
-  }
-  XFlush(dpy);
-
-  return;
-}
-
-void warpDisplaySrcMeshCb(
-  Widget		w,
-  XtPointer		client_data,
-  XtPointer		call_data)
-{
-  MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmDrawingAreaCallbackStruct
-    *cbs = (XmDrawingAreaCallbackStruct *) call_data;
-  WlzMeshTransform	*meshTr = warpGlobals.meshTr;
-  int			elemIdx;
-  WlzMeshElem		*elem;
-  int			xOff, yOff;
-  Display	*dpy=XtDisplay(warpGlobals.src.canvas);
-  Window	src_win = XtWindow(warpGlobals.src.canvas);
-  GC		gc;
-
-  /* check there is a source image */
-  if( !warpGlobals.src.obj || !warpGlobals.meshTr ){
-    return;
-  }
-  xOff = warpGlobals.src.obj->domain.i->kol1;
-  yOff = warpGlobals.src.obj->domain.i->line1;
-
-  /* check the ximage */
-  if( !winStruct->ximage ){
-    warpSetXImage(winStruct);
-    warpSetOvlyXImage(winStruct);
-    if( !winStruct->ximage ){
-      return;
-    }
-  }
-
-  /* check the graphics context */
-  if( warpGlobals.blue_gc == (GC) -1 ){
-    XGCValues	values;
-
-    values.foreground = 0xff0000;
-    values.background = 0;
-    warpGlobals.blue_gc = XCreateGC(dpy, src_win,
-				   GCForeground|GCBackground,
-				   &values);
-  }
-  gc = warpGlobals.blue_gc;
-
-  /* loop through the mesh displaying edges
-     - note this covers each edge twice */
-  elem = meshTr->elements;
-  for(elemIdx=0; elemIdx < meshTr->nElem; elemIdx++, elem++){
-    XPoint	points[4];
-    WlzDVertex2	vtx;
-    int		k;
-
-    for(k=0; k < 3; k++){
-      vtx = meshTr->nodes[elem->nodes[k]].position;
-      vtx.vtX -= xOff;
-      vtx.vtY -= yOff;
-      vtx = warpDisplayTransFore(vtx, winStruct);
-      points[k].x = vtx.vtX;
-      points[k].y = vtx.vtY;
-    }
-    points[3] = points[0];
-    XDrawLines(dpy, src_win, gc, points, 4, CoordModeOrigin);
-  }
-  XFlush(dpy);
-
-  return;
-}
-
-void warpCanvasExposeCb(
-  Widget		w,
-  XtPointer		client_data,
-  XtPointer		call_data)
-{
-  MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmDrawingAreaCallbackStruct
-    *cbs = (XmDrawingAreaCallbackStruct *) call_data;
-
-  if( !winStruct->ximage ){
-    warpSetXImage(winStruct);
-    warpSetOvlyXImage(winStruct);
-    if( !winStruct->ximage ){
-      return;
-    }
-  }
-
-  /* check the graphics context */
-  if( winStruct->gc == (GC) -1 ){
-    XGCValues  gcvalues;
-    winStruct->gc = XCreateGC(XtDisplay(winStruct->canvas),
-			      XtWindow(winStruct->canvas),
-			      0, &gcvalues);
-  }
-
-  /* display the image - if it is a real expose event just
-     put the exposed rectangle */
-  if( cbs && (cbs->event->type == Expose) ){
-    XPutImage(XtDisplay(winStruct->canvas), XtWindow(winStruct->canvas),
-	      winStruct->gc, winStruct->ximage,
-	      cbs->event->xexpose.x, cbs->event->xexpose.y,
-	      cbs->event->xexpose.x, cbs->event->xexpose.y,
-	      cbs->event->xexpose.width, cbs->event->xexpose.height);
-  }
-  else {
-    XPutImage(XtDisplay(winStruct->canvas), XtWindow(winStruct->canvas),
-	      winStruct->gc, winStruct->ximage, 0, 0, 0, 0,
-	      winStruct->ximage->width, winStruct->ximage->height);
-  }
-  XFlush(XtDisplay(winStruct->canvas));
-
-  warpDisplayTiePoints();
-  return;
-}
-
-void warpIncrGammaCb(
-  Widget		w,
-  XtPointer		client_data,
-  XtPointer		call_data)
-{
-  MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmPushButtonCallbackStruct
-    *cbs = (XmPushButtonCallbackStruct *) call_data;
-
-  winStruct->gamma *= 1.1;
-  if( winStruct->gamma > 10.0 ){
-    winStruct->gamma = 10.0;
-  }
-
-  warpSetXImage(winStruct);
-  warpSetOvlyXImage(winStruct);
-  XtCallCallbacks(winStruct->canvas, XmNexposeCallback, call_data);
-
-  return;
-}
-
-void warpDecrGammaCb(
-  Widget		w,
-  XtPointer		client_data,
-  XtPointer		call_data)
-{
-  MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmPushButtonCallbackStruct
-    *cbs = (XmPushButtonCallbackStruct *) call_data;
-
-  winStruct->gamma /= 1.1;
-  if( winStruct->gamma < 0.1 ){
-    winStruct->gamma = 0.1;
-  }
-
-  warpSetXImage(winStruct);
-  warpSetOvlyXImage(winStruct);
-  XtCallCallbacks(winStruct->canvas, XmNexposeCallback, call_data);
-
-  return;
-}
-
-void warpCanvasMagCb(
-  Widget		w,
-  XtPointer		client_data,
-  XtPointer		call_data)
-{
-  MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmPushButtonCallbackStruct
-    *cbs = (XmPushButtonCallbackStruct *) call_data;
-
-  if( cbs->event->xbutton.state & Mod1Mask ){
-    if( winStruct->mag > 0.25 ){
-      winStruct->mag /= 2.0;
-    }
-  }
-  else {
-    if( winStruct->mag < 16.0 ){
-      winStruct->mag *= 2.0;
-    }
-  }
-
-  warpSetXImage(winStruct);
-  warpSetOvlyXImage(winStruct);
-  XtCallCallbacks(winStruct->canvas, XmNexposeCallback, call_data);
-
-  return;
-}
-
-void warpCanvasRotCb(
-  Widget		w,
-  XtPointer		client_data,
-  XtPointer		call_data)
-{
-  MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmPushButtonCallbackStruct
-    *cbs = (XmPushButtonCallbackStruct *) call_data;
-
-  if( cbs->event->xbutton.state & Mod1Mask ){
-    winStruct->rot -= 1;
-  }
-  else {
-    winStruct->rot += 1;
-  }
-  while( winStruct->rot < 0 ){
-    winStruct->rot += 4;
-  }
-  winStruct->rot %= 4;
-
-  warpSetXImage(winStruct);
-  warpSetOvlyXImage(winStruct);
-  XtCallCallbacks(winStruct->canvas, XmNexposeCallback, call_data);
-
-  return;
-}
-
-void warpCanvasFlipCb(
-  Widget		w,
-  XtPointer		client_data,
-  XtPointer		call_data)
-{
-  MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmPushButtonCallbackStruct
-    *cbs = (XmPushButtonCallbackStruct *) call_data;
-
-  winStruct->transpose = (winStruct->transpose)?0:1;
-
-  warpSetXImage(winStruct);
-  warpSetOvlyXImage(winStruct);
-  XtCallCallbacks(winStruct->canvas, XmNexposeCallback, call_data);
-
-  return;
-}
-
-void warpCanvasResetCb(
-  Widget		w,
-  XtPointer		client_data,
-  XtPointer		call_data)
-{
-  MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmPushButtonCallbackStruct
-    *cbs = (XmPushButtonCallbackStruct *) call_data;
-
-  winStruct->rot = 0;
-  winStruct->transpose = 0;
-  winStruct->mag = 1.0;
-
-  warpSetXImage(winStruct);
-  warpSetOvlyXImage(winStruct);
-  XtCallCallbacks(winStruct->canvas, XmNexposeCallback, call_data);
-
-  return;
-}
-
-
-void warpCanvasMeshCb(
-  Widget		w,
-  XtPointer		client_data,
-  XtPointer		call_data)
-{
-  MAPaintImageWinStruct	*winStruct;
-  XmToggleButtonCallbackStruct
-    *cbs = (XmToggleButtonCallbackStruct *) call_data;
-  int		winId = (int) client_data;
-
-  switch( winId ){
-  case 0 :
-    winStruct = &(warpGlobals.dst);
-    if( cbs->set == True ){
-      XtAddCallback(winStruct->canvas, XmNexposeCallback,
-		    warpDisplayDstMeshCb, (XtPointer) winStruct);
-      warpDisplayDstMeshCb(winStruct->canvas,
-			   (XtPointer) winStruct, call_data);
-    }
-    else {
-      XtRemoveCallback(winStruct->canvas, XmNexposeCallback,
-		       warpDisplayDstMeshCb, (XtPointer) winStruct);
-      warpCanvasExposeCb(w, (XtPointer) winStruct, call_data);
-    }
-    break;
-  case 1 :
-    winStruct = &(warpGlobals.src);
-    if( cbs->set == True ){
-      XtAddCallback(winStruct->canvas, XmNexposeCallback,
-		    warpDisplaySrcMeshCb, (XtPointer) winStruct);
-      warpDisplaySrcMeshCb(winStruct->canvas,
-			   (XtPointer) winStruct, call_data);
-    }
-    else {
-      XtRemoveCallback(winStruct->canvas, XmNexposeCallback,
-		       warpDisplaySrcMeshCb, (XtPointer) winStruct);
-      warpCanvasExposeCb(w, (XtPointer) winStruct, call_data);
-    }
-    break;
-  case 2 :
-    winStruct = &(warpGlobals.ovly);
-    break;
-  }
-
-  return;
-}
-
+MAPaintWarp2DStruct warpGlobals;
+Widget warp_read_src_dialog=NULL;
+Widget warp_read_sgnl_dialog=NULL;
+const char *warpErrStr;
+char warpErrBuf[256];
 
 void warpMeshMethodCb(
   Widget		w,
@@ -1287,6 +66,19 @@ void warpMeshMethodCb(
   XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback, call_data);
   XtCallCallbacks(warpGlobals.src.canvas, XmNexposeCallback, call_data);
   XtCallCallbacks(warpGlobals.ovly.canvas, XmNexposeCallback, call_data);
+
+  return;
+}
+
+void warpMeshFunctionCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  WlzBasisFnType	basisFn=(WlzBasisFnType) client_data;
+  WlzErrorNum		errNum;
+
+  warpGlobals.basisFnType = basisFn;
 
   return;
 }
@@ -1357,6 +149,325 @@ void warpMeshMaxDistCb(
   return;
 }
 
+void warpSgnlDomainCanvasExposeCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  if( warpGlobals.sgnlObj ){
+    warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
+  }
+
+  return;
+}
+
+static void warpSetSignalProcObj(void)
+{
+  WlzObject	*obj1, *obj2;
+  Widget	toggle, slider;
+  Boolean	setFlg;
+  WlzErrorNum	errNum=WLZ_ERR_NONE;
+
+  if( warpGlobals.sgnlProcObj ){
+    WlzFreeObj(warpGlobals.sgnlProcObj);
+    warpGlobals.sgnlProcObj = NULL;
+  }
+
+  if( warpGlobals.sgnl.obj ){
+    obj1 = WlzCopyObject(warpGlobals.sgnl.obj, NULL);
+    obj1 = WlzAssignObject(obj1, NULL);
+  }
+  else {
+    return;
+  }
+
+  /* normalise the data */
+  if( toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*normalise") ){
+    XtVaGetValues(toggle, XmNset, &setFlg, NULL);
+    if( setFlg ){
+      errNum = WlzGreyNormalise(obj1);
+    }
+  }
+
+  /* Histo equalise */
+  if( toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*histo_equalise") ){
+    XtVaGetValues(toggle, XmNset, &setFlg, NULL);
+    if( setFlg ){
+      errNum = WlzHistogramEqualiseObj(obj1, 1, 1);
+    }
+  }
+
+  /* Shade correction */
+  if( toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*shade_correction") ){
+    XtVaGetValues(toggle, XmNset, &setFlg, NULL);
+    if( setFlg ){
+      errNum = WlzHistogramEqualiseObj(obj1, 1, 1);
+    }
+  }
+
+  /* Gauss smoothing */
+  if( toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*gauss_smooth") ){
+    XtVaGetValues(toggle, XmNset, &setFlg, NULL);
+    if( setFlg ){
+      double	width;
+      if( slider = XtNameToWidget(globals.topl,
+				  "*warp_sgnl_controls_form*gauss_width") ){
+	width = HGU_XmGetSliderValue(slider);
+      }
+      else {
+	width = 3;
+      }
+      if( obj2 = WlzGauss2(obj1, width, width, 0, 0, &errNum) ){
+	WlzFreeObj(obj1);
+	obj1 = WlzAssignObject(obj2, NULL);
+      }
+    }
+  }
+
+  /* if anything left set the processed object */
+  if( obj1 ){
+    warpGlobals.sgnlProcObj = obj1;
+  }
+
+  return;
+}
+
+static void warpSetSignalDomain(void)
+{
+  WlzErrorNum	errNum;
+  WlzPixelV	threshV;
+  WlzObject	*obj, *obj1;
+
+  /* image processing sequence */
+  if( warpGlobals.sgnlProcObj == NULL ){
+    warpSetSignalProcObj();
+  }
+  if( warpGlobals.sgnlProcObj ){
+    obj1 = WlzAssignObject(warpGlobals.sgnlProcObj, &errNum);
+  }
+  else {
+    obj1 = NULL;
+  }
+
+  /* threshold the resultant image */
+  threshV.type = WLZ_GREY_INT;
+  threshV.v.inv = warpGlobals.threshRangeLow;
+  if( obj1 ){
+    if( warpGlobals.sgnlObj ){
+      WlzFreeObj(warpGlobals.sgnlObj);
+    }
+    if( obj = WlzThreshold(obj1, threshV, WLZ_THRESH_HIGH, &errNum) ){
+      WlzFreeObj(obj1);
+      obj = WlzAssignObject(obj, &errNum);
+      threshV.v.inv = warpGlobals.threshRangeHigh + 1;
+      if( obj1 = WlzThreshold(obj, threshV, WLZ_THRESH_LOW, &errNum) ){
+	warpGlobals.sgnlObj = WlzAssignObject(obj1, &errNum);
+      }
+      else {
+	warpGlobals.sgnlObj = NULL;
+      }
+      WlzFreeObj(obj);
+    }
+    else {
+      WlzFreeObj(obj1);
+      warpGlobals.sgnlObj = NULL;
+    }
+  }  
+
+  return;
+}
+
+void recalcWarpProcObjCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  if( warpGlobals.sgnlProcObj ){
+    WlzFreeObj(warpGlobals.sgnlProcObj);
+    warpGlobals.sgnlProcObj = NULL;
+  }
+
+  /* set the signal domain */
+  if( warpGlobals.sgnlObj ){
+    warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
+  }
+  warpSetSignalDomain();
+  if( warpGlobals.sgnlObj ){
+    warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
+  }
+
+  return;
+}
+
+void warpThreshLowCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  Widget	slider = w;
+  
+  /* get the parent slider */
+  while( strcmp(XtName(slider), "thresh_range_low") ){
+    if( (slider = XtParent(slider)) == NULL )
+      return;
+  }
+  warpGlobals.threshRangeLow = (int) HGU_XmGetSliderValue( slider );
+  if( warpGlobals.threshRangeLow > warpGlobals.threshRangeHigh ){
+    warpGlobals.threshRangeLow = warpGlobals.threshRangeHigh;
+    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeLow);
+  }
+
+  /* set the signal domain */
+  if( warpGlobals.sgnlObj ){
+    warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
+  }
+  warpSetSignalDomain();
+  if( warpGlobals.sgnlObj ){
+    warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
+  }
+
+  return;
+}
+
+void warpThreshHighCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  Widget	slider = w;
+    
+  /* get the parent slider */
+  while( strcmp(XtName(slider), "thresh_range_high") ){
+    if( (slider = XtParent(slider)) == NULL )
+      return;
+  }
+  warpGlobals.threshRangeHigh = (int) HGU_XmGetSliderValue( slider );
+  if( warpGlobals.threshRangeLow > warpGlobals.threshRangeHigh ){
+    warpGlobals.threshRangeHigh = warpGlobals.threshRangeLow;
+    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeHigh);
+  }
+
+  /* set the signal domain */
+  if( warpGlobals.sgnlObj ){
+    warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
+  }
+  warpSetSignalDomain();
+  if( warpGlobals.sgnlObj ){
+    warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
+  }
+  XFlush(XtDisplayOfObject(w));
+
+  return;
+}
+
+
+void warpReadSignalCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  XmFileSelectionBoxCallbackStruct *cbs =
+    (XmFileSelectionBoxCallbackStruct *) call_data;
+  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
+  WlzObject		*obj;
+  FILE			*fp;
+  WlzErrorNum		errNum;
+
+  /* check we can open the file and save the filename */
+  if( (fp = HGU_XmGetFilePointer(view_struct->dialog, cbs->value,
+				 cbs->dir, "r")) == NULL ){
+    return;
+  }
+  if( warpGlobals.sgnlFile ){
+    AlcFree(warpGlobals.sgnlFile);
+  }
+  warpGlobals.sgnlFile = HGU_XmGetFileStr(view_struct->dialog, cbs->value,
+				 cbs->dir);
+
+  /* read the new signal object - ready to extend to other types */
+  obj = WlzEffReadObj(fp, NULL, WLZEFF_FORMAT_WLZ, &errNum);
+  fclose(fp);
+
+  /* check the object */
+  if( errNum == WLZ_ERR_NONE ){
+    if( obj ){
+      switch( obj->type ){
+      case WLZ_2D_DOMAINOBJ:
+	/* set the source object */
+	if( warpGlobals.sgnl.obj ){
+	  WlzFreeObj(warpGlobals.sgnl.obj);
+	}
+	warpGlobals.sgnl.obj = WlzAssignObject(obj, &errNum);
+	warpSetXImage(&(warpGlobals.sgnl));
+	warpCanvasExposeCb(warpGlobals.sgnl.canvas,
+			   (XtPointer) &(warpGlobals.sgnl),
+			   call_data);
+
+	/* reset the processed object and signal domain */
+	if( warpGlobals.sgnlProcObj ){
+	  WlzFreeObj( warpGlobals.sgnlProcObj );
+	  warpGlobals.sgnlProcObj = NULL;
+	  if( warpGlobals.sgnlObj ){
+	    warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
+	  }
+	  warpSetSignalDomain();
+	  if( warpGlobals.sgnlObj ){
+	    warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
+	  }
+	}
+	break;
+
+      default:
+	WlzFreeObj(obj);
+	HGU_XmUserError(globals.topl,
+			"Read Signal Object:\n"
+			"    Wrong object type, please select\n"
+			"    another image file.",
+			XmDIALOG_FULL_APPLICATION_MODAL);
+	break;
+      }
+    }
+  }
+
+  return;
+}
+
+void warpReadSignalPopupCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
+  Arg		arg[1];
+  Visual	*visual;
+
+  /* get the visual explicitly */
+  visual = HGU_XmWidgetToVisual(globals.topl);
+  XtSetArg(arg[0], XmNvisual, visual);
+
+  if( warp_read_sgnl_dialog == NULL ){
+    warp_read_sgnl_dialog =
+      XmCreateFileSelectionDialog(view_struct->dialog,
+				  "warp_read_sgnl_dialog", arg, 1);
+
+    XtAddCallback(warp_read_sgnl_dialog, XmNokCallback,
+		  warpReadSignalCb, client_data);
+    XtAddCallback(warp_read_sgnl_dialog, XmNokCallback,
+		  PopdownCallback, NULL);
+    XtAddCallback(warp_read_sgnl_dialog, XmNcancelCallback, 
+		  PopdownCallback, NULL);
+  }
+
+  XtManageChild(warp_read_sgnl_dialog);
+  PopupCallback(w, (XtPointer) XtParent(warp_read_sgnl_dialog), NULL);
+
+  return;
+}
+
 void warpReadSourceCb(
   Widget		w,
   XtPointer		client_data,
@@ -1369,10 +480,16 @@ void warpReadSourceCb(
   FILE			*fp;
   WlzErrorNum		errNum;
 
+  /* check we can open the file and save the filename */
   if( (fp = HGU_XmGetFilePointer(view_struct->dialog, cbs->value,
 				 cbs->dir, "r")) == NULL ){
     return;
   }
+  if( warpGlobals.srcFile ){
+    AlcFree(warpGlobals.srcFile);
+  }
+  warpGlobals.srcFile = HGU_XmGetFileStr(view_struct->dialog, cbs->value,
+				 cbs->dir);
 
   /* read the new source object - ready to extend to other types */
   obj = WlzEffReadObj(fp, NULL, WLZEFF_FORMAT_WLZ, &errNum);
@@ -1387,7 +504,16 @@ void warpReadSourceCb(
 	if( warpGlobals.src.obj ){
 	  WlzFreeObj(warpGlobals.src.obj);
 	}
-	warpGlobals.src.obj = WlzAssignObject(obj, &errNum);
+	warpGlobals.srcXOffset = -obj->domain.i->kol1;
+	warpGlobals.srcYOffset = -obj->domain.i->line1;
+	obj = WlzAssignObject(obj, &errNum);
+	warpGlobals.src.obj = 
+	  WlzAssignObject(WlzShiftObject(obj,
+					 warpGlobals.srcXOffset,
+					 warpGlobals.srcYOffset,
+					 0, &errNum), NULL);
+	WlzFreeObj(obj);
+	obj = warpGlobals.src.obj;
 	warpSetXImage(&(warpGlobals.src));
 	warpCanvasExposeCb(warpGlobals.src.canvas,
 			   (XtPointer) &(warpGlobals.src),
@@ -1407,6 +533,7 @@ void warpReadSourceCb(
 	((WlzCompoundArray *) (warpGlobals.ovly.obj))->n = 2;
 	((WlzCompoundArray *) (warpGlobals.ovly.obj))->o[1] =
 	  WlzAssignObject(obj, &errNum);
+	warpSetOvlyXImages(&(warpGlobals.ovly), 1);
 	warpSetOvlyXImage(&(warpGlobals.ovly));
 	warpCanvasExposeCb(warpGlobals.ovly.canvas,
 			   (XtPointer) &(warpGlobals.ovly),
@@ -1478,33 +605,6 @@ void warpInput2DCb(
   return;
 }
 
-void warpInput2DDestroyCb(
-  Widget		w,
-  XtPointer		client_data,
-  XtPointer		call_data)
-{
-  Widget		widget;
-  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
-
-  if( widget = XtNameToWidget(globals.topl, "*options_menu*warp_input_2d") ){
-    XtSetSensitive(widget, True);
-  }
-
-  if( paint_key == view_struct ){
-    paint_key = NULL;
-  }
-
-  if( warpGlobals.dst.obj ){
-    WlzFreeObj(warpGlobals.dst.obj);
-  }
-
-  if( warpGlobals.src.obj ){
-    WlzFreeObj(warpGlobals.src.obj);
-  }
-  
-  return;
-}
-
 static void warpSetupCb(
   Widget	widget,
   XtPointer	client_data,
@@ -1525,11 +625,74 @@ static void warpSetupCb(
       }
       XtManageChild(warpGlobals.warp2DInteractDialog);
     }
+    else {
+      XtVaSetValues(widget, XmNset, False, NULL);
+    }
   }
   else {
     if( warpGlobals.warp2DInteractDialog ){
       XtUnmanageChild( warpGlobals.warp2DInteractDialog );
     }
+  }
+
+  return;
+}
+
+static void warpImportSignalCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
+  Widget	shell, dialog, control, section_frame, controls_frame;
+  Widget	warp_input_2d_frame, warp_sgnl_frame, warp_sgnl_controls_frame;
+  Dimension	shellWidth, sectionWidth, signalWidth;
+
+  /* get the frames */
+  dialog = view_struct->dialog;
+  shell = XtParent(dialog);
+  control = XtNameToWidget(dialog, "*.control");
+  controls_frame = XtNameToWidget( control, "*.controls_frame");
+  section_frame = XtNameToWidget( control, "*.section_frame");
+  warp_input_2d_frame = XtNameToWidget( control, "*.warp_input_2d_frame");
+  warp_sgnl_frame = XtNameToWidget( control, "*.warp_sgnl_frame");
+  warp_sgnl_controls_frame = XtNameToWidget( control,
+					    "*.warp_sgnl_controls_frame");
+  XtVaGetValues(shell, XmNwidth, &shellWidth, NULL);
+  XtVaGetValues(section_frame, XmNwidth, &sectionWidth, NULL);
+
+  /* if already managed collapse */
+  if( XtIsManaged(warp_sgnl_frame) ){
+    XtVaGetValues(warp_sgnl_frame, XmNwidth, &signalWidth, NULL);
+    XtUnmanageChild(warp_sgnl_frame);
+    XtUnmanageChild(warp_sgnl_controls_frame);
+
+    /* reset attachments */
+    XtVaSetValues(section_frame, XmNrightAttachment, XmATTACH_FORM, NULL);
+    XtVaSetValues(controls_frame, XmNrightAttachment, XmATTACH_FORM, NULL);
+    XtVaSetValues(warp_input_2d_frame,
+		  XmNrightAttachment, XmATTACH_FORM, NULL);
+
+    /* adjust width and manage the signal frame */
+    XtVaSetValues(shell, XmNwidth, shellWidth - signalWidth - 5, NULL);
+  }
+  else {
+    /* reset attachments */
+    XtVaSetValues(section_frame, XmNrightAttachment, XmATTACH_NONE, NULL);
+    XtVaSetValues(controls_frame, XmNrightAttachment, XmATTACH_NONE, NULL);
+    XtVaSetValues(warp_input_2d_frame,
+		  XmNrightAttachment, XmATTACH_NONE, NULL);
+
+    /* adjust width and manage the signal frame */
+    XtVaSetValues(shell, XmNwidth, shellWidth+400, NULL);
+    XtManageChild(warp_sgnl_controls_frame);
+    XtManageChild(warp_sgnl_frame);
+
+    /* reset widths */
+    XtVaSetValues(section_frame, XmNwidth, sectionWidth, NULL);
+    XtVaSetValues(controls_frame, XmNwidth, sectionWidth, NULL);
+    XtVaSetValues(warp_input_2d_frame, XmNwidth, sectionWidth, NULL);
+
   }
 
   return;
@@ -1599,6 +762,10 @@ static void warpControlsCb(
     /* get the paint key */
     paint_key = view_struct;
 
+    /* highlight the canvas and get domains */
+    view_canvas_highlight( view_struct, True );
+    getViewDomains(view_struct);
+
     /* set the destination object and clear the ximage */
     if( warpGlobals.dst.obj ){
       WlzFreeObj(warpGlobals.dst.obj);
@@ -1642,8 +809,104 @@ static void warpControlsCb(
 
     /* release the paint key */
     paint_key = NULL;
+
+    /* clear the undo domains */
+    clearUndoDomains();
+
+    /* clear the section view image */
+    if( view_struct->view_object ){
+      WlzFreeObj(view_struct->view_object);
+      view_struct->view_object = NULL;
+    }
+
+    /* install new domains, update all views */
+    installViewDomains(view_struct);
+    
+    /* unhighlight this canvas */
+    view_canvas_highlight( view_struct, False );
   }
 
+  return;
+}
+
+WlzObject *mapaintWarpObj(
+  WlzObject	*obj,
+  WlzInterpolationType	interpType)
+{
+  WlzObject		*obj1=NULL;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
+
+  if( obj == NULL ){
+    return obj1;
+  }
+
+  if( warpGlobals.num_vtxs < 4 ){
+    if( warpGlobals.affine ){
+      obj1 = WlzAffineTransformObj(obj, warpGlobals.affine,
+				   interpType, &errNum);
+    }
+  }
+  else {
+    if( warpGlobals.meshTr ){
+      obj1 = WlzMeshTransformObj(obj, warpGlobals.meshTr,
+				 interpType, &errNum);
+    }
+  }
+
+  return obj1;
+}
+
+void mapWarpDataCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
+  WlzObject		*obj, *tmpObj;
+
+  /* check for signal domain and warp transform */
+  if((warpGlobals.sgnlObj == NULL)){
+    return;
+  }
+
+  /* shift the signal object for the -ve bounds-obj mesh bug */
+  if(!(tmpObj = WlzAssignObject(
+    WlzShiftObject(warpGlobals.sgnlObj, warpGlobals.srcXOffset,
+		   warpGlobals.srcYOffset, 0, NULL), NULL)) ){
+    return;
+  }
+		       
+  /* transform the domain and add to current domain */
+  if( obj = mapaintWarpObj(tmpObj,
+			   WLZ_INTERPOLATION_NEAREST) ){
+    pushUndoDomains(view_struct);
+    setDomainIncrement(obj, view_struct, globals.current_domain, 0);
+    WlzFreeObj(obj);
+  }
+  WlzFreeObj(tmpObj);
+
+  return;
+}
+
+void undoMappedWarpDataCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
+
+  UndoDomains(view_struct);
+  return;
+}
+
+void installMappedWarpDataCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
+
+  installViewDomains(view_struct);
   return;
 }
 
@@ -1660,433 +923,6 @@ static  void warp2DInteractDismissCb(
     XtVaSetValues(toggle, XmNset, False, NULL);
     cbs.set = False;
     XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
-  }
-
-  return;
-}
-
-static int	resetOvlyFlg=0;
-
-static void warpDstCanvasInputCb(
-  Widget	widget,
-  XtPointer	client_data,
-  XtPointer	call_data)
-{
-  MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmDrawingAreaCallbackStruct
-    *cbs = (XmDrawingAreaCallbackStruct *) call_data;
-  int		vtxIdx;
-  WlzDVertex2	vtx;
-
-  /* check there is and image */
-  if( winStruct->ximage == NULL ){
-    return;
-  }
-
-  switch( cbs->event->type ){
-  case ButtonPress:
-    vtx.vtX = cbs->event->xbutton.x;
-    vtx.vtY = cbs->event->xbutton.y;
-
-    switch( cbs->event->xbutton.button ){
-    case Button1:
-      switch( warpGlobals.tp_state ){
-      case TP_INACTIVE:
-	/* set the dst vertex */
-	warpGlobals.dst_vtxs[warpGlobals.num_vtxs] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.dst));
-	warpGlobals.tp_state = TP_DST_DEFINED;
-	break;
-
-      case TP_DST_DEFINED:
-	/* reset vertex */
-	warpUndisplayVtx(&(warpGlobals.dst),
-			 warpGlobals.dst_vtxs[warpGlobals.num_vtxs]);
-	warpGlobals.dst_vtxs[warpGlobals.num_vtxs] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.dst));
-	break;
-
-      case TP_SRC_DEFINED:
-	/* set vertex, increment number of tie-points */
-	warpGlobals.dst_vtxs[warpGlobals.num_vtxs] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.dst));
-	warpGlobals.tp_state = TP_SELECTED;
-	warpGlobals.sel_vtx = warpGlobals.num_vtxs;
-	warpGlobals.num_vtxs++;
-	resetOvlyFlg = 1;
-	break;
-
-      case TP_SELECTED:
-	/* reset vertex */
-	warpUndisplayVtx(&(warpGlobals.dst),
-			 warpGlobals.dst_vtxs[warpGlobals.sel_vtx]);
-	warpGlobals.dst_vtxs[warpGlobals.sel_vtx] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.dst));
-	resetOvlyFlg = 1;
-	break;
-      }
-      warpDisplayTiePoints();
-      break;
-
-    case Button2:
-      switch( warpGlobals.tp_state ){
-      case TP_INACTIVE:
-	break;
-
-      case TP_DST_DEFINED:
-	/* delete vertex */
-	warpUndisplayVtx(&(warpGlobals.dst),
-			 warpGlobals.dst_vtxs[warpGlobals.num_vtxs]);
-	warpGlobals.tp_state = TP_INACTIVE;
-	break;
-
-      case TP_SRC_DEFINED:
-	break;
-
-      case TP_SELECTED:
-	/* delete vertex */
-	warpUndisplayVtx(&(warpGlobals.dst),
-			 warpGlobals.dst_vtxs[warpGlobals.sel_vtx]);
-	warpUndisplayVtx(&(warpGlobals.src),
-			 warpGlobals.src_vtxs[warpGlobals.sel_vtx]);
-	warpGlobals.num_vtxs--;
-	while( warpGlobals.sel_vtx < warpGlobals.num_vtxs ){
-	  warpGlobals.dst_vtxs[warpGlobals.sel_vtx] = 
-	    warpGlobals.dst_vtxs[warpGlobals.sel_vtx + 1];
-	  warpGlobals.src_vtxs[warpGlobals.sel_vtx] = 
-	    warpGlobals.src_vtxs[warpGlobals.sel_vtx + 1];
-	  warpGlobals.sel_vtx++;
-	}
-	warpGlobals.tp_state = TP_INACTIVE;
-	resetOvlyFlg = 1;
-	break;
-      }
-      warpDisplayTiePoints();
-      break;
-
-    case Button3:
-      break;
-    }
-    break;
-
-  case ButtonRelease:
-    switch( cbs->event->xbutton.button ){
-    case Button1:
-      switch( warpGlobals.tp_state ){
-      case TP_INACTIVE:
-	break;
-      case TP_DST_DEFINED:
-	break;
-      case TP_SRC_DEFINED:
-	break;
-      case TP_SELECTED:
-	break;
-      }
-      warpDisplayTiePoints();
-      break;
-
-    case Button2:
-    case Button3:
-      break;
-    }
-    if( resetOvlyFlg ){
-      /* update the overlay image and display */
-      warpSetOvlyObject();
-      warpSetOvlyXImage(&(warpGlobals.ovly));
-      warpCanvasExposeCb(warpGlobals.ovly.canvas,
-			 (XtPointer) &(warpGlobals.ovly),
-			 call_data);
-      XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
-		      call_data);
-      resetOvlyFlg = 0;
-    }
-    break;
-
-  case EnterNotify:
-    break;
-  case LeaveNotify:
-    break;
-
-  case MotionNotify:
-    vtx.vtX = cbs->event->xmotion.x;
-    vtx.vtY = cbs->event->xmotion.y;
-
-    if( cbs->event->xmotion.state & (Button1Mask) ){
-      switch( warpGlobals.tp_state ){
-      case TP_INACTIVE:
-      break;
-
-      case TP_DST_DEFINED:
-	/* reset vertex */
-	warpUndisplayVtx(&(warpGlobals.dst),
-			 warpGlobals.dst_vtxs[warpGlobals.num_vtxs]);
-	warpGlobals.dst_vtxs[warpGlobals.num_vtxs] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.dst));
-	warpDisplayTiePoints();
-	break;
-
-      case TP_SRC_DEFINED:
-	break;
-
-      case TP_SELECTED:
-	/* reset vertex */
-	warpUndisplayVtx(&(warpGlobals.dst),
-		      warpGlobals.dst_vtxs[warpGlobals.sel_vtx]);
-	warpGlobals.dst_vtxs[warpGlobals.sel_vtx] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.dst));
-	warpDisplayTiePoints();
-	resetOvlyFlg = 1;
-	break;
-      }
-    }
-    else {
-      switch( warpGlobals.tp_state ){
-      case TP_INACTIVE:
-	if( (vtxIdx = warpCloseDstVtx(cbs->event->xmotion.x,
-				      cbs->event->xmotion.y)) > -1 ){
-	  warpGlobals.sel_vtx = vtxIdx;
-	  warpGlobals.tp_state = TP_SELECTED;
-	  warpDisplayTiePoints();
-	}
-	break;
-
-      case TP_DST_DEFINED:
-	break;
-      case TP_SRC_DEFINED:
-	break;
-      case TP_SELECTED:
-	if( (vtxIdx = warpCloseDstVtx(cbs->event->xmotion.x,
-				      cbs->event->xmotion.y)) > -1 ){
-	  warpGlobals.sel_vtx = vtxIdx;
-	  warpGlobals.tp_state = TP_SELECTED;
-	}
-	else {
-	  warpGlobals.tp_state = TP_INACTIVE;
-	}
-	warpDisplayTiePoints();
-	break;
-      }
-    }
-    break;
-  case KeyPress:
-    break;
-  case KeyRelease:
-    break;
-  default:
-    break;
-  }
-
-  return;
-}
-
-static void warpSrcCanvasInputCb(
-  Widget	widget,
-  XtPointer	client_data,
-  XtPointer	call_data)
-{
-  MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmDrawingAreaCallbackStruct
-    *cbs = (XmDrawingAreaCallbackStruct *) call_data;
-  int		vtxIdx;
-  WlzDVertex2	vtx;
-
-  /* check there is and image */
-  if( winStruct->ximage == NULL ){
-    return;
-  }
-
-  switch( cbs->event->type ){
-  case ButtonPress:
-    vtx.vtX = cbs->event->xbutton.x;
-    vtx.vtY = cbs->event->xbutton.y;
-
-    switch( cbs->event->xbutton.button ){
-    case Button1:
-      switch( warpGlobals.tp_state ){
-      case TP_INACTIVE:
-	/* set the src vertex */
-	warpGlobals.src_vtxs[warpGlobals.num_vtxs] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.src));
-	warpGlobals.tp_state = TP_SRC_DEFINED;
-	break;
-
-      case TP_SRC_DEFINED:
-	/* reset vertex */
-	warpUndisplayVtx(&(warpGlobals.src),
-		      warpGlobals.src_vtxs[warpGlobals.num_vtxs]);
-	warpGlobals.src_vtxs[warpGlobals.num_vtxs] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.src));
-	break;
-
-      case TP_DST_DEFINED:
-	/* set vertex, increment number of tie-points */
-	warpGlobals.src_vtxs[warpGlobals.num_vtxs] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.src));
-	warpGlobals.tp_state = TP_SELECTED;
-	warpGlobals.sel_vtx = warpGlobals.num_vtxs;
-	warpGlobals.num_vtxs++;
-	resetOvlyFlg = 1;
-	break;
-
-      case TP_SELECTED:
-	/* reset vertex */
-	warpUndisplayVtx(&(warpGlobals.src),
-			 warpGlobals.src_vtxs[warpGlobals.sel_vtx]);
-	warpGlobals.src_vtxs[warpGlobals.sel_vtx] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.src));
-	resetOvlyFlg = 1;
-	break;
-      }
-      warpDisplayTiePoints();
-      break;
-
-    case Button2:
-      switch( warpGlobals.tp_state ){
-      case TP_INACTIVE:
-	break;
-
-      case TP_SRC_DEFINED:
-	/* delete vertex */
-	warpUndisplayVtx(&(warpGlobals.src),
-			 warpGlobals.src_vtxs[warpGlobals.num_vtxs]);
-	warpGlobals.tp_state = TP_INACTIVE;
-	break;
-
-      case TP_DST_DEFINED:
-	break;
-
-      case TP_SELECTED:
-	/* delete vertex */
-	warpUndisplayVtx(&(warpGlobals.dst),
-			 warpGlobals.dst_vtxs[warpGlobals.sel_vtx]);
-	warpUndisplayVtx(&(warpGlobals.src),
-			 warpGlobals.src_vtxs[warpGlobals.sel_vtx]);
-	warpGlobals.num_vtxs--;
-	while( warpGlobals.sel_vtx < warpGlobals.num_vtxs ){
-	  warpGlobals.dst_vtxs[warpGlobals.sel_vtx] = 
-	    warpGlobals.dst_vtxs[warpGlobals.sel_vtx + 1];
-	  warpGlobals.src_vtxs[warpGlobals.sel_vtx] = 
-	    warpGlobals.src_vtxs[warpGlobals.sel_vtx + 1];
-	  warpGlobals.sel_vtx++;
-	}
-	warpGlobals.tp_state = TP_INACTIVE;
-	resetOvlyFlg = 1;
-	break;
-      }
-      warpDisplayTiePoints();
-      break;
-
-    case Button3:
-      break;
-    }
-    break;
-
-  case ButtonRelease:
-    switch( cbs->event->xbutton.button ){
-    case Button1:
-      switch( warpGlobals.tp_state ){
-      case TP_INACTIVE:
-	break;
-      case TP_DST_DEFINED:
-	break;
-      case TP_SRC_DEFINED:
-	break;
-      case TP_SELECTED:
-	break;
-      }
-      warpDisplayTiePoints();
-      break;
-
-    case Button2:
-    case Button3:
-      break;
-    }
-    if( resetOvlyFlg ){
-      /* update the overlay image and display */
-      warpSetOvlyObject();
-      warpSetOvlyXImage(&(warpGlobals.ovly));
-      warpCanvasExposeCb(warpGlobals.ovly.canvas,
-			 (XtPointer) &(warpGlobals.ovly),
-			 call_data);
-      XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
-		      call_data);
-      resetOvlyFlg = 0;
-    }
-    break;
-
-  case EnterNotify:
-    break;
-  case LeaveNotify:
-    break;
-
-  case MotionNotify:
-    vtx.vtX = cbs->event->xmotion.x;
-    vtx.vtY = cbs->event->xmotion.y;
-
-    if( cbs->event->xmotion.state & (Button1Mask) ){
-      switch( warpGlobals.tp_state ){
-      case TP_INACTIVE:
-      break;
-
-      case TP_SRC_DEFINED:
-	/* reset vertex */
-	warpUndisplayVtx(&(warpGlobals.src),
-			 warpGlobals.src_vtxs[warpGlobals.num_vtxs]);
-	warpGlobals.src_vtxs[warpGlobals.num_vtxs] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.src));
-	warpDisplayTiePoints();
-	break;
-
-      case TP_DST_DEFINED:
-	break;
-
-      case TP_SELECTED:
-	/* reset vertex */
-	warpUndisplayVtx(&(warpGlobals.src),
-			 warpGlobals.src_vtxs[warpGlobals.sel_vtx]);
-	warpGlobals.src_vtxs[warpGlobals.sel_vtx] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.src));
-	warpDisplayTiePoints();
-	resetOvlyFlg = 1;
-	break;
-      }
-    }
-    else {
-      switch( warpGlobals.tp_state ){
-      case TP_INACTIVE:
-	if( (vtxIdx = warpCloseSrcVtx(cbs->event->xmotion.x,
-				      cbs->event->xmotion.y)) > -1 ){
-	  warpGlobals.sel_vtx = vtxIdx;
-	  warpGlobals.tp_state = TP_SELECTED;
-	  warpDisplayTiePoints();
-	}
-	break;
-
-      case TP_DST_DEFINED:
-	break;
-      case TP_SRC_DEFINED:
-	break;
-      case TP_SELECTED:
-	if( (vtxIdx = warpCloseSrcVtx(cbs->event->xmotion.x,
-				      cbs->event->xmotion.y)) > -1 ){
-	  warpGlobals.sel_vtx = vtxIdx;
-	  warpGlobals.tp_state = TP_SELECTED;
-	}
-	else {
-	  warpGlobals.tp_state = TP_INACTIVE;
-	}
-	warpDisplayTiePoints();
-	break;
-      }
-    }
-    break;
-
-  case KeyPress:
-    break;
-  case KeyRelease:
-    break;
-  default:
-    break;
   }
 
   return;
@@ -2126,8 +962,8 @@ static Widget createWarpDisplayFrame(
 				  XmNorientation,	XmHORIZONTAL,
 				  NULL);
   scrolled_window =
-    XtVaCreateManagedWidget("scrolled_window", xmScrolledWindowWidgetClass,
-			    frame,
+    XtVaCreateManagedWidget("warp_disp_scrolled_window",
+			    xmScrolledWindowWidgetClass, frame,
 			    XmNchildType, XmFRAME_WORKAREA_CHILD,
 			    XmNscrollingPolicy, 	XmAUTOMATIC,
 			    XmNborderWidth, 0,
@@ -2162,6 +998,15 @@ static Widget createWarpDisplayFrame(
 				   XmNshadowThickness,	0,
 				   NULL);
 
+  /* now a mixture slider */
+  button = XtVaCreateWidget("b_8", xmScaleWidgetClass, title,
+			    XmNorientation,	XmHORIZONTAL,
+			    XmNshowValue,	False,
+			    XmNmaximum,		100,
+			    XmNminimum,		0,
+			    XmNvalue,		50,
+			    NULL);
+
 
   /* create the canvas */
   canvas = XtVaCreateManagedWidget("canvas", hgu_DrawingAreaWidgetClass,
@@ -2176,10 +1021,236 @@ static Widget createWarpDisplayFrame(
   return frame;
 }
 
+void warp2DInteractDeleteLastCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  XmPushButtonCallbackStruct
+    *cbs = (XmPushButtonCallbackStruct *) call_data;
+  int		resetOvlyFlg=0;
+
+  switch( warpGlobals.tp_state ){
+  case TP_INACTIVE:
+    /* delete last vertex */
+    if( warpGlobals.num_vtxs ){
+      warpUndisplayVtx(&(warpGlobals.dst),
+		       warpGlobals.dst_vtxs[warpGlobals.num_vtxs-1]);
+      warpUndisplayVtx(&(warpGlobals.src),
+		       warpGlobals.src_vtxs[warpGlobals.num_vtxs-1]);
+      warpGlobals.num_vtxs--;
+      resetOvlyFlg = 1;
+    }
+    break;
+
+  case TP_DST_DEFINED:
+    /* delete selected destination vertex */
+    warpUndisplayVtx(&(warpGlobals.dst),
+		     warpGlobals.dst_vtxs[warpGlobals.num_vtxs]);
+    warpGlobals.tp_state = TP_INACTIVE;
+    break;
+
+  case TP_SRC_DEFINED:
+    /* delete selected source vertex */
+    warpUndisplayVtx(&(warpGlobals.src),
+		     warpGlobals.src_vtxs[warpGlobals.num_vtxs]);
+    warpGlobals.tp_state = TP_INACTIVE;
+    break;
+
+  case TP_SELECTED:
+    /* delete seleted vertex */
+    warpUndisplayVtx(&(warpGlobals.dst),
+		     warpGlobals.dst_vtxs[warpGlobals.sel_vtx]);
+    warpUndisplayVtx(&(warpGlobals.src),
+		     warpGlobals.src_vtxs[warpGlobals.sel_vtx]);
+    warpGlobals.num_vtxs--;
+    while( warpGlobals.sel_vtx < warpGlobals.num_vtxs ){
+      warpGlobals.dst_vtxs[warpGlobals.sel_vtx] = 
+	warpGlobals.dst_vtxs[warpGlobals.sel_vtx + 1];
+      warpGlobals.src_vtxs[warpGlobals.sel_vtx] = 
+	warpGlobals.src_vtxs[warpGlobals.sel_vtx + 1];
+      warpGlobals.sel_vtx++;
+    }
+    warpGlobals.tp_state = TP_INACTIVE;
+    resetOvlyFlg = 1;
+    break;
+  }
+  warpDisplayTiePoints();
+
+
+  if( resetOvlyFlg ){
+    /* update the overlay image and display */
+    warpSetOvlyObject();
+    warpSetOvlyXImages(&(warpGlobals.ovly), 1);
+    warpSetOvlyXImage(&(warpGlobals.ovly));
+    warpCanvasExposeCb(warpGlobals.ovly.canvas,
+		       (XtPointer) &(warpGlobals.ovly),
+		       call_data);
+    XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
+		    call_data);
+  }
+
+  return;
+}
+
+void warp2DInteractDeleteAllCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  XmPushButtonCallbackStruct
+    *cbs = (XmPushButtonCallbackStruct *) call_data;
+  int		resetOvlyFlg=0;
+
+  switch( warpGlobals.tp_state ){
+  case TP_INACTIVE:
+    break;
+
+  case TP_DST_DEFINED:
+    /* delete selected destination vertex */
+    warpUndisplayVtx(&(warpGlobals.dst),
+		     warpGlobals.dst_vtxs[warpGlobals.num_vtxs]);
+    warpGlobals.tp_state = TP_INACTIVE;
+    break;
+
+  case TP_SRC_DEFINED:
+    /* delete selected source vertex */
+    warpUndisplayVtx(&(warpGlobals.src),
+		     warpGlobals.src_vtxs[warpGlobals.num_vtxs]);
+    warpGlobals.tp_state = TP_INACTIVE;
+    break;
+
+  case TP_SELECTED:
+    break;
+  }
+  while( warpGlobals.num_vtxs ){
+    warpGlobals.num_vtxs--;
+    warpUndisplayVtx(&(warpGlobals.dst),
+		     warpGlobals.dst_vtxs[warpGlobals.num_vtxs]);
+    warpUndisplayVtx(&(warpGlobals.src),
+		     warpGlobals.src_vtxs[warpGlobals.num_vtxs]);
+    resetOvlyFlg = 1;
+  }
+  warpDisplayTiePoints();
+
+
+  if( resetOvlyFlg ){
+    /* update the overlay image and display */
+    warpSetOvlyObject();
+    warpSetOvlyXImages(&(warpGlobals.ovly), 1);
+    warpSetOvlyXImage(&(warpGlobals.ovly));
+    warpCanvasExposeCb(warpGlobals.ovly.canvas,
+		       (XtPointer) &(warpGlobals.ovly),
+		       call_data);
+    XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
+		    call_data);
+  }
+
+  return;
+}
+
 static ActionAreaItem   warp_interact_actions[] = {
-{"reset",	NULL,		NULL},
-{"dismiss",	NULL,           NULL},
+{"delete_last",	warp2DInteractDeleteLastCb,		NULL},
+{"delete_all",	warp2DInteractDeleteAllCb,		NULL},
+{"dismiss",	warp2DInteractDismissCb,           NULL},
+{"blink_comp",	NULL,		NULL},
 {"help",	NULL,           NULL},
+};
+
+static MenuItem warpDisplayFramePopupItemsP[] = { 
+  {"gradient", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetXImageCb, NULL,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"invert", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetXImageCb, NULL,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"normalise", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetXImageCb, NULL,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  NULL,
+};
+
+static MenuItem overlayMethodsItemsP[] = {
+  {"red-green 1", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_RG1,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"red-green 2", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_RG2,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"red-blue 1", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_RB1,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"red-blue 2", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_RB2,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"green-blue 1", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_GB1,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"green-blue 2", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_GB2,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"red-cyan", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_RNR,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"green-magenta", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_GNG,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"blue-yellow", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_BNB,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"dither image 1", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_DITHER1,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"dither image 2", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_DITHER2,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  NULL,
+};
+
+static MenuItem warpOvlyDisplayFramePopupItemsP[] = { 
+  {"gradient dest-image", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetXOvlyImageDstCb, NULL,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"gradient src-image", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetXOvlyImageSrcCb, NULL,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"invert dest-image", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetXOvlyImageDstCb, NULL,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"invert src-image", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetXOvlyImageSrcCb, NULL,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"normalise dest-image", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetXOvlyImageDstCb, NULL,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"normalise src-image", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpSetXOvlyImageSrcCb, NULL,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"overlay method", &xmCascadeButtonGadgetClass, 0, NULL, NULL, False,
+   NULL, NULL,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_ENABLED, True, True, &(overlayMethodsItemsP[0])},
+  NULL,
 };
 
 static Widget create2DWarpDialog(
@@ -2189,18 +1260,15 @@ static Widget create2DWarpDialog(
   Widget	dialog, control, child, button;
   Visual	*visual;
 
-  /* create a dialog widget and get control form */
+  /* create a dialog widget and get control form and 24-bit visual */
   dialog = HGU_XmCreateStdDialog(parent, "warp2DInteractDialog",
 				 xmFormWidgetClass,
-				 warp_interact_actions, 3);
+				 warp_interact_actions, 5);
   control = XtNameToWidget( dialog, "*.control" );
   if( !(visual = HGU_XGetVisual(globals.dpy, DefaultScreen(globals.dpy),
 			      TrueColor, 24)) ){
     visual = HGU_XmWidgetToVisual(globals.topl);
   }
-  button = XtNameToWidget( dialog, "*.dismiss" );
-  XtAddCallback(button, XmNactivateCallback, warp2DInteractDismissCb, NULL);
-		
 
   /* add children */
   child = createWarpDisplayFrame(control, "warp_dst_frame", visual, 24);
@@ -2213,6 +1281,14 @@ static Widget create2DWarpDialog(
 		XmNrightPosition,	33,
 		NULL);
   warpGlobals.dst.canvas = XtNameToWidget(child, "*canvas");
+  warpDisplayFramePopupItemsP[0].callback_data = &warpGlobals.dst;
+  warpDisplayFramePopupItemsP[1].callback_data = &warpGlobals.dst;
+  warpDisplayFramePopupItemsP[2].callback_data = &warpGlobals.dst;
+  warpGlobals.dst.popup = HGU_XmBuildMenu(globals.topl,
+					  XmMENU_POPUP, "warp_dst_popup",
+					  '\0', XmTEAR_OFF_DISABLED,
+					  warpDisplayFramePopupItemsP);
+  /*warpGlobals.dst.popup = NULL;*/
   warpGlobals.dst.ximage = NULL;
   warpGlobals.dst.mag = 1.0;
   warpGlobals.dst.rot = 0;
@@ -2260,6 +1336,13 @@ static Widget create2DWarpDialog(
 		XmNrightPosition,	67,
 		NULL);
   warpGlobals.src.canvas = XtNameToWidget(child, "*canvas");
+  warpDisplayFramePopupItemsP[0].callback_data = &warpGlobals.src;
+  warpDisplayFramePopupItemsP[1].callback_data = &warpGlobals.src;
+  warpDisplayFramePopupItemsP[2].callback_data = &warpGlobals.src;
+  warpGlobals.src.popup = HGU_XmBuildMenu(globals.topl,
+					  XmMENU_POPUP, "warp_src_popup",
+					  '\0', XmTEAR_OFF_DISABLED,
+					  warpDisplayFramePopupItemsP);
   warpGlobals.src.ximage = NULL;
   warpGlobals.src.mag = 1.0;
   warpGlobals.src.rot = 0;
@@ -2307,6 +1390,18 @@ static Widget create2DWarpDialog(
 		XmNrightPosition,	100,
 		NULL);
   warpGlobals.ovly.canvas = XtNameToWidget(child, "*canvas");
+  warpOvlyDisplayFramePopupItemsP[0].callback_data = &warpGlobals.ovly;
+  warpOvlyDisplayFramePopupItemsP[1].callback_data = &warpGlobals.ovly;
+  warpOvlyDisplayFramePopupItemsP[2].callback_data = &warpGlobals.ovly;
+  warpOvlyDisplayFramePopupItemsP[3].callback_data = &warpGlobals.ovly;
+  warpOvlyDisplayFramePopupItemsP[4].callback_data = &warpGlobals.ovly;
+  warpOvlyDisplayFramePopupItemsP[5].callback_data = &warpGlobals.ovly;
+  warpGlobals.ovly.popup = 
+    HGU_XmBuildMenu(globals.topl,
+		    XmMENU_POPUP,
+		    "warp_ovly_popup",
+		    '\0', XmTEAR_OFF_DISABLED,
+		    warpOvlyDisplayFramePopupItemsP);
   warpGlobals.ovly.ximage = NULL;
   warpGlobals.ovly.mag = 1.0;
   warpGlobals.ovly.rot = 0;
@@ -2315,6 +1410,8 @@ static Widget create2DWarpDialog(
   /* canvas callbacks and event handler */
   XtAddCallback(warpGlobals.ovly.canvas, XmNexposeCallback,
 		warpCanvasExposeCb, (XtPointer) &(warpGlobals.ovly));
+  XtAddCallback(warpGlobals.ovly.canvas, XmNinputCallback,
+		warpOvlyCanvasInputCb, (XtPointer) &(warpGlobals.ovly));
 
   /* button callbacks */
   button = XtNameToWidget(child, "*b_1");
@@ -2338,13 +1435,18 @@ static Widget create2DWarpDialog(
   button = XtNameToWidget(child, "*b_7");
   XtAddCallback(button, XmNactivateCallback, warpDecrGammaCb,
 		(XtPointer) &(warpGlobals.ovly));
+  button = XtNameToWidget(child, "*b_8");
+  XtManageChild(button);
+  XtAddCallback(button, XmNdragCallback, warpMixRatioCb,
+		(XtPointer) &(warpGlobals.ovly));
+  XtAddCallback(button, XmNvalueChangedCallback, warpMixRatioCb,
+		(XtPointer) &(warpGlobals.ovly));
 
   return dialog;
 }
 
 static ActionAreaItem   warp_controls_actions[] = {
 {"src_read",	NULL,		NULL},
-{"src_transf",	NULL,		NULL},
 {"i_o",		NULL,           NULL},
 {"import",	NULL,           NULL},
 };
@@ -2361,6 +1463,26 @@ static MenuItem mesh_menu_itemsP[] = {		/* mesh_menu items */
   NULL,
 };
 
+static MenuItem interpFunctionItemsP[] = { /* interp_function_menu items */
+  {"thin-plate spline", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   warpMeshFunctionCb, (XtPointer) WLZ_BASISFN_TPS,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"multiquadric", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   warpMeshFunctionCb, (XtPointer) WLZ_BASISFN_MQ,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"polynomial", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   warpMeshFunctionCb, (XtPointer) WLZ_BASISFN_POLY,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+/*{"gaussian", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   warpMeshFunctionCb, (XtPointer) WLZ_BASISFN_GAUSS,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},*/
+  NULL,
+};
+
 
 Widget createWarpInput2DDialog(
   Widget	topl)
@@ -2368,10 +1490,11 @@ Widget createWarpInput2DDialog(
   Widget	dialog=NULL;
   WlzDVertex3		fixed;
   ThreeDViewStruct	*view_struct;
-  Widget	control, frame, form, title, controls_frame;
+  Widget	control, frame, form, title, controls_frame, section_frame;
   Widget	option_menu, button, buttons, radio_box, label, widget;
-  Widget	slider;
+  Widget	toggle, slider, scale, sgnl_controls;
   float		fval, fmin, fmax;
+  Visual	*visual;
 
   /* check for reference object */
   if( !globals.obj ){
@@ -2394,6 +1517,11 @@ Widget createWarpInput2DDialog(
   /* get controls form and controls frame to add warping controls */
   control = XtNameToWidget( dialog, "*.control" );
   controls_frame = XtNameToWidget( control, "*.controls_frame");
+  section_frame = XtNameToWidget( control, "*.section_frame");
+  if( !(visual = HGU_XGetVisual(globals.dpy, DefaultScreen(globals.dpy),
+			      TrueColor, 24)) ){
+    visual = HGU_XmWidgetToVisual(globals.topl);
+  }
 
   /* add a new frame */
   frame = XtVaCreateManagedWidget("warp_input_2d_frame",
@@ -2428,6 +1556,15 @@ Widget createWarpInput2DDialog(
   XtManageChild(option_menu);
   widget = option_menu;
 
+  option_menu = HGU_XmBuildMenu(form, XmMENU_OPTION, "mesh_function", 0,
+				XmTEAR_OFF_DISABLED, interpFunctionItemsP);
+  XtVaSetValues(option_menu,
+		XmNtopAttachment,	XmATTACH_FORM,
+		XmNleftAttachment,	XmATTACH_WIDGET,
+		XmNleftWidget,		widget,
+		NULL);
+  XtManageChild(option_menu);
+
   /* defaults for the mesh distances */
   warpGlobals.meshMinDst = 20.0;
   warpGlobals.meshMaxDst = 100.0;
@@ -2457,13 +1594,10 @@ Widget createWarpInput2DDialog(
   widget = slider;
 
   /* now some buttons */
-  warp_controls_actions[0].callback = warpReadSourcePopupCb;
-  warp_controls_actions[0].client_data = view_struct;
-
   buttons = HGU_XmCreateWActionArea(form,
 				    warp_controls_actions,
 				    XtNumber(warp_controls_actions),
-				    xmPushButtonWidgetClass);
+				    xmDrawnButtonWidgetClass);
 
   /* set the buttons attachments */
   XtVaSetValues(buttons,
@@ -2473,8 +1607,208 @@ Widget createWarpInput2DDialog(
 		XmNrightAttachment,	XmATTACH_FORM,
 		NULL);
 
+  /* now the callbacks */
+  widget = XtNameToWidget(buttons, "*.src_read");
+  XtVaSetValues(widget,
+		XmNpushButtonEnabled, True,
+		XmNalignment, XmALIGNMENT_CENTER,
+		NULL); 
+  XtAddCallback(widget, XmNactivateCallback, warpReadSourcePopupCb,
+		view_struct);
 
-  /* modify attachments for the orientation controls frame */
+  widget = XtNameToWidget(buttons, "*.i_o");
+  XtVaSetValues(widget,
+		XmNpushButtonEnabled, True,
+		XmNalignment, XmALIGNMENT_BEGINNING,
+		NULL); 
+  XtAddCallback(widget, XmNexposeCallback, popupDrawnButtonCb, NULL);
+  XtAddCallback(widget, XmNresizeCallback, popupDrawnButtonCb, NULL);
+  setupWarpIOMenu(widget, view_struct);
+
+  widget = XtNameToWidget(buttons, "*.import");
+  XtVaSetValues(widget,
+		XmNpushButtonEnabled, True,
+		XmNalignment, XmALIGNMENT_CENTER,
+		NULL);
+  XtAddCallback(widget, XmNactivateCallback, warpImportSignalCb,
+		view_struct);
+
+  /* create the signal controls frame */
+  sgnl_controls = XtVaCreateWidget("warp_sgnl_controls_frame",
+				   xmFrameWidgetClass, control,
+				   XmNleftAttachment,	XmATTACH_WIDGET,
+				   XmNleftWidget,	section_frame,
+				   XmNrightAttachment,	XmATTACH_FORM,
+				   XmNbottomAttachment,	XmATTACH_FORM,
+				   NULL);
+  title = XtVaCreateManagedWidget("warp_sgnl_frame_title",
+				  xmLabelGadgetClass, sgnl_controls,
+				  XmNchildType, XmFRAME_TITLE_CHILD,
+				  NULL);
+  form = XtVaCreateManagedWidget("warp_sgnl_controls_form",
+				 xmFormWidgetClass, 	sgnl_controls,
+				 XmNchildType, XmFRAME_WORKAREA_CHILD,
+				 NULL);
+  /* toggles for the image processing sequence */
+  toggle = XtVaCreateManagedWidget("normalise",
+				   xmToggleButtonGadgetClass, form,
+				   XmNleftAttachment,	XmATTACH_FORM,
+				   XmNtopAttachment,	XmATTACH_FORM,
+				   NULL);
+  XtAddCallback(toggle, XmNvalueChangedCallback, recalcWarpProcObjCb, NULL);
+  widget = toggle;
+  toggle = XtVaCreateManagedWidget("histo_equalise",
+				   xmToggleButtonGadgetClass, form,
+				   XmNleftAttachment,	XmATTACH_WIDGET,
+				   XmNleftWidget,	toggle,
+				   XmNtopAttachment,	XmATTACH_FORM,
+				   NULL);
+  XtAddCallback(toggle, XmNvalueChangedCallback, recalcWarpProcObjCb, NULL);
+  toggle = XtVaCreateManagedWidget("shade_correction",
+				   xmToggleButtonGadgetClass, form,
+				   XmNleftAttachment,	XmATTACH_WIDGET,
+				   XmNleftWidget,	toggle,
+				   XmNtopAttachment,	XmATTACH_FORM,
+				   NULL);
+  XtAddCallback(toggle, XmNvalueChangedCallback, recalcWarpProcObjCb, NULL);
+
+  /* gauss smoothing toggle and width parameter */
+  toggle = XtVaCreateManagedWidget("gauss_smooth",
+				   xmToggleButtonGadgetClass, form,
+				   XmNleftAttachment,	XmATTACH_FORM,
+				   XmNtopAttachment,	XmATTACH_WIDGET,
+				   XmNtopWidget,	widget,
+				   NULL);
+  XtAddCallback(toggle, XmNvalueChangedCallback, recalcWarpProcObjCb, NULL);
+  fval = 5.0;
+  slider = HGU_XmCreateHorizontalSlider("gauss_width", form,
+					fval, 0.5, 20.0, 1,
+					recalcWarpProcObjCb, NULL);
+  XtVaSetValues(slider,
+		XmNtopAttachment,	XmATTACH_WIDGET,
+		XmNtopWidget,		widget,
+		XmNleftAttachment,	XmATTACH_WIDGET,
+		XmNleftWidget,		toggle,
+		XmNrightAttachment,	XmATTACH_FORM,
+		NULL);
+  widget = slider;
+
+  /* defaults for the threshold range */
+  warpGlobals.threshRangeLow = 256;
+  warpGlobals.threshRangeHigh = 256;
+
+  fval = warpGlobals.threshRangeLow;
+  slider = HGU_XmCreateHorizontalSlider("thresh_range_low", form,
+					fval, 0, 256, 0,
+					warpThreshLowCb, NULL);
+  XtVaSetValues(slider,
+		XmNtopAttachment,	XmATTACH_WIDGET,
+		XmNtopWidget,		widget,
+		XmNleftAttachment,	XmATTACH_FORM,
+		XmNrightAttachment,	XmATTACH_FORM,
+		NULL);
+  widget = slider;
+  scale = XtNameToWidget(slider, "*scale");
+  XtAddCallback(scale, XmNdragCallback, warpThreshLowCb, NULL);
+
+  fval = warpGlobals.threshRangeHigh;
+  slider = HGU_XmCreateHorizontalSlider("thresh_range_high", form,
+					fval, 0, 256, 0,
+					warpThreshHighCb, NULL);
+  XtVaSetValues(slider,
+		XmNtopAttachment,	XmATTACH_WIDGET,
+		XmNtopWidget,		widget,
+		XmNleftAttachment,	XmATTACH_FORM,
+		XmNrightAttachment,	XmATTACH_FORM,
+		NULL);
+  widget = slider;
+  scale = XtNameToWidget(slider, "*scale");
+  XtAddCallback(scale, XmNdragCallback, warpThreshHighCb, NULL);
+
+
+  /* a buttons to map the data */
+  button = XtVaCreateManagedWidget("map_it",
+				   xmPushButtonGadgetClass, form,
+				   XmNtopAttachment,	XmATTACH_WIDGET,
+				   XmNtopWidget,	widget,
+				   XmNleftAttachment,	XmATTACH_POSITION,
+				   XmNleftPosition,	3,
+				   XmNrightAttachment,	XmATTACH_POSITION,
+				   XmNrightPosition,	30,
+				   NULL);
+  XtAddCallback(button, XmNactivateCallback,
+		mapWarpDataCb, (XtPointer) view_struct);
+
+  button = XtVaCreateManagedWidget("undo_map",
+				   xmPushButtonGadgetClass, form,
+				   XmNtopAttachment,	XmATTACH_WIDGET,
+				   XmNtopWidget,	widget,
+				   XmNleftAttachment,	XmATTACH_POSITION,
+				   XmNleftPosition,	36,
+				   XmNrightAttachment,	XmATTACH_POSITION,
+				   XmNrightPosition,	63,
+				   NULL);
+  XtAddCallback(button, XmNactivateCallback,
+		undoMappedWarpDataCb, (XtPointer) view_struct);
+ 
+  button = XtVaCreateManagedWidget("install_data",
+				   xmPushButtonGadgetClass, form,
+				   XmNtopAttachment,	XmATTACH_WIDGET,
+				   XmNtopWidget,	widget,
+				   XmNleftAttachment,	XmATTACH_POSITION,
+				   XmNleftPosition,	69,
+				   XmNrightAttachment,	XmATTACH_POSITION,
+				   XmNrightPosition,	97,
+				   NULL);
+  XtAddCallback(button, XmNactivateCallback,
+		installMappedWarpDataCb, (XtPointer) view_struct);
+ 
+  /* create the signal image frame and process controls -
+     unmanaged for now */
+  widget = createWarpDisplayFrame(control, "warp_sgnl_frame", visual, 24);
+  XtVaSetValues(widget,
+		XmNtopAttachment,	XmATTACH_FORM,
+		XmNbottomAttachment,	XmATTACH_WIDGET,
+		XmNbottomWidget,	sgnl_controls,
+		XmNleftAttachment,	XmATTACH_WIDGET,
+		XmNleftWidget,		section_frame,
+		XmNrightAttachment,	XmATTACH_FORM,
+		NULL);
+  warpGlobals.sgnl.canvas = XtNameToWidget(widget, "*canvas");
+  warpGlobals.sgnl.ximage = NULL;
+  warpGlobals.sgnl.mag = 1.0;
+  warpGlobals.sgnl.rot = 0;
+  warpGlobals.sgnl.transpose = 0;
+  XtUnmanageChild(widget);
+
+  /* canvas callbacks and event handler */
+  XtAddCallback(warpGlobals.sgnl.canvas, XmNexposeCallback,
+		warpCanvasExposeCb, (XtPointer) &(warpGlobals.sgnl));
+  XtAddCallback(warpGlobals.sgnl.canvas, XmNexposeCallback,
+		warpSgnlDomainCanvasExposeCb, (XtPointer) &(warpGlobals.sgnl));
+
+  /* button callbacks */
+  button = XtNameToWidget(widget, "*b_1");
+  XtAddCallback(button, XmNactivateCallback, warpReadSignalPopupCb,
+		view_struct);
+  button = XtNameToWidget(widget, "*b_2");
+  XtAddCallback(button, XmNactivateCallback, warpCanvasMagCb,
+		(XtPointer) &(warpGlobals.sgnl));
+  button = XtNameToWidget(widget, "*b_3");
+  XtAddCallback(button, XmNactivateCallback, warpInvertGreyCb,
+		(XtPointer) &(warpGlobals.sgnl));
+  button = XtNameToWidget(widget, "*b_4");
+  XtUnmanageChild(button);
+  button = XtNameToWidget(widget, "*b_5");
+  XtUnmanageChild(button);
+  button = XtNameToWidget(widget, "*b_6");
+  XtAddCallback(button, XmNactivateCallback, warpIncrGammaCb,
+		(XtPointer) &(warpGlobals.sgnl));
+  button = XtNameToWidget(widget, "*b_7");
+  XtAddCallback(button, XmNactivateCallback, warpDecrGammaCb,
+		(XtPointer) &(warpGlobals.sgnl));
+
+  /* modify attachments for the section and orientation controls frame */
   XtVaSetValues(controls_frame,
 		XmNbottomAttachment,	XmATTACH_WIDGET,
 		XmNbottomWidget,	frame,
@@ -2487,18 +1821,34 @@ Widget createWarpInput2DDialog(
   /* set the interact dialog to NULL and set up structure */
   warpGlobals.view_struct = view_struct;
   warpGlobals.warp2DInteractDialog = NULL;
+  warpGlobals.srcFile = NULL;
+  warpGlobals.sgnlFile = NULL;
+  warpGlobals.sgnlObj = NULL;
+  warpGlobals.sgnlProcObj = NULL;
   warpGlobals.dst.obj = NULL;
   warpGlobals.src.obj = NULL;
   warpGlobals.ovly.obj = NULL;
+  warpGlobals.sgnl.obj = NULL;
   warpGlobals.dst.ximage = NULL;
   warpGlobals.src.ximage = NULL;
   warpGlobals.ovly.ximage = NULL;
+  warpGlobals.ovly.ovlyImages[0] = NULL;
+  warpGlobals.ovly.ovlyImages[1] = NULL;
+  warpGlobals.sgnl.ximage = NULL;
   warpGlobals.dst.gc = (GC) -1;
   warpGlobals.src.gc = (GC) -1;
   warpGlobals.ovly.gc = (GC) -1;
+  warpGlobals.sgnl.gc = (GC) -1;
   warpGlobals.dst.gamma = 1.0;
   warpGlobals.src.gamma = 1.0;
   warpGlobals.ovly.gamma = 1.0;
+  warpGlobals.ovly.mixRatio = 50.0;
+  warpGlobals.ovly.mixType = MA_OVERLAY_MIXTYPE_RG1;
+  warpGlobals.sgnl.gamma = 1.0;
+  warpGlobals.dst.grey_invert = 0;
+  warpGlobals.src.grey_invert = 0;
+  warpGlobals.ovly.grey_invert = 0;
+  warpGlobals.sgnl.grey_invert = 0;
 
   warpGlobals.num_vtxs = 0;
   warpGlobals.sel_vtx = 0;
@@ -2510,6 +1860,7 @@ Widget createWarpInput2DDialog(
 
   warpGlobals.affine = NULL;
   warpGlobals.basisTr = NULL;
+  warpGlobals.basisFnType = WLZ_BASISFN_TPS;
   warpGlobals.meshTr = NULL;
   warpGlobals.meshErrFlg = 0;
   warpGlobals.meshMthd = WLZ_MESH_GENMETHOD_BLOCK;

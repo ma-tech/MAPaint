@@ -771,6 +771,7 @@ void controls_io_write_cb(
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   String		fileStr;
   FILE			*fp;
+  WlzErrorNum		errNum;
 
   /* call the disarm callbacks to remove any timeouts and avoid posting
      th emenu */
@@ -784,72 +785,15 @@ void controls_io_write_cb(
 				      "OK", "cancel", "MAPaintSectParams.bib",
 				      NULL, "*.bib") ){
     if( fp = fopen(fileStr, "w") ){
-      char	fixedPointStr[64];
-      char	distanceStr[64];
-      char	pitchStr[64];
-      char	yawStr[64];
-      char	rollStr[64];
-      char	scaleStr[64];
-      char	upVectorStr[64];
-      char	viewModeStr[64];
-      char	*errMsg;
-      BibFileRecord	*bibfileRecord;
-      BibFileError	bibFileErr;
-
-      /* generate strings for the bibfile entry */
-      sprintf(fixedPointStr, "%.1f, %.1f, %.1f", wlzViewStr->fixed.vtX,
-	      wlzViewStr->fixed.vtY, wlzViewStr->fixed.vtZ);
-      sprintf(distanceStr, "%.01f", wlzViewStr->dist);
-      sprintf(pitchStr, "%.2f", wlzViewStr->phi * 180.0 / WLZ_M_PI);
-      sprintf(yawStr, "%.2f", wlzViewStr->theta * 180.0 / WLZ_M_PI);
-      sprintf(rollStr, "%.2f", wlzViewStr->zeta * 180.0 / WLZ_M_PI);
-      sprintf(scaleStr, "%.2f", wlzViewStr->scale);
-      sprintf(upVectorStr, "%g, %g, %g", wlzViewStr->up.vtX,
-	      wlzViewStr->up.vtY, wlzViewStr->up.vtZ);
-
-      /* view mode */
-      switch( wlzViewStr->view_mode ){
-      case WLZ_UP_IS_UP_MODE:
-      default:
-	sprintf(viewModeStr, "up-is-up");
-	break;
-
-      case WLZ_STATUE_MODE:
-	sprintf(viewModeStr, "statue");
-	break;
-
-      case WLZ_ZETA_MODE:
-	sprintf(viewModeStr, "absolute");
-	break;
-      }
-
-      /* create the bibfile record */
-      bibfileRecord = 
-	BibFileRecordMake("Wlz3DSectionViewParams", "0",
-			  BibFileFieldMakeVa("FixedPoint",	fixedPointStr,
-					     "Distance",	distanceStr,
-					     "Pitch",		pitchStr,
-					     "Yaw",		yawStr,
-					     "Roll",		rollStr,
-					     "Scale",		scaleStr,
-					     "UpVector",	upVectorStr,
-					     "ViewMode",	viewModeStr,
-					     NULL));
-
-      /* write the bibfile and release resources */
-      bibFileErr = BibFileRecordWrite(fp, &errMsg, bibfileRecord);
-      BibFileRecordFree(&bibfileRecord);
-
-      /* check the bibfile write error */
-      if( bibFileErr != BIBFILE_ER_NONE ){
+      if( write_Wlz3DSectionViewParams_Record(fp, wlzViewStr) != WLZ_ERR_NONE ){
 	HGU_XmUserError(globals.topl,
 			"Save Section Parameters:\n"
 			"    Error in writing the bibfile\n"
 			"    Please check disk space or quotas\n"
 			"    Section parameters not saved",
 			XmDIALOG_FULL_APPLICATION_MODAL);
-	AlcFree((void *) errMsg);
       }
+
       if( fclose(fp) == EOF ){
 	HGU_XmUserError(globals.topl,
 			"Save Section Parameters:\n"
@@ -1132,6 +1076,86 @@ void special_coords_write_cb(
   return;
 }
 
+int controls_io_quiet_read(
+  String		fileStr,
+  ThreeDViewStruct	*view_struct)
+{
+  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
+  Display		*dpy = XtDisplay(view_struct->canvas);
+  Window		win  = XtWindow(view_struct->canvas);
+  Widget		slider;
+  FILE			*fp;
+  double		oldScale, newScale;
+  int			rtnVal=0;
+
+  /* get a filename for the section parameters */
+  if( fileStr == NULL ){
+    rtnVal = 1;
+  }
+  else {
+    if( fp = fopen(fileStr, "rb") ){
+      BibFileRecord	*bibfileRecord;
+      BibFileError	bibFileErr;
+      char		*errMsg;
+
+      /* read the bibfile - get the first section view entry */
+      bibFileErr = BibFileRecordRead(&bibfileRecord, &errMsg, fp);
+      while((bibFileErr == BIBFILE_ER_NONE) &&
+	    (strncmp(bibfileRecord->name, "Wlz3DSectionViewParams", 22))){
+	BibFileRecordFree(&bibfileRecord);
+	bibFileErr = BibFileRecordRead(&bibfileRecord, &errMsg, fp);
+      }
+      (void) fclose(fp);
+      if( bibFileErr != BIBFILE_ER_NONE ){
+	AlcFree((void *) errMsg);
+	rtnVal = 1;
+      }
+
+      /* parse the record  - need to save the old scale */
+      if( !rtnVal ){
+	oldScale = wlzViewStr->scale;
+	parse_Wlz3DSectionViewParams_Record(bibfileRecord, wlzViewStr);
+	BibFileRecordFree(&bibfileRecord);
+	(void) fclose(fp);
+
+	/* normal viewing sliders active and unset fixed-line mode */
+	setViewSliderSensitivities(view_struct, True);
+	view_struct->controlFlag &= ~MAPAINT_FIXED_LINE_SET;
+
+	/* reset the sliders and mode control */
+	slider = XtNameToWidget(view_struct->dialog, "*.theta_slider");
+	HGU_XmSetSliderValue(slider, (float) (wlzViewStr->theta * 180.0 /
+					      WLZ_M_PI));
+	slider = XtNameToWidget(view_struct->dialog, "*.phi_slider");
+	HGU_XmSetSliderValue(slider, (float) (wlzViewStr->phi * 180.0 /
+					      WLZ_M_PI));
+	slider = XtNameToWidget(view_struct->dialog, "*.zeta_slider");
+	HGU_XmSetSliderValue(slider, (float) (wlzViewStr->zeta * 180.0 /
+					      WLZ_M_PI));
+	newScale = wlzViewStr->scale;
+	wlzViewStr->scale = oldScale;
+	setViewMode(view_struct, wlzViewStr->view_mode);
+	setViewScale(view_struct, newScale, 0, 0);
+
+	/* redisplay the section */
+	reset_view_struct( view_struct );
+	XClearWindow(dpy, win);
+	display_view_cb(view_struct->canvas, (XtPointer) view_struct, NULL);
+	view_feedback_cb(view_struct->canvas, (XtPointer) view_struct, NULL);
+
+	/* clear previous domains */
+	view_struct_clear_prev_obj( view_struct );
+
+      }
+      else {
+	rtnVal = 1;
+      }
+    }
+  }
+
+  return rtnVal;
+}
+
 void controls_io_read_cb(
   Widget		w,
   XtPointer	client_data,
@@ -1144,6 +1168,7 @@ void controls_io_read_cb(
   Widget		slider;
   String		fileStr;
   FILE			*fp;
+  double		oldScale, newScale;
 
   /* call the disarm callbacks to remove any timeouts and avoid posting
      th emenu */
@@ -1159,16 +1184,9 @@ void controls_io_read_cb(
 				      NULL, "*.bib")
     ){
     if( fp = fopen(fileStr, "r") ){
-      WlzDVertex3	fixedPointVtx;
-      double		distance, pitch, yaw, roll, scale;
-      WlzDVertex3	upVectorVtx;
-      WlzThreeDViewMode	viewMode;
-      char		viewModeStr[64];
-      char		*errMsg;
-      int		numParsedFields=0;
       BibFileRecord	*bibfileRecord;
-      BibFileField	*bibfileField;
       BibFileError	bibFileErr;
+      char		*errMsg;
 
       /* read the bibfile - get the first section view entry */
       bibFileErr = BibFileRecordRead(&bibfileRecord, &errMsg, fp);
@@ -1188,69 +1206,30 @@ void controls_io_read_cb(
 	return;
       }
 
-      /* parse the record */
-      numParsedFields = BibFileFieldParseFmt
-	(bibfileRecord->field,
-	 (void *) &(fixedPointVtx.vtX), "%lg ,%*lg ,%*lg", "FixedPoint",
-	 (void *) &(fixedPointVtx.vtY), "%*lg ,%lg ,%*lg", "FixedPoint",
-	 (void *) &(fixedPointVtx.vtZ), "%*lg ,%*lg ,%lg", "FixedPoint",
-	 (void *) &distance, "%lg", "Distance",
-	 (void *) &pitch, "%lg", "Pitch",
-	 (void *) &yaw, "%lg", "Yaw",
-	 (void *) &roll, "%lg", "Roll",
-	 (void *) &scale, "%lg", "Scale",
-	 (void *) &(upVectorVtx.vtX), "%lg ,%*lg ,%*lg", "UpVector",
-	 (void *) &(upVectorVtx.vtY), "%*lg ,%lg ,%*lg", "UpVector",
-	 (void *) &(upVectorVtx.vtZ), "%*lg ,%*lg ,%lg", "UpVector",
-	 (void *) &(viewModeStr[0]), "%s", "ViewMode",
-	 NULL);
-      /* doesn't read the view mode correctly - ask Bill */
-      bibfileField = bibfileRecord->field;
-      while( bibfileField ){
-	if( strncmp(bibfileField->name, "ViewMode", 8) == 0 ){
-	  strcpy(viewModeStr, bibfileField->value);
-	  break;
-	}
-	bibfileField = bibfileField->next;
-      }
+      /* parse the record  - need to save the old scale */
+      oldScale = wlzViewStr->scale;
+      parse_Wlz3DSectionViewParams_Record(bibfileRecord, wlzViewStr);
       BibFileRecordFree(&bibfileRecord);
       (void) fclose(fp);
-
-      /* convert angles to radians and get mode */
-      pitch *= (WLZ_M_PI/180.0);
-      yaw *= (WLZ_M_PI/180.0);
-      roll *= (WLZ_M_PI/180.0);
-      if( !strncmp(viewModeStr, "up-is-up", 8) ){
-	viewMode = WLZ_UP_IS_UP_MODE;
-      }
-      else if( !strncmp(viewModeStr, "statue", 8) ){
-	viewMode = WLZ_STATUE_MODE;
-      }
-      else {
-	viewMode = WLZ_ZETA_MODE;
-      }
 
       /* normal viewing sliders active and unset fixed-line mode */
       setViewSliderSensitivities(view_struct, True);
       view_struct->controlFlag &= ~MAPAINT_FIXED_LINE_SET;
 
-      /* set the view structure */
-      wlzViewStr->fixed = fixedPointVtx;
-      wlzViewStr->dist = distance;
-      wlzViewStr->theta = yaw;
-      wlzViewStr->phi = pitch;
-      wlzViewStr->zeta = roll;
-      wlzViewStr->up = upVectorVtx;
-
       /* reset the sliders and mode control */
       slider = XtNameToWidget(view_struct->dialog, "*.theta_slider");
-      HGU_XmSetSliderValue(slider, (float) (yaw * 180.0 / WLZ_M_PI));
+      HGU_XmSetSliderValue(slider, (float) (wlzViewStr->theta * 180.0 /
+					    WLZ_M_PI));
       slider = XtNameToWidget(view_struct->dialog, "*.phi_slider");
-      HGU_XmSetSliderValue(slider, (float) (pitch * 180.0 / WLZ_M_PI));
+      HGU_XmSetSliderValue(slider, (float) (wlzViewStr->phi * 180.0 /
+					    WLZ_M_PI));
       slider = XtNameToWidget(view_struct->dialog, "*.zeta_slider");
-      HGU_XmSetSliderValue(slider, (float) (roll * 180.0 / WLZ_M_PI));
-      setViewMode(view_struct, viewMode);
-      setViewScale(view_struct, scale, 0, 0);
+      HGU_XmSetSliderValue(slider, (float) (wlzViewStr->zeta * 180.0 /
+					    WLZ_M_PI));
+      newScale = wlzViewStr->scale;
+      wlzViewStr->scale = oldScale;
+      setViewMode(view_struct, wlzViewStr->view_mode);
+      setViewScale(view_struct, newScale, 0, 0);
 
       /* redisplay the section */
       reset_view_struct( view_struct );
@@ -1311,8 +1290,15 @@ void popupDrawnButtonCb(
   Dimension	ht, st, width, height;
   Display	*dpy = XtDisplay(w);
   Window	win = XtWindow(w);
+  Pixel		bottomShadowColor, topShadowColor;
   GC		gc;
   Position	x, y;
+  XPoint	points[8];
+
+  /* check if realised */
+  if( XtIsRealized(w) == False ){
+    return;
+  }
 
   /* get widget parameters */
   XtVaGetValues(w,
@@ -1320,16 +1306,34 @@ void popupDrawnButtonCb(
 		XmNheight,	&height,
 		XmNhighlightThickness,	&ht,
 		XmNshadowThickness,	&st,
+		XmNbottomShadowColor,	&bottomShadowColor,
+		XmNtopShadowColor,	&topShadowColor,
 		NULL);
 
   /* set the x, y position and the clip rectangle */
   x = width - ht - st - 15;
-  y = height/2;
+  y = height/2 - 5;
 
   gc = XDefaultGCOfScreen(XtScreen(w));
+  XSetLineAttributes(dpy, gc, st, LineSolid, CapButt, JoinMiter);
 
   /* draw the wee down arrow */
-
+  points[0].x = x + 10;
+  points[0].y = y;
+  points[1].x = x;
+  points[1].y = y;
+  points[2].x = x + 5;
+  points[2].y = y + 9;
+  points[3].x = x + 10;
+  points[3].y = y;
+  XSetForeground(dpy, gc, topShadowColor);
+  XDrawLines(dpy, win, gc, points, 4, CoordModeOrigin);
+  points[0].x = x + 10;
+  points[0].y = y;
+  points[1].x = x + 5;
+  points[1].y = y + 9;
+  XSetForeground(dpy, gc, bottomShadowColor);
+  XDrawLines(dpy, win, gc, points, 2, CoordModeOrigin);
 
   return;
 }
@@ -1347,7 +1351,7 @@ void setupFixed_1_Menu(
 		NULL);
 
   /* add the callbacks */
-  XtAddCallback(widget, XmNactivateCallback, fixed_1_cb, view_struct);
+/*  XtAddCallback(widget, XmNactivateCallback, fixed_1_cb, view_struct);*/
   XtAddCallback(widget, XmNexposeCallback, popupDrawnButtonCb, NULL);
   XtAddCallback(widget, XmNresizeCallback, popupDrawnButtonCb, NULL);
 
@@ -1383,7 +1387,9 @@ void setupFixed_2_Menu(
 		NULL);
 
   /* add the callbacks */
-  XtAddCallback(widget, XmNactivateCallback, fixed_2_cb, view_struct);
+/*  XtAddCallback(widget, XmNactivateCallback, fixed_2_cb, view_struct);*/
+  XtAddCallback(widget, XmNexposeCallback, popupDrawnButtonCb, NULL);
+  XtAddCallback(widget, XmNresizeCallback, popupDrawnButtonCb, NULL);
 
   /* set the menu item callbacks */
   fixed_2_menu_itemsP[0].callback = fixed_2_cb;
@@ -1415,7 +1421,9 @@ void setupUpVectorMenu(
 		NULL);
 
   /* add the callbacks */
-  XtAddCallback(widget, XmNactivateCallback, up_vector_cb, view_struct);
+/*  XtAddCallback(widget, XmNactivateCallback, up_vector_cb, view_struct);*/
+  XtAddCallback(widget, XmNexposeCallback, popupDrawnButtonCb, NULL);
+  XtAddCallback(widget, XmNresizeCallback, popupDrawnButtonCb, NULL);
 
   /* set the menu item callbacks */
   up_vect_menu_itemsP[0].callback = up_vector_cb;
@@ -1447,8 +1455,10 @@ void setupUpIOMenu(
 		NULL);
 
   /* add the callbacks */
-  XtAddCallback(widget, XmNactivateCallback,
-		controls_io_write_cb, view_struct);
+/*  XtAddCallback(widget, XmNactivateCallback,
+    controls_io_write_cb, view_struct);*/
+  XtAddCallback(widget, XmNexposeCallback, popupDrawnButtonCb, NULL);
+  XtAddCallback(widget, XmNresizeCallback, popupDrawnButtonCb, NULL);
 
   /* set the menu item callbacks */
   io_menu_itemsP[0].callback = controls_io_write_cb;
