@@ -18,7 +18,7 @@
 *   Author Name :  Richard Baldock					*
 *   Author Login:  richard@hgu.mrc.ac.uk				*
 *   Date        :  Mon Nov 29 14:18:34 1999				*
-*   $Revision$								*
+*   $Revision$							*
 *   $Name$								*
 *   Synopsis    : 							*
 *************************************************************************
@@ -573,7 +573,7 @@ void warpSetOvlyXImage(
   UBYTE			*data0, *data1, *dst_data, *data;
   int			i, j, acc;
   double		a, b, c;
-  int			r, g, bl;
+  int			rIndx, gIndx, bIndx, aIndx;
 
   /* clear the old ximage */
   if( winStruct->ximage ){
@@ -617,118 +617,130 @@ void warpSetOvlyXImage(
   c = winStruct->mixRatio / 100.0;
 
   /* merge the images */
-  if( win_att.visual->red_mask == 0xff ){
-    r = 3; g = 2; bl = 1;
-  }
-  else {
-    r = 2; g = 1; bl = 0;
-  }
+  rIndx = HGU_XGetColorIndexFromMask24(win_att.visual->red_mask);
+  gIndx = HGU_XGetColorIndexFromMask24(win_att.visual->green_mask);
+  bIndx = HGU_XGetColorIndexFromMask24(win_att.visual->blue_mask);
+  aIndx = HGU_XGetColorIndexFromMask24(~(win_att.visual->red_mask|
+					 win_att.visual->green_mask|
+					 win_att.visual->blue_mask));
+ 
   switch( winStruct->mixType ){
   case MA_OVERLAY_MIXTYPE_RG1:
     for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[r] = c * 255 + (1 - c) * data1[2];
-      data[g] = c * data0[3] + (1-c) * 255;
-      data[bl] = c * data0[3] + (1-c) * data1[2];
+      data[rIndx] = c * 255 + (1 - c) * data1[gIndx];
+      data[gIndx] = c * data0[gIndx] + (1 - c) * 255;
+      data[bIndx] = c * data0[gIndx] + (1 - c) * data1[gIndx];
+      data[aIndx] = 0;
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_RG2:
     for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[r] = a * (255 - data0[3]);
-      data[g] = b * (255 - data1[2]);
-      data[bl] = 0;
+      data[rIndx] = a * (255 - data0[gIndx]);
+      data[gIndx] = b * (255 - data1[gIndx]);
+      data[bIndx] = 0;
+      data[aIndx] = 0;
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_RB1:
     for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[r] = c * 255 + (1 - c) * data1[2];
-      data[bl] = c * data0[3] + (1-c) * 255;
-      data[g] = c * data0[3] + (1-c) * data1[2];
+      data[rIndx] = c * 255 + (1 - c) * data1[gIndx];
+      data[bIndx] = c * data0[gIndx] + (1-c) * 255;
+      data[gIndx] = c * data0[gIndx] + (1-c) * data1[gIndx];
+      data[aIndx] = 0;
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_RB2:
     for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[r] = a * (255 - data0[3]);
-      data[bl] = b * (255 - data1[2]);
-      data[g] = 0;
+      data[rIndx] = a * (255 - data0[gIndx]);
+      data[bIndx] = b * (255 - data1[gIndx]);
+      data[gIndx] = 0;
+      data[aIndx] = 0;
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_GB1:
     for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[g] = c * 255 + (1 - c) * data1[2];
-      data[bl] = c * data0[3] + (1-c) * 255;
-      data[r] = c * data0[3] + (1-c) * data1[2];
+      data[gIndx] = c * 255 + (1 - c) * data1[gIndx];
+      data[bIndx] = c * data0[gIndx] + (1-c) * 255;
+      data[rIndx] = c * data0[gIndx] + (1-c) * data1[gIndx];
+      data[aIndx] = 0;
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_GB2:
     for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[g] = a * (255 - data0[3]);
-      data[bl] = b * (255 - data1[2]);
-      data[r] = 0;
+      data[gIndx] = a * (255 - data0[gIndx]);
+      data[bIndx] = b * (255 - data1[gIndx]);
+      data[rIndx] = 0;
+      data[aIndx] = 0;
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_RNR:
     for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[r] = a * (255 - data0[3]);
-      data[g] = b * (255 - data1[2]);
-      data[bl] = b * (255 - data1[2]);
+      data[rIndx] = a * (255 - data0[gIndx]);
+      data[gIndx] = b * (255 - data1[gIndx]);
+      data[bIndx] = b * (255 - data1[gIndx]);
+      data[aIndx] = 0;
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_GNG:
     for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[g] = a * (255 - data0[3]);
-      data[r] = b * (255 - data1[2]);
-      data[bl] = b * (255 - data1[2]);
+      data[gIndx] = a * (255 - data0[gIndx]);
+      data[rIndx] = b * (255 - data1[gIndx]);
+      data[bIndx] = b * (255 - data1[gIndx]);
+      data[aIndx] = 0;
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_BNB:
     for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[bl] = a * (255 - data0[3]);
-      data[g] = b * (255 - data1[2]);
-      data[r] = b * (255 - data1[2]);
+      data[bIndx] = a * (255 - data0[gIndx]);
+      data[gIndx] = b * (255 - data1[gIndx]);
+      data[rIndx] = b * (255 - data1[gIndx]);
+      data[aIndx] = 0;
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_DITHER1:
     for(i=0, acc=0; i < width*height;
 	i++, data += 4, data0 += 4, data1 += 4){
-      acc += 255 - data0[3];
+      acc += 255 - data0[gIndx];
       if( acc > 127 ){
-	data[r] = a * 255 + (1-a) * data1[3];
-	data[g] = (1-a) * data1[2];
-	data[bl] = (1-a) * data1[1];
+	data[rIndx] = a * 255 + (1-a) * data1[rIndx];
+	data[gIndx] = (1-a) * data1[gIndx];
+	data[bIndx] = (1-a) * data1[bIndx];
 	acc -= 256;
       }
       else {
-	data[r] = b * data1[3];
-	data[g] = b * data1[2];
-	data[bl] = b * data1[1];
+	data[rIndx] = b * data1[rIndx];
+	data[gIndx] = b * data1[gIndx];
+	data[bIndx] = b * data1[bIndx];
       }
+      data[aIndx] = 0;
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_DITHER2:
     for(i=0, acc=0; i < width*height;
 	i++, data += 4, data0 += 4, data1 += 4){
-      acc += 255 - data1[3];
+      acc += 255 - data1[gIndx];
       if( acc > 127 ){
-	data[r] = b * 255 + (1-b) * data0[3];
-	data[g] = (1-b) * data0[2];
-	data[bl] = (1-b) * data0[1];
+	data[rIndx] = b * 255 + (1-b) * data0[rIndx];
+	data[gIndx] = (1-b) * data0[gIndx];
+	data[bIndx] = (1-b) * data0[bIndx];
 	acc -= 256;
       }
       else {
-	data[r] = a * data0[3];
-	data[g] = a * data0[2];
-	data[bl] = a * data0[1];
+	data[rIndx] = a * data0[rIndx];
+	data[gIndx] = a * data0[gIndx];
+	data[bIndx] = a * data0[bIndx];
       }
+      data[aIndx] = 0;
     }
     break;
 

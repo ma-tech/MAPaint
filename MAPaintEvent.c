@@ -622,7 +622,7 @@ static void createEventRow(
   Dimension	height;
 
   pixel = WhitePixelOfScreen(XtScreen(globals.topl));
-  str = strdup(eventMap->helpStr);
+  str = (String) strdup(eventMap->helpStr);
   if( strlen(str) > 18 ){
     strcpy(&(str[15]), "...");
   }

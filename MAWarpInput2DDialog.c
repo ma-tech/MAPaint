@@ -1276,13 +1276,16 @@ static Widget create2DWarpDialog(
   warpDisplayFramePopupItemsP[1].callback_data = &warpGlobals.dst;
   warpDisplayFramePopupItemsP[2].callback_data = &warpGlobals.dst;
   warpDisplayFramePopupItemsP[3].callback_data = (XtPointer) 0;
-  warpGlobals.dst.popup = HGU_XmBuildMenu(/*warpGlobals.dst.canvas,*/
-                                          globals.topl,
+  warpGlobals.dst.popup = HGU_XmBuildMenu(warpGlobals.dst.canvas,
+                                          /*globals.topl,*/
 					  XmMENU_POPUP, "warp_dst_popup",
 					  '\0', XmTEAR_OFF_DISABLED,
 					  warpDisplayFramePopupItemsP);
 
-  /*warpGlobals.dst.popup = NULL;*/
+  XtVaSetValues(warpGlobals.dst.popup,
+                XmNpopupEnabled, XmPOPUP_AUTOMATIC,
+		NULL);
+   /*warpGlobals.dst.popup = NULL;*/
   warpGlobals.dst.ximage = NULL;
   warpGlobals.dst.mag = 1.0;
   warpGlobals.dst.rot = 0;
@@ -1340,11 +1343,14 @@ static Widget create2DWarpDialog(
   warpDisplayFramePopupItemsP[1].callback_data = &warpGlobals.src;
   warpDisplayFramePopupItemsP[2].callback_data = &warpGlobals.src;
   warpDisplayFramePopupItemsP[3].callback_data = (XtPointer) 1;
-  warpGlobals.src.popup = HGU_XmBuildMenu(/*warpGlobals.src.canvas*/
-                                          globals.topl,
+  warpGlobals.src.popup = HGU_XmBuildMenu(warpGlobals.src.canvas,
+                                          /*globals.topl,*/
 					  XmMENU_POPUP, "warp_src_popup",
 					  '\0', XmTEAR_OFF_DISABLED,
 					  warpDisplayFramePopupItemsP);
+  XtVaSetValues(warpGlobals.src.popup,
+                XmNpopupEnabled, XmPOPUP_AUTOMATIC,
+		NULL);
   warpGlobals.src.ximage = NULL;
   warpGlobals.src.mag = 1.0;
   warpGlobals.src.rot = 0;
@@ -1406,12 +1412,15 @@ static Widget create2DWarpDialog(
   warpOvlyDisplayFramePopupItemsP[5].callback_data = &warpGlobals.ovly;
   warpOvlyDisplayFramePopupItemsP[6].callback_data = (XtPointer) 2;
   warpGlobals.ovly.popup = 
-    HGU_XmBuildMenu(/*warpGlobals.ovly.canvas*/globals.topl,
+    HGU_XmBuildMenu(warpGlobals.ovly.canvas/*globals.topl*/,
 		    XmMENU_POPUP,
 		    "warp_ovly_popup",
 		    '\0', XmTEAR_OFF_DISABLED,
 		    warpOvlyDisplayFramePopupItemsP);
-  warpGlobals.ovly.ximage = NULL;
+  XtVaSetValues(warpGlobals.ovly.popup,
+                XmNpopupEnabled, XmPOPUP_AUTOMATIC,
+		NULL);
+   warpGlobals.ovly.ximage = NULL;
   warpGlobals.ovly.mag = 1.0;
   warpGlobals.ovly.rot = 0;
   warpGlobals.ovly.transpose = 0;

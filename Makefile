@@ -393,7 +393,7 @@ LDLIBS			= $(LOCALLIBS:%=-l%) $(OPENGLLIBS:%=-l%) \
 			$(MOTIFLIBS:%=-l%) \
 			$(X11LIBS:%=-l%) $(EXTRA_LIBS:%=-l%)
 LDLIBS_PRE		= $(LOCALLIBS:%=-l%)
-LDLIBS_MESA		= $(OPENGLLIBS:%=-l%)
+LDLIBS_MESA		= -static $(OPENGLLIBS:%=-l%)
 LDLIBS_POST		= $(MOTIFLIBS:%=-l%) $(X11LIBS:%=-l%) $(EXTRA_LIBS:%=-l%)
 
 ifeq 		($(UNIXTYPE), SUNOS5)
