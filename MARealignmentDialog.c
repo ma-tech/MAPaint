@@ -248,6 +248,14 @@ WlzObject *WlzAffineTransformObj3D(
   /* apply the transform plane by plane */
   nPlanes = obj->domain.p->lastpl - obj->domain.p->plane1 + 1;
   for(p=0; p < nPlanes; p++){
+    /* check if the reference object has empty domains */
+    if((obj->domain.p->domains[p].core == NULL) ||
+       (obj->domain.p->domains[p].core->type == WLZ_EMPTY_OBJ) ||
+       (obj->domain.p->domains[p].core->type == WLZ_EMPTY_DOMAIN)){
+      rtnObj->domain.p->domains[p].core = NULL;
+      continue;
+    }
+      
     /* get the plane to be transformed */
     if( obj->values.core ){
       obj1 = WlzMakeMain(WLZ_2D_DOMAINOBJ,
@@ -322,6 +330,31 @@ WlzObject *WlzMakeTransformObj3D(
   return rtnObj;
 }
 
+static void realignResetTransformsObj(void)
+{
+  int		i, p;
+
+  /* set all transforms to the unit transform */
+  if( transformsObj ){
+    for(p=transformsObj->domain.p->plane1, i=0;
+	p <=  transformsObj->domain.p->lastpl;
+	p++, i++){
+      if( (transformsObj->domain.p->domains[i]).t ){
+	WlzFreeAffineTransform((transformsObj->domain.p->domains[i]).t);
+      }
+      (transformsObj->domain.p->domains[i]).t = 
+	WlzAssignAffineTransform(
+	  WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
+				     0.0, 0.0, 0.0, 1.0,
+				     0.0, 0.0, 0.0, 0.0, 0.0,
+				     0, NULL),
+	  NULL);
+    }
+  }
+  
+  return;
+}
+
 static void realignUpdateTransformsObj(
   ThreeDViewStruct	*view_struct)
 {
@@ -383,6 +416,8 @@ static void realignUpdateTransformsObj(
   return;
 }
 
+static int transformsUpdatedFlg=0;
+
 void applyRealignTransCb(
   Widget	w,
   XtPointer	client_data,
@@ -429,7 +464,9 @@ void applyRealignTransCb(
       return;
     }
   }
-  realignUpdateTransformsObj(view_struct);
+  if( !transformsUpdatedFlg ){
+    realignUpdateTransformsObj(view_struct);
+  }
 
   /* make a new reference object and painted volume */
   newOrigObj = WlzAffineTransformObj3D(origRefObj, transformsObj, NULL);
@@ -463,6 +500,7 @@ void applyRealignTransCb(
   /* unset hour glass */
   HGU_XmUnsetHourGlassCursor(globals.topl);
   HGU_XmUnsetHourGlassCursor(XtParent(view_struct->dialog));
+  realignResetTransformsObj();
 
   return;
 }
@@ -595,6 +633,7 @@ void writeRealignTransCb(
   /* an identifier record - who, when, how */
   if((((field0 = BibFileFieldMakeVa("Text", "MAPaint realignment section file",
 				    "Version", "1",
+				    "TransformType", "absolute",
 				    NULL)) == NULL) ||
       ((record = BibFileRecordMake("Ident", "0", field0)) == NULL)))
   {
@@ -683,12 +722,166 @@ void writeRealignTransCb(
       AlcFree(idxS);
     }
   }
+  fclose(fp);
+
 
   /* unset hour glass */
   HGU_XmUnsetHourGlassCursor(globals.topl);
   HGU_XmUnsetHourGlassCursor(XtParent(view_struct->dialog));
 
+  /* check for apply transform */
+  if( HGU_XmUserConfirm(view_struct->dialog,
+			"Apply this transform?\n",
+			"Yes", "No", 1) ){
+    transformsUpdatedFlg = 1;
+    applyRealignTransCb(w, client_data, call_data);
+    transformsUpdatedFlg = 0;
+  }
+  else {
+    realignResetTransformsObj();
+  }
+
+  return;
+}
+
+void readRealignTransCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
+  XmPushButtonCallbackStruct
+    *cbs = (XmPushButtonCallbackStruct *) call_data;
+  String		fileStr;
+  FILE			*fp;
+  int			i, p;
+  char			*errMsg;
+  int			numParsedFields=0;
+  BibFileRecord		*bibfileRecord;
+  BibFileField		*bibfileField;
+  BibFileError		bibFileErr=BIBFILE_ER_NONE;
+  double		tx=0.0, ty=0.0, theta=0.0;
+  WlzAffineTransform	*inTrans, *tmpTrans;
+
+  /* get a bib-file filename */
+  if( fileStr =
+     HGU_XmUserGetFilename(globals.topl,
+			   "Please type in a filename\n"
+			   "for the transforms bib-file\n",
+			   "OK", "cancel", "MAPaintRealign.bib",
+			   NULL, "*.bib") ){
+    if( (fp = fopen(fileStr, "r")) == NULL ){
+      HGU_XmUserError(view_struct->dialog,
+		      "Failed to open the bib-file. Please\n"
+		      "check the filename and permissions.\n",
+		      XmDIALOG_FULL_APPLICATION_MODAL);
+      AlcFree((void *) fileStr);
+      return;
+    }
+  }
+  else {
+    return;
+  }
+  AlcFree((void *) fileStr);
+
+  /* set hour glass */
+  HGU_XmSetHourGlassCursor(globals.topl);
+  HGU_XmSetHourGlassCursor(XtParent(view_struct->dialog));
+
+  /* set up a transform object and update with current */
+  if( transformsObj == NULL ){
+    if( !(transformsObj =
+	  WlzAssignObject(WlzMakeTransformObj3D(origObj, NULL), NULL)) ){
+      HGU_XmUserError(view_struct->dialog,
+		      "Failed to allocate memory for this\n"
+		      "operation. Probably you need to restart\n"
+		      "MAPaint and try again or make a smaller\n"
+		      "reference image",
+		      XmDIALOG_FULL_APPLICATION_MODAL);
+      return;
+    }
+  }
+
+  /* check for transform on top of current or to replace it */
+  if( HGU_XmUserConfirm(view_struct->dialog,
+			"Do you want the transforms\n"
+			"read in to overwrite the current\n"
+			"transform (i.e. the current line"
+			"offsets) or to extend the current\n"
+			"transforms?",
+			"Overwrite", "Extend", 1) ){
+    realignResetTransformsObj();
+  }
+  else {
+    realignUpdateTransformsObj(view_struct);
+  }
+
+  /* now read the bibfile applying any transform with a matching
+     plane number to the current transform.
+     In this version assume the bibfile is from MAPaint therefore a 
+     set of absolute transforms */
+  bibFileErr = BibFileRecordRead(&bibfileRecord, &errMsg, fp);
+  while( bibFileErr == BIBFILE_ER_NONE ) 
+  {
+    /* should check what type of bibfile here */
+    if( strncmp(bibfileRecord->name, "Section", 7) ){
+      BibFileRecordFree(&bibfileRecord);
+    }
+    else {
+      /* check if this corresponds to a plane in the reference object */
+      p = atoi(bibfileRecord->id);
+      if((p < transformsObj->domain.p->plane1) ||
+	 (p > transformsObj->domain.p->lastpl)){
+	BibFileRecordFree(&bibfileRecord);
+	BibFileRecordRead(&bibfileRecord, &errMsg, fp);
+	continue;
+      }
+      p -= transformsObj->domain.p->plane1;
+
+      /* parse the record */
+      numParsedFields = BibFileFieldParseFmt
+	(bibfileRecord->field,
+	 (void *) &tx, "%lg", "TransformTx",
+	 (void *) &ty, "%lg", "TransformTy",
+	 (void *) &theta, "%lg", "TransformTheta",
+	 NULL);
+
+      /* make the transform for this record */
+      inTrans = WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
+					   tx, ty, 0.0, 1.0,
+					   theta, 0.0, 0.0, 0.0, 0.0, 0, NULL);
+
+      /* if concatenate with the existing transforms */
+      if( transformsObj->domain.p->domains[p].t ){
+	tmpTrans =
+	  WlzAffineTransformProduct(transformsObj->domain.p->domains[p].t,
+				    inTrans, NULL);
+	WlzFreeAffineTransform(transformsObj->domain.p->domains[p].t);
+	WlzFreeAffineTransform(inTrans);
+	transformsObj->domain.p->domains[p].t =
+	  WlzAssignAffineTransform(tmpTrans, NULL);
+      }
+      else {
+	transformsObj->domain.p->domains[p].t =
+	  WlzAssignAffineTransform(inTrans, NULL);
+      }
+
+      BibFileRecordFree(&bibfileRecord);
+    }
+    bibFileErr = BibFileRecordRead(&bibfileRecord, &errMsg, fp);
+  }
   fclose(fp);
+
+  /* now apply the transform read in - this is the only way to get the
+     image to change since resetting the source and destination lines might
+     be too painful because each transform would have to projected into
+     translations othogonal and parallel to the current view. */
+  HGU_XmUnsetHourGlassCursor(globals.topl);
+  HGU_XmUnsetHourGlassCursor(XtParent(view_struct->dialog));
+  transformsUpdatedFlg = 1;
+  applyRealignTransCb(w, client_data, call_data);
+  transformsUpdatedFlg = 0;
 
   return;
 }
@@ -959,6 +1152,15 @@ static void realignment_controls_cb(
     shellHeight -= cntrlFormHeight;
   }
   else {
+    /* check if painting */
+    if( paint_key ){
+      HGU_XmUserError(view_struct->dialog,
+		      "One of the view windows has been\n"
+		      "selected for painting. Please quit\n"
+		      "painting and try again.",
+		      XmDIALOG_FULL_APPLICATION_MODAL);
+      return;
+    }
     wasManaged = False;
     shellHeight += cntrlFormHeight;
   }
@@ -984,6 +1186,9 @@ static void realignment_controls_cb(
 		     client_data);
     XtAddCallback(view_struct->canvas, XmNinputCallback, realignment_input_cb,
 		  client_data);
+
+    /* get the paint key */
+    paint_key = view_struct;
   }
   else {
     /* swap the callbacks to normal input mode */
@@ -991,6 +1196,9 @@ static void realignment_controls_cb(
 		     client_data);
     XtAddCallback(view_struct->canvas, XmNinputCallback, canvas_input_cb,
 		  client_data);
+
+    /* release the paint key */
+    paint_key = NULL;
   }
 
   return;
@@ -1000,7 +1208,8 @@ static ActionAreaItem   realign_controls_actions[] = {
 {"reset",	NULL,		NULL},
 {"apply",	NULL,		NULL},
 {"undo",	NULL,		NULL},
-{"i_o",		NULL,           NULL},
+{"read",	NULL,           NULL},
+{"write",	NULL,           NULL},
 };
 
 static MenuItem poly_menu_itemsP[] = {		/* poly_menu items */
@@ -1169,12 +1378,16 @@ Widget createRealignmentDialog(
   realign_controls_actions[1].client_data = view_struct;
   realign_controls_actions[2].callback = undoRealignTransCb;
   realign_controls_actions[2].client_data = view_struct;
-  realign_controls_actions[3].callback = writeRealignTransCb;
+  realign_controls_actions[3].callback = readRealignTransCb;
   realign_controls_actions[3].client_data = view_struct;
+  realign_controls_actions[4].callback = writeRealignTransCb;
+  realign_controls_actions[4].client_data = view_struct;
   buttons = HGU_XmCreateWActionArea(form,
 				    realign_controls_actions,
 				    XtNumber(realign_controls_actions),
 				    xmPushButtonWidgetClass);
+
+  /* set the buttons attachments */
   XtVaSetValues(buttons,
 		XmNtopAttachment,	XmATTACH_WIDGET,
 		XmNtopWidget,		option_menu,

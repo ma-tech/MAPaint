@@ -905,6 +905,8 @@ void MAPaintThreshold2DCb(
   XmAnyCallbackStruct	*cbs = (XmAnyCallbackStruct *) call_data;
   WlzObject		*obj, *obj1;
   int			x, y;
+  Widget		widget;
+  Boolean		constrainedFlg;
 
   /*  */
   switch( cbs->event->type ){
@@ -935,11 +937,40 @@ void MAPaintThreshold2DCb(
       initial_thresh_range_size = thresh_range_size;
 
       /* get the threshold object */
-      if( threshObj = getSelectedRegion(thresholdInitialX,
-					thresholdInitialY,
-					view_struct) ){
-	 threshObj->values =
-	   WlzAssignValues(view_struct->view_object->values, NULL);
+      if( widget = XtNameToWidget
+	 (globals.topl,
+	  "*tool_control_dialog*threshold_form1.constrained threshold") ){
+	XtVaGetValues(widget, XmNset, &constrainedFlg, NULL);
+      }
+      else {
+	constrainedFlg = True;
+      }
+
+      if( constrainedFlg == True ){
+	obj1 = NULL;
+	if( paintBallCurrDomain ==
+	   getSelectedDomainType(thresholdInitialX, thresholdInitialY,
+				 view_struct) ){
+	  obj1 = get_domain_from_object(view_struct->painted_object,
+					paintBallCurrDomain);
+	  setDomainIncrement(obj1, view_struct, paintBallCurrDomain, 1);
+	}
+	  
+	if( threshObj = getSelectedRegion(thresholdInitialX,
+					  thresholdInitialY,
+					  view_struct) ){
+	  threshObj->values =
+	    WlzAssignValues(view_struct->view_object->values, NULL);
+	}
+
+	if( obj1 ){
+	  setDomainIncrement(obj1, view_struct, paintBallCurrDomain, 0);
+	  WlzFreeObj(obj1);
+	  obj1 = NULL;
+	}
+      }
+      else {
+	threshObj = WlzAssignObject(view_struct->view_object, NULL);
       }
 
       /* calculate the first domain and increment */
@@ -998,7 +1029,7 @@ void MAPaintThreshold2DCb(
       /* set the threshold range */
       thresh_range_size = initial_thresh_range_size + 
 	(cbs->event->xmotion.x - thresholdInitialX) / 4;
-      thresh_range_size = (thresh_range_size < 0) ? 1 : thresh_range_size;
+      thresh_range_size = (thresh_range_size < 0) ? 0 : thresh_range_size;
 
       /* calculate the domain increment */
       x = (int) (thresholdInitialX / wlzViewStr->scale) +
@@ -1010,12 +1041,15 @@ void MAPaintThreshold2DCb(
 	thresh_range_size, thresh_range_size);
       if( obj ){
 	obj = WlzAssignObject(obj, NULL);
-	if( obj1 = WlzDiffDomain(prevObj, obj, NULL) ){
+	if( prevObj && (obj1 = WlzDiffDomain(prevObj, obj, NULL)) ){
 	  obj1 = WlzAssignObject(obj1, NULL);
 	  if( WlzArea(obj1, NULL) < 1 ){
 	    WlzFreeObj(obj1);
 	    obj1 = NULL;
 	  }
+	}
+	else {
+	  obj1 = NULL;
 	}
 	if( obj1 ){
 	  setDomainIncrement(obj1, view_struct, paintBallCurrDomain,
@@ -1028,8 +1062,8 @@ void MAPaintThreshold2DCb(
 	}
 	if( prevObj ){
 	  WlzFreeObj(prevObj);
-	  prevObj = obj;
 	}
+	prevObj = obj;
       }
     }
     break;
@@ -1183,6 +1217,7 @@ Widget	CreateThresholdControls(
   Widget	parent)
 {
   Widget	form, form1, frame, label, widget, option_menu, slider;
+  Widget	toggle;
   float		val, minval, maxval;
 
   /* create a parent form to hold all the tracking controls */
@@ -1228,6 +1263,16 @@ Widget	CreateThresholdControls(
 		NULL);
   widget = option_menu;
   XtManageChild( option_menu );
+
+  /* create a toggle for constrained region */
+  toggle = XtVaCreateManagedWidget("constrained threshold",
+				   xmToggleButtonWidgetClass, form1,
+				   XmNtopAttachment,	XmATTACH_WIDGET,
+				   XmNtopWidget,		widget,
+				   XmNleftAttachment,	XmATTACH_FORM,
+				   XmNset, True,
+				   NULL);
+  widget = toggle;
 
   /* create slider for the initial threshold range */
   val = thresh_range_size;

@@ -786,6 +786,11 @@ void file_menu_init(
 	install_paint_reference_object( obj );
       }
       (void) fclose( fp );
+
+      /* set the title of the top-level window */
+      set_topl_title(initial_reference_file);
+      globals.file = initial_reference_file;
+
       HGU_XmUnsetHourGlassCursor(topl);
     }
   }

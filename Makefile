@@ -31,7 +31,7 @@ endif
 EXECUTABLES		= MAPaint
 
 # A version number for a versioned release
-VERSION			= 1.0
+RELEASE			= 1.0
 
 # List of all 'C' source files (modify as required).
 CSOURCES		= \
@@ -188,8 +188,7 @@ LIBRARIES		= hguGL HguXm HguX Wlz Reconstruct bibfile Alg Alc \
 #CDEBUG			= -g
 #COPTIMISE		=
 
-DEFINES			= -D$(UNIXTYPE) $(UNIXFLAGS) -D__EXTENSIONS__ \
-			-D$(VERSION)
+DEFINES			= -D$(UNIXTYPE) $(UNIXFLAGS) -D__EXTENSIONS__
 CPPFLAGS		= $(INCDIRS:%=-I%) $(DEFINES)
 CFLAGS			= $(CDEBUG) $(COPTIMISE) $(ANSI_CONFORMANCE)
 
