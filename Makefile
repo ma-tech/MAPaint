@@ -156,7 +156,6 @@ INCDIRS			= .  \
 			../../Core/libbibfile \
 			../../Core/libAlg \
 			../../Core/libWlz \
-			../../Core/libWlzIO \
 			../../Core/libWlzExtFF \
 			../../Core/libReconstruct \
 			../../HGUX/libHguX \
@@ -175,7 +174,6 @@ LIBDIRS			= . \
 			../../Core/libbibfile \
 			../../Core/libAlg \
 			../../Core/libWlz \
-			../../Core/libWlzIO \
 			../../Core/libWlzExtFF \
 			../../Core/libReconstruct \
 			../../HGUX/libHguX \
@@ -191,7 +189,6 @@ LIBDIRS			= . \
 			../../Core/libbibfile \
 			../../Core/libAlg \
 			../../Core/libWlz \
-			../../Core/libWlzIO \
 			../../Core/libWlzExtFF \
 			../../Core/libReconstruct \
 			../../HGUX/libHguX \
@@ -210,7 +207,6 @@ LIBDIRS			=  \
 			../../Core/libAlg \
 			../../Core/libWlz \
 			../../Core/libWlzExtFF \
-			../../Core/libWlzIO \
 			../../Core/libReconstruct \
 			../../HGUX/libHguX \
 			../../HGUX/libHguXm \
@@ -226,7 +222,6 @@ LIBDIRS			=  \
 			../../Core/libAlg \
 			../../Core/libWlz \
 			../../Core/libWlzExtFF \
-			../../Core/libWlzIO \
 			../../Core/libReconstruct \
 			../../HGUX/libHguX \
 			../../HGUX/libHguXm \
@@ -268,8 +263,8 @@ endif
 
 OPENGLLIBS		= GLU GL
 MOTIFLIBS       	= Xm
-LOCALLIBS		= hguGL HguXm HguX WlzExtFF WlzIO Wlz bibfile Alg Alc
-LIBRARIES		= hguGL HguXm HguX WlzExtFF WlzIO Wlz bibfile Alg Alc \
+LOCALLIBS		= hguGL HguXm HguX WlzExtFF Wlz bibfile Alg Alc
+LIBRARIES		= hguGL HguXm HguX WlzExtFF Wlz bibfile Alg Alc \
 			$(OPENGLLIBS) $(MOTIFLIBS) $(X11LIBS) $(EXTRA_LIBS)
 
 # Basic flags for controlling compilation (modify as required).

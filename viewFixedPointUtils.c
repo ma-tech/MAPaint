@@ -809,7 +809,7 @@ void controls_io_write_cb(
 				      "OK", "cancel", "MAPaintSectParams.bib",
 				      NULL, "*.bib") ){
     if( fp = fopen(fileStr, "w") ){
-      if( write_Wlz3DSectionViewParams_Record(fp, "Wlz3DSectionViewParams",
+      if( WlzEffBibWrite3DSectionViewParamsRecord(fp, "Wlz3DSectionViewParams",
 					      wlzViewStr) != WLZ_ERR_NONE ){
 	HGU_XmUserError(globals.topl,
 			"Save Section Parameters:\n"
@@ -1139,7 +1139,7 @@ int controls_io_quiet_read(
       /* parse the record  - need to save the old scale */
       if( !rtnVal ){
 	oldScale = wlzViewStr->scale;
-	parse_Wlz3DSectionViewParams_Record(bibfileRecord, wlzViewStr);
+	WlzEffBibParse3DSectionViewParamsRecord(bibfileRecord, wlzViewStr);
 	BibFileRecordFree(&bibfileRecord);
 
 	/* normal viewing sliders active and unset fixed-line mode */
@@ -1232,7 +1232,7 @@ void controls_io_read_cb(
 
       /* parse the record  - need to save the old scale */
       oldScale = wlzViewStr->scale;
-      parse_Wlz3DSectionViewParams_Record(bibfileRecord, wlzViewStr);
+      WlzEffBibParse3DSectionViewParamsRecord(bibfileRecord, wlzViewStr);
       BibFileRecordFree(&bibfileRecord);
       (void) fclose(fp);
 

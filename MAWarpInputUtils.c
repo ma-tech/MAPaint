@@ -496,21 +496,21 @@ void warpIOWrite(
 
       /* if defined write a file record for the source */
       if( warpGlobals.srcFile ){
-	write_File_Record(fp, "MAPaintWarpInputSourceFile",
+	WlzEffBibWriteFileRecord(fp, "MAPaintWarpInputSourceFile",
 			  warpGlobals.srcFile,
 			  warpGlobals.srcFileType);
       }
 
       /* if defined write a file record for the signal */
       if( warpGlobals.sgnlFile ){
-	write_File_Record(fp, "MAPaintWarpInputSignalFile",
+	WlzEffBibWriteFileRecord(fp, "MAPaintWarpInputSignalFile",
 			  warpGlobals.sgnlFile,
 			  warpGlobals.sgnlFileType);
       }
 
 
       /* write the section data */
-      if( write_Wlz3DSectionViewParams_Record(fp, "Wlz3DSectionViewParams", 
+      if( WlzEffBibWrite3DSectionViewParamsRecord(fp, "Wlz3DSectionViewParams", 
 					      wlzViewStr) != WLZ_ERR_NONE ){
 	HGU_XmUserError(globals.topl,
 			"Save Warp Parameters:\n"
@@ -521,7 +521,7 @@ void warpIOWrite(
       }
 
       /* write the warp transform parameters */
-      if( write_WlzWarpTransformParams_Record(fp, "WlzWarpTransformParams",
+      if( WlzEffBibWriteWarpTransformParamsRecord(fp, "WlzWarpTransformParams",
 					      warpGlobals.basisFnType,
 					      warpGlobals.meshMthd,
 					      warpGlobals.meshMinDst,
@@ -556,7 +556,7 @@ void warpIOWrite(
 				  "*warp_sgnl_controls_form*gauss_width") ){
 	width = HGU_XmGetSliderValue(slider);
       }
-      if( write_MAPaintWarpInputSegmentationParams_Record
+      if( WlzEffBibWriteWarpInputSegmentationParamsRecord
 	 (fp, "MAPaintWarpInputSegmentationParams",
 	  normFlg==True?1:0,
 	  histoFlg==True?1:0,
@@ -582,7 +582,7 @@ void warpIOWrite(
 	vtx2.vtX = warpGlobals.src_vtxs[i].vtX;
 	vtx2.vtY = warpGlobals.src_vtxs[i].vtY;
 	vtx2.vtZ = 0.0;
-	if( write_WlzTiePointVtxs_Record(fp, "WlzTiePointVtxs", i, vtx1, vtx2)
+	if( WlzEffBibWriteTiePointVtxsRecord(fp, "WlzTiePointVtxs", i, vtx1, vtx2)
 	   != WLZ_ERR_NONE ){
 	  HGU_XmUserError(globals.topl,
 			  "Save Warp Parameters:\n"
@@ -659,7 +659,7 @@ void warpIORead(
 	/* check for view parameters - reset dst image if necessary */
 	if( !strncmp(bibfileRecord->name, "Wlz3DSectionViewParams", 22) ){
 	  oldScale = wlzViewStr->scale;
-	  parse_Wlz3DSectionViewParams_Record(bibfileRecord, wlzViewStr);
+	  WlzEffBibParse3DSectionViewParamsRecord(bibfileRecord, wlzViewStr);
 	  view_struct->controlFlag &= ~MAPAINT_FIXED_LINE_SET;
 	  /* reset the sliders and mode control */
 	  slider = XtNameToWidget(view_struct->dialog, "*.theta_slider");
@@ -714,7 +714,7 @@ void warpIORead(
 	  int			meshMinDst;
 	  int	 		meshMaxDst;
 
-	  parse_WlzWarpTransformParams_Record(bibfileRecord,
+	  WlzEffBibParseWarpTransformParamsRecord(bibfileRecord,
 					      &basisFnType, &meshMthd,
 					      &meshMinDst, &meshMaxDst);
 	  /* set the parameters, note in this version the basisFnType
@@ -755,7 +755,7 @@ void warpIORead(
 	  WlzDVertex3	dstVtx;
 	  WlzDVertex3	srcVtx;
 
-	  parse_WlzTiePointVtxs_Record(bibfileRecord, &index,
+	  WlzEffBibParseTiePointVtxsRecord(bibfileRecord, &index,
 				       &dstVtx, &srcVtx);
 	  /* only add if there is a source image */
 	  if( warpGlobals.src.obj ){
@@ -776,7 +776,7 @@ void warpIORead(
 	  WlzIBox2	cutBox;
 	  WlzGreyType	greyType;
 
-	  parse_File_Record(bibfileRecord, &index,
+	  WlzEffBibParseFileRecord(bibfileRecord, &index,
 			    &fileStr, &fileType);
 
 	  /* read the image and install */
@@ -817,7 +817,7 @@ void warpIORead(
 	  char		*fileStr;
 	  WlzEffFormat	fileType;
 
-	  parse_File_Record(bibfileRecord, &index,
+	  WlzEffBibParseFileRecord(bibfileRecord, &index,
 			    &fileStr, &fileType);
 
 	  /* read the image and install */
@@ -839,7 +839,7 @@ void warpIORead(
 	  double	width;
 	  Widget	toggle, slider;
 
-	  parse_MAPaintWarpInputSegmentationParams_Record(bibfileRecord,
+	  WlzEffBibParseWarpInputSegmentationParamsRecord(bibfileRecord,
 							  &normFlg,
 							  &histoFlg,
 							  &shadeFlg,
