@@ -47,7 +47,7 @@
 #define MAPAINT_RELEASE		2
 #define MAPAINT_REVISION	0
 #define MAPAINT_UPDATE_LEVEL	0
-#define MAPAINT_RELEASE_STR	"MAPaint Release 2.0.0"
+#define MAPAINT_RELEASE_STR	"MAPaint Release 2.0.1"
 
 /* do not add anything after this line */
 #endif /* MAPAINT_H */
