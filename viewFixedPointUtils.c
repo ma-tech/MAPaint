@@ -1338,7 +1338,7 @@ void popupDrawnButtonCb(
   x = width - ht - st - 15;
   y = height/2 - 5;
 
-  gc = XDefaultGCOfScreen(XtScreen(w));
+  gc = globals.gc_set;
   XSetLineAttributes(dpy, gc, st, LineSolid, CapButt, JoinMiter);
 
   /* draw the wee down arrow */

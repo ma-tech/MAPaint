@@ -100,11 +100,11 @@ void realignDisplayOverlayCb(
   /* the coordinates should be as required for the canvas window */
   if(view_struct && ovlyObj &&
      (ovlyObj->type == WLZ_BOUNDLIST)){
-    if( trans = WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
-					   0.0, 0.0, 0.0,
-					   wlzViewStr->scale,
-					   0.0, 0.0, 0.0, 0.0, 0.0,
-					   0, NULL) ){
+    if( trans = WlzAffineTransformFromPrimVal(WLZ_TRANSFORM_2D_AFFINE,
+					      0.0, 0.0, 0.0,
+					      wlzViewStr->scale,
+					      0.0, 0.0, 0.0, 0.0, 0.0,
+					      0, NULL) ){
       if( obj = WlzAffineTransformObj(ovlyObj, trans,
 				      WLZ_INTERPOLATION_NEAREST, NULL) ){
 	
@@ -958,10 +958,10 @@ static void realignResetTransformsObj(void)
       }
       (transformsObj->domain.p->domains[i]).t = 
 	WlzAssignAffineTransform(
-	  WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
-				     0.0, 0.0, 0.0, 1.0,
-				     0.0, 0.0, 0.0, 0.0, 0.0,
-				     0, NULL),
+	  WlzAffineTransformFromPrimVal(WLZ_TRANSFORM_2D_AFFINE,
+					0.0, 0.0, 0.0, 1.0,
+					0.0, 0.0, 0.0, 0.0, 0.0,
+					0, NULL),
 	  NULL);
     }
   }
@@ -1014,7 +1014,7 @@ static void realignUpdateTransformsObj(
 		      XmDIALOG_FULL_APPLICATION_MODAL);
       return;
     }
-    if( newTrans = WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
+    if( newTrans = WlzAffineTransformFromPrimVal(WLZ_TRANSFORM_2D_AFFINE,
 					      kol2 - kol1,
 					      line2 - line1,
 					      0.0, 1.0, 0.0, 0.0,
@@ -1340,24 +1340,29 @@ void writeRealignTransCb(
   if( transformsObj ){
     for(p=transformsObj->domain.p->plane1, i=0;
 	p <= transformsObj->domain.p->lastpl; p++, i++){
-      WlzAffineTransform	*transf=transformsObj->domain.p->domains[i].t;
+      WlzAffineTransform    *transf=transformsObj->domain.p->domains[i].t;
+      WlzAffineTransformPrim	tPrim;
+
       if( transf == NULL ){
+	continue;
+      }
+      if( WlzAffineTransformPrimGet(transf, &tPrim) != WLZ_ERR_NONE ){
 	continue;
       }
       sprintf(tmpBuf, "%d", p);
       idxS = AlcStrDup(tmpBuf);
 
       (void )sprintf(tTypeS, "%d", transf->type);
-      (void )sprintf(tTxS, "%g", transf->tx);
-      (void )sprintf(tTyS, "%g", transf->ty);
-      (void )sprintf(tTzS, "%g", transf->tz);
-      (void )sprintf(tScaleS, "%g", transf->scale);
-      (void )sprintf(tThetaS, "%g", transf->theta);
-      (void )sprintf(tPhiS, "%g", transf->phi);
-      (void )sprintf(tAlphaS, "%g", transf->alpha);
-      (void )sprintf(tPsiS, "%g", transf->psi);
-      (void )sprintf(tXsiS, "%g", transf->xsi);
-      (void )sprintf(tInvertS, "%d", transf->invert);
+      (void )sprintf(tTxS, "%g", tPrim.tx);
+      (void )sprintf(tTyS, "%g", tPrim.ty);
+      (void )sprintf(tTzS, "%g", tPrim.tz);
+      (void )sprintf(tScaleS, "%g", tPrim.scale);
+      (void )sprintf(tThetaS, "%g", tPrim.theta);
+      (void )sprintf(tPhiS, "%g", tPrim.phi);
+      (void )sprintf(tAlphaS, "%g", tPrim.alpha);
+      (void )sprintf(tPsiS, "%g", tPrim.psi);
+      (void )sprintf(tXsiS, "%g", tPrim.xsi);
+      (void )sprintf(tInvertS, "%d", tPrim.invert);
       field0 = BibFileFieldMakeVa(
 	"TransformType", tTypeS,
 	"TransformTx", tTxS,
@@ -1505,7 +1510,7 @@ void readRealignTransCb(
 	 NULL);
 
       /* make the transform for this record */
-      if( inTrans = WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
+      if( inTrans = WlzAffineTransformFromPrimVal(WLZ_TRANSFORM_2D_AFFINE,
 					       tx, ty, 0.0, 1.0,
 					       theta, 0.0, 0.0, 0.0, 0.0, 0,
 					       &errNum) ){

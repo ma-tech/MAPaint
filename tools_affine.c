@@ -279,12 +279,12 @@ void MAPaintAffine2DCb(
       WlzFreeObj(obj);
       if( origBoundary ){
 	origBoundary = WlzAssignObject(origBoundary, NULL);
-	if(scaleTrans = WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
+	if(scaleTrans = WlzAffineTransformFromPrimVal(WLZ_TRANSFORM_2D_AFFINE,
 						   0.0, 0.0, 0.0,
 						   wlzViewStr->scale,
 						   0.0, 0.0, 0.0, 0.0, 0.0,
 						   0, &errNum)){
-	  lastTrans = WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
+	  lastTrans = WlzAffineTransformFromPrimVal(WLZ_TRANSFORM_2D_AFFINE,
 						 0.0, 0.0, 0.0, 1.0,
 						 0.0, 0.0, 0.0, 0.0, 0.0,
 						 0, &errNum);
@@ -313,7 +313,7 @@ void MAPaintAffine2DCb(
     if( origObj ){
       /* transform the original object and increment the domain */
       DisplayBound(dpy, win, affineGc, lastBoundary->domain.b);
-      trans = WlzAffineTransformFromPrim
+      trans = WlzAffineTransformFromPrimVal
 	(WLZ_TRANSFORM_2D_AFFINE,
 	 (double) -(view_struct->painted_object->domain.i->kol1),
 	 (double) -(view_struct->painted_object->domain.i->line1),
@@ -433,7 +433,7 @@ void MAPaintAffine2DCb(
 	delX /= wlzViewStr->scale;
 	delY /= wlzViewStr->scale;
 	WlzFreeAffineTransform(lastTrans);
-	lastTrans = WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
+	lastTrans = WlzAffineTransformFromPrimVal(WLZ_TRANSFORM_2D_AFFINE,
 					       (double) delX, (double) delY,
 					       0.0,
 					       1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -482,7 +482,7 @@ void MAPaintAffine2DCb(
 	      scale*cos(theta)*cos(theta)*origY)/wlzViewStr->scale;
 	ty = (scale*sin(theta)*sin(theta)*origX -
 	      scale*sin(theta)*cos(theta)*origY)/wlzViewStr->scale;
-	lastTrans = WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
+	lastTrans = WlzAffineTransformFromPrimVal(WLZ_TRANSFORM_2D_AFFINE,
 					       tx, ty, 0.0,
 					       1.0, 0.0, 0.0,
 					       scale, theta, 0.0,

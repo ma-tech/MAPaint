@@ -238,11 +238,11 @@ void theiler_menu_init(
 				 menu_items);
 
   /* if the theiler stage is set then call the required callbacks */
-  if( globals.theiler_stage ){
+  /*if( globals.theiler_stage ){
     if( widget = XtNameToWidget(menu, globals.theiler_stage) ){
       set_theiler_stage_cb(widget, NULL, NULL);
     }
-  }
+    }*/
 
   return;
 }

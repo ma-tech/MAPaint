@@ -314,6 +314,9 @@ extern void warpInput2DCb(Widget	w,
 extern Widget createWarpInput2DDialog(Widget	topl);
 
 /* paint_utils.c, MAColormapUtils.c */
+extern char *HGU_XRequestToString(
+  char	request_code);
+
 extern int set_backingX(Display	*dpy,
 			Window	win);
 
@@ -371,7 +374,7 @@ extern int InteractHelpCb(Display	*dpy,
 			  XtPointer	client_data,
 			  String	help_str);
 
-extern void HGU_XmCreatePrivateColormap(Widget w);
+extern void HGU_XmCreatePrivateColormap(Display *dpy);
 
 extern int set_paint_colormap(Widget		w,
 			      Colormap		cmap,

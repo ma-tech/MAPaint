@@ -147,6 +147,12 @@ typedef enum {
   MATRACK_EDGE_COST_TYPE
 } MATrackDomainCostType;
 
+typedef enum {
+  MAPAINT_8BIT_ONLY_MODE,
+  MAPAINT_8_24BIT_MODE,
+  MAPAINT_24BIT_ONLY_MODE
+} MAPaintVisualMode;
+
 typedef struct {
   int		spacing;
   int		range;
@@ -265,6 +271,10 @@ typedef struct _PaintGlobals{
   Widget		canvas;
   Display		*dpy;
   Window		win;
+  MAPaintVisualMode	visualMode;
+  int			toplDepth;
+  Visual		*toplVisual;
+  Visual		*warpVisual;
 
   /* main_button_bar globals */
 
@@ -276,6 +286,7 @@ typedef struct _PaintGlobals{
   unsigned int		current_col;
   int			auto_increment;
   int			propogate;
+  int			propogate_sel;
   int			domain_changed_since_saved[33];
   int			priority_to_domain_lut[33];
   String		domain_name[33];
@@ -289,6 +300,7 @@ typedef struct _PaintGlobals{
   /* options menu globals */
   PaintCmapStruct	*cmapstruct;
   Colormap		cmap;
+  unsigned char		colormap[3][256];
   Pixmap		stipple;
   int			paint_action_quit_flag;
   PaintActionType	currentPaintAction;

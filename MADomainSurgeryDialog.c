@@ -440,6 +440,10 @@ Widget createDomainSurgeryDialog(
     {
       pixel = globals.cmapstruct->ovly_cols[i];
     }
+    pixel = HGU_XGetColorPixel(XtDisplay(topl), globals.cmap,
+			       (float) globals.colormap[0][pixel]/255.0,
+			       (float) globals.colormap[1][pixel]/255.0,
+			       (float) globals.colormap[2][pixel]/255.0);
     XmChangeColor(widget, pixel);
   }
 

@@ -501,6 +501,7 @@ XtPointer	call_data)
   glNewList( globals.ref_display_list, GL_COMPILE );
 
   glBegin(GL_LINES);
+  glColor3f(1.0, 0.0, 0.0);
   glIndexi( HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 0.0, 0.0) );
   glVertex3i(planedmn->kol1, planedmn->line1, planedmn->plane1);
   glVertex3i(planedmn->lastkl, planedmn->line1, planedmn->plane1);
@@ -511,6 +512,7 @@ XtPointer	call_data)
   glVertex3i(planedmn->kol1, planedmn->lastln, planedmn->lastpl);
   glVertex3i(planedmn->lastkl, planedmn->lastln, planedmn->lastpl);
 
+  glColor3f(0.0, 1.0, 0.0);
   glIndexi( HGU_XGetColorPixel(globals.dpy, globals.cmap, 0.0, 1.0, 0.0) );
   glVertex3i(planedmn->kol1, planedmn->line1, planedmn->plane1);
   glVertex3i(planedmn->kol1, planedmn->lastln, planedmn->plane1);
@@ -521,6 +523,7 @@ XtPointer	call_data)
   glVertex3i(planedmn->lastkl, planedmn->line1, planedmn->lastpl);
   glVertex3i(planedmn->lastkl, planedmn->lastln, planedmn->lastpl);
 
+  glColor3f(0.0, 0.0, 1.0);
   glIndexi( HGU_XGetColorPixel(globals.dpy, globals.cmap, 0.0, 0.0, 1.0) );
   glVertex3i(planedmn->kol1, planedmn->line1, planedmn->plane1);
   glVertex3i(planedmn->kol1, planedmn->line1, planedmn->lastpl);
@@ -546,6 +549,7 @@ XtPointer	call_data)
     step = WLZ_MIN(step, z);
 
     /* set up const z boundaries */
+    glColor3f(1.0, 1.0, 1.0);
     glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 1.0));
     (void) glLineWidth( (GLfloat) 2.0 );
     for(z=planedmn->plane1+step/2; z <= planedmn->lastpl; z += step)
@@ -572,6 +576,7 @@ XtPointer	call_data)
 
     /* set up const y boundaries */
     if( errNum == WLZ_ERR_NONE ){
+      glColor3f(1.0, 1.0, 0.0);
       glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 0.0));
       if( viewStr = WlzMake3DViewStruct(WLZ_3D_VIEW_STRUCT, &errNum) ){
 	viewStr->theta = WLZ_M_PI / 2.0;
@@ -600,6 +605,7 @@ XtPointer	call_data)
     /* set up const x boundaries */
     if( errNum == WLZ_ERR_NONE ){
       glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 0.0));
+      glColor3f(1.0, 1.0, 0.0);
       viewStr->theta = 0.0;
       viewStr->phi = WLZ_M_PI / 2.0;
       viewStr->dist = planedmn->kol1 - step/2;
@@ -625,6 +631,7 @@ XtPointer	call_data)
 
   if( errNum == WLZ_ERR_NONE ){
     glIndexi( HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 1.0) );
+    glColor3f(1.0, 1.0, 1.0);
     glEndList();
 
     WLZ_VTX_3_SET(globals.bbox_vtx, planedmn->kol1 - 2.0,
@@ -633,6 +640,7 @@ XtPointer	call_data)
 		  planedmn->lastkl - planedmn->kol1 + 4.0,
 		  planedmn->lastln - planedmn->line1 + 4.0,
 		  planedmn->lastpl - planedmn->plane1 + 4.0);
+    glFogf(GL_FOG_DENSITY, 0.25/globals.bbox_size.vtX);
     MAOpenGLDrawScene( globals.canvas );
   }
   else {
@@ -1384,16 +1392,27 @@ void file_menu_init(
   globals.orig_obj  = NULL;
   globals.fb_obj    = NULL;
 
-  /* setup the theiler directory and menu item */
-  tmpStr = globals.base_theiler_dir;
+  /* setup the theiler directory and menu item - check for stage */
   XtGetApplicationResources(topl, &globals, set_att_res,
 			    XtNumber(set_att_res), NULL, 0);
-  if( tmpStr ){
-    globals.base_theiler_dir = tmpStr;
+  /* check base directory - if the string has come from the resources then
+     we need to duplicate it to allow it to be freed
+     possibly some memory leakage here */
+  if( globals.base_theiler_dir ){
+    globals.base_theiler_dir = strdup( globals.base_theiler_dir );
+  }
+  if( globals.theiler_stage ){
+    char *tStr;
+    if( tStr = theilerString(globals.theiler_stage) ){
+      globals.theiler_stage = strdup(tStr);
+    }
+    else {
+      globals.theiler_stage = NULL;
+    }
   }
   theiler_menu_init( topl );
 
-  /* check for an initial reference file */
+  /* check for an initial reference file else check Theiler stage */
   if( initial_reference_file != NULL ){
     WlzObject 	*obj;
 
@@ -1507,6 +1526,10 @@ void file_menu_init(
 
       HGU_XmUnsetHourGlassCursor(topl);
     }
+  }
+  else if( globals.theiler_stage ){
+    globals.app_name = "MAPaint";
+    set_theiler_stage_cb(topl, theilerString(globals.theiler_stage), NULL);
   }
 
   /* reset the colormap */

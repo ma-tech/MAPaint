@@ -59,132 +59,153 @@ static XtResource set_att_res[] = {
      set_att_offset(high_thresh), XtRImmediate, (caddr_t) 255},
 };
  
+/* function to allocate colormap cells for setting values,
+   no values are set but the values in the colormap structure are */
 Colormap init_paint_colormap(
-Widget		w,
-PaintCmapStruct	*cmpstr)
+  Widget		w,
+  PaintCmapStruct	*cmpstr)
 {
-    Display		*dpy = XtDisplay( w );
-    Window		win = XtWindow( w );
-    XWindowAttributes	win_att;
-    Colormap		cmap;
-    unsigned long	plane_masks[1], free_pixels[256];
-    unsigned int	i, n_free_pixels;
-    unsigned long	min_required_val, max_required_val;
+  Display		*dpy = XtDisplay( w );
+  Window		win = XtWindow( w );
+  XWindowAttributes	win_att;
+  Colormap		cmap;
+  unsigned long	plane_masks[1], free_pixels[256];
+  unsigned int	i, n_free_pixels;
+  unsigned long	min_required_val, max_required_val;
 
-    cmap = globals.cmap;
+  cmap = globals.cmap;
 
-    /* allocate the required colorcells */
-    n_free_pixels = 0;
-    cmpstr->npixels = 0;
-    min_required_val = cmpstr->gmin;
-    max_required_val = cmpstr->gmax +
-      cmpstr->ovly_incr[cmpstr->num_overlays] + cmpstr->num_solid_overlays;
-    for(i=0; i < 256; i++){
+  /* allocate the required colorcells */
+  n_free_pixels = 0;
+  cmpstr->npixels = 0;
+  min_required_val = cmpstr->gmin;
+  max_required_val = cmpstr->gmax +
+    cmpstr->ovly_incr[cmpstr->num_overlays] + cmpstr->num_solid_overlays;
+  for(i=0; i < 256; i++){
 
-	if( XAllocColorCells(dpy, cmap, False, plane_masks,
-			     0, &(free_pixels[n_free_pixels]), 1) == 0 )
-	    continue;
-
-	/* check if required */
-	if(free_pixels[n_free_pixels] >= min_required_val &&
-	   free_pixels[n_free_pixels] <= max_required_val){
-	    cmpstr->pixels[cmpstr->npixels] = free_pixels[n_free_pixels];
-	    cmpstr->npixels++;
-	} else {
-	    n_free_pixels++;
-	}
+    if( globals.toplDepth == 8 ){
+      if( XAllocColorCells(dpy, cmap, False, plane_masks,
+			   0, &(free_pixels[n_free_pixels]), 1) == 0 ){
+	continue;
+      }
+    }
+    else {
+      free_pixels[n_free_pixels] = i;
     }
 
-    /* free unwanted colorcells */
-    XFreeColors(dpy, cmap, free_pixels, n_free_pixels, 0);
+    /* check if required */
+    if(free_pixels[n_free_pixels] >= min_required_val &&
+       free_pixels[n_free_pixels] <= max_required_val){
+      cmpstr->pixels[cmpstr->npixels] = free_pixels[n_free_pixels];
+      cmpstr->npixels++;
+    } else {
+      n_free_pixels++;
+    }
+  }
 
-    return( cmap );
+  /* free unwanted colorcells */
+  if( globals.toplDepth == 8 ){
+    XFreeColors(dpy, cmap, free_pixels, n_free_pixels, 0);
+  }
+
+  return( cmap );
 }
 
 int set_paint_colormap(
-Widget		w,
-Colormap	cmap,
-PaintCmapStruct	*cmpstr)
+  Widget		w,
+  Colormap	cmap,
+  PaintCmapStruct	*cmpstr)
 {
-    unsigned char	colormap[3][256], gval;
-    int			i, j;
-    double		val;
-    XColor		colorcells[256];
-    unsigned int	solid_ovly;
+  unsigned char	colormap[3][256], gval;
+  int			i, j;
+  double		val;
+  XColor		colorcells[256];
+  unsigned int	solid_ovly;
 
-    /* setup the colormap */
-    for(i=cmpstr->gmin; i <= cmpstr->gmax; i++){
+  /* setup the colormap  - grey-level */
+  for(i=cmpstr->gmin; i <= cmpstr->gmax; i++){
 
-	/* grey-levels: use invert and gamma parameters */
-	val = ((i - cmpstr->gmin) * 255 )/ (cmpstr->gmax - cmpstr->gmin);
+    /* grey-levels: use invert and gamma parameters */
+    val = ((i - cmpstr->gmin) * 255 )/ (cmpstr->gmax - cmpstr->gmin);
 
-	if( val <= cmpstr->low_thresh )
-	{
-	  val = 0.0;
-	}
-	else if( val >= cmpstr->high_thresh )
-	{
-	  val = 255.0;
-	}
-	else
-	{
-	  val = ((val - cmpstr->low_thresh) * 255) /
-	    (cmpstr->high_thresh - cmpstr->low_thresh);
-	}
-
-	gval = pow( (val / 255), (double) cmpstr->gamma ) * 255;
-	if( cmpstr->invert )
-	    gval = 255 - gval;
-
-	colormap[0][i] = gval;
-	colormap[1][i] = gval;
-	colormap[2][i] = gval;
+    if( val <= cmpstr->low_thresh )
+    {
+      val = 0.0;
+    }
+    else if( val >= cmpstr->high_thresh )
+    {
+      val = 255.0;
+    }
+    else
+    {
+      val = ((val - cmpstr->low_thresh) * 255) /
+	(cmpstr->high_thresh - cmpstr->low_thresh);
     }
 
-    for(j=1; j <= cmpstr->num_overlays; j++){
-	int	incr = cmpstr->ovly_incr[j];
-	float	factor = (255.0 * cmpstr->ovly_contrast[j] /
+    gval = pow( (val / 255), (double) cmpstr->gamma ) * 255;
+    if( cmpstr->invert )
+      gval = 255 - gval;
+
+    colormap[0][i] = gval;
+    colormap[1][i] = gval;
+    colormap[2][i] = gval;
+  }
+
+  /* set the wash overlays */
+  for(j=1; j <= cmpstr->num_overlays; j++){
+    int	incr = cmpstr->ovly_incr[j];
+    float	factor = (255.0 * cmpstr->ovly_contrast[j] /
 			  ((float) cmpstr->ovly_red[j] +
 			   (float) cmpstr->ovly_green[j] +
 			   (float) cmpstr->ovly_blue[j]));
 
-	for(i=cmpstr->gmin; i <= cmpstr->gmax; i++){
-	    colormap[0][i+incr] = 
-		(float) colormap[0][i]*(1.0 - cmpstr->ovly_contrast[j])
-		+ (float) cmpstr->ovly_red[j] * factor; 
-	    colormap[1][i+incr] =
-		(float) colormap[1][i]*(1.0 - cmpstr->ovly_contrast[j])
-		+ (float) cmpstr->ovly_green[j] * factor; 
-	    colormap[2][i+incr] =
-		(float) colormap[2][i]*(1.0 - cmpstr->ovly_contrast[j])
-		+ (float) cmpstr->ovly_blue[j] * factor; 
-	}
-
+    for(i=cmpstr->gmin; i <= cmpstr->gmax; i++){
+      colormap[0][i+incr] = 
+	(float) colormap[0][i]*(1.0 - cmpstr->ovly_contrast[j])
+	+ (float) cmpstr->ovly_red[j] * factor; 
+      colormap[1][i+incr] =
+	(float) colormap[1][i]*(1.0 - cmpstr->ovly_contrast[j])
+	+ (float) cmpstr->ovly_green[j] * factor; 
+      colormap[2][i+incr] =
+	(float) colormap[2][i]*(1.0 - cmpstr->ovly_contrast[j])
+	+ (float) cmpstr->ovly_blue[j] * factor; 
     }
 
+  }
+
+  /* set the solid overlays */
+  for(i=0; i < cmpstr->npixels; i++){
+    j = cmpstr->pixels[i];
+    if( j > (cmpstr->gmax + cmpstr->ovly_incr[cmpstr->num_overlays]) ){
+      solid_ovly = j -
+	(cmpstr->gmax + cmpstr->ovly_incr[cmpstr->num_overlays]) +
+	cmpstr->num_overlays;
+      cmpstr->ovly_cols[solid_ovly] = j;
+      colormap[0][j] = cmpstr->ovly_red[solid_ovly];
+      colormap[1][j] = cmpstr->ovly_green[solid_ovly];
+      colormap[2][j] = cmpstr->ovly_blue[solid_ovly];
+    }
+  }
+
+  switch( globals.visualMode ){
+  case MAPAINT_8BIT_ONLY_MODE:
+  case MAPAINT_8_24BIT_MODE:
     /* set the colormap colours */
     for(i=0; i < cmpstr->npixels; i++){
-	j = cmpstr->pixels[i];
-	if( j <= (cmpstr->gmax + cmpstr->ovly_incr[cmpstr->num_overlays]) )
-	{
-	  colorcells[i].red   = colormap[0][j] * 256;
-	  colorcells[i].green = colormap[1][j] * 256;
-	  colorcells[i].blue  = colormap[2][j] * 256;
-	}
-	else
-	{
-	  solid_ovly = j -
-	    (cmpstr->gmax + cmpstr->ovly_incr[cmpstr->num_overlays]) +
-	    cmpstr->num_overlays;
-	  cmpstr->ovly_cols[solid_ovly] = j;
-	  colorcells[i].red   = cmpstr->ovly_red[solid_ovly] * 256;
-	  colorcells[i].green = cmpstr->ovly_green[solid_ovly] * 256;
-	  colorcells[i].blue  = cmpstr->ovly_blue[solid_ovly] * 256;
-	}
-	colorcells[i].pixel = j;
-	colorcells[i].flags = DoRed | DoGreen | DoBlue;
+      j = cmpstr->pixels[i];
+      colorcells[i].red   = colormap[0][j] * 256;
+      colorcells[i].green = colormap[1][j] * 256;
+      colorcells[i].blue  = colormap[2][j] * 256;
+      colorcells[i].pixel = j;
+      colorcells[i].flags = DoRed | DoGreen | DoBlue;
+
     }
     XStoreColors(XtDisplay(w), cmap, colorcells, cmpstr->npixels);
+    for(j=0; j < 256; j++){
+      globals.colormap[0][j] = colormap[0][j];
+      globals.colormap[1][j] = colormap[1][j];
+      globals.colormap[2][j] = colormap[2][j];
+    }
 
     /* set the supplementary colours */
     for(i=1; i <= cmpstr->num_overlays; i++)
@@ -199,9 +220,20 @@ PaintCmapStruct	*cmpstr)
     (void) HGU_XGetColorPixel(XtDisplay(w), cmap, 0.0, 0.0, 1.0);
 
     /* shouldn't do this but necessary on the 24bit displays */
-    XInstallColormap(XtDisplay(w), cmap);
+    /*XInstallColormap(XtDisplay(w), cmap);*/
+    break;
 
-    return( 0 );
+  case MAPAINT_24BIT_ONLY_MODE:
+    for(i=0; i < cmpstr->npixels; i++){
+      j = cmpstr->pixels[i];
+      globals.colormap[0][j] = colormap[0][j];
+      globals.colormap[1][j] = colormap[1][j];
+      globals.colormap[2][j] = colormap[2][j];
+    }
+    break;
+  }
+
+  return( 0 );
 }
 
 void init_paint_cmapstruct(
@@ -274,9 +306,8 @@ Widget	canvas)
     return;
 }
 
-void HGU_XmCreatePrivateColormap(Widget w)
+void HGU_XmCreatePrivateColormap(Display *dpy)
 {
-    Display	*dpy;
     Window	win;
     Visual	*visual;
     Colormap	cmap, def_cmap;
@@ -286,14 +317,13 @@ void HGU_XmCreatePrivateColormap(Widget w)
     int			i;
 
     /* create a private colormap */
-    if( (dpy = XtDisplayOfObject( w )) == NULL )
-	return;
     win = RootWindow( dpy, DefaultScreen( dpy ) );
-    visual = HGU_XGetVisual(dpy, DefaultScreen( dpy ), PseudoColor, 8);
+    visual = globals.toplVisual;
     if( visual == NULL ){
       visual = DefaultVisual( dpy, DefaultScreen( dpy ) );
     }
     cmap = XCreateColormap( dpy, win, visual, AllocNone );
+    globals.cmap = cmap;
     def_cmap = DefaultColormap( dpy, DefaultScreen( dpy ) );
     
     /* copy all existing colours */
@@ -314,13 +344,6 @@ void HGU_XmCreatePrivateColormap(Widget w)
 
     XFreeColors(dpy, cmap, pixels, n_pixels, 0);
     
-    /* set the colormap as the widget resource */
-    XtVaSetValues(w, XmNcolormap, cmap, NULL);
-    globals.cmap = cmap;
-
-    /* initialise the paint-colormap structure and colormap */
-    init_paint_cmapstruct( w );
-
     return;
 }
 
@@ -352,8 +375,34 @@ unsigned long HGU_XGetColorPixel(
   colorcell_def.green = (short) (green * 255.0) * 256;
   colorcell_def.blue = (short) (blue * 255.0) * 256;
   colorcell_def.flags = DoRed | DoGreen | DoBlue;
+  colorcell_def.pixel = 0;
+  colorcell_def.pad = '\0';
 
-  XAllocColor(dpy, cmap, &colorcell_def);
-  return( colorcell_def.pixel );
+  if( XAllocColor(dpy, cmap, &colorcell_def) ){
+    return( colorcell_def.pixel );
+  }
+  else {
+    XColor	cells[256];
+    int		i, imin, dist, mindist;
+    for(i=0; i < 256; i++){
+      cells[i].pixel = i;
+    }
+    XQueryColors(dpy, cmap, cells, 256);
+    dist = (abs(colorcell_def.red - cells[0].red) +
+	    abs(colorcell_def.green - cells[0].green) +
+	    abs(colorcell_def.blue - cells[0].blue));
+    mindist = dist;
+    imin = 0;
+    for(i=1; i < 256; i++){
+      dist = (abs(colorcell_def.red - cells[i].red) +
+	      abs(colorcell_def.green - cells[i].green) +
+	      abs(colorcell_def.blue - cells[i].blue));
+      if( dist < mindist ){
+	mindist = dist;
+	imin = i;
+      }
+    }
+    return cells[imin].pixel;
+  }
 }
 

@@ -1024,6 +1024,12 @@ Widget createDomainReviewDialog(
   Widget	dialog, control, form, frame, title, title_form;
   Widget	rowcolumn, button, option, toggle, widget;
   int		i;
+  Visual	*visual;
+  Arg		arg[1];
+
+  /* get the visual explicitly */
+  visual = HGU_XmWidgetToVisual(topl);
+  XtSetArg(arg[0], XmNvisual, visual);
 
   dialog = HGU_XmCreateStdDialog(topl, "review_dialog",
 				 xmFormWidgetClass,
@@ -1095,7 +1101,7 @@ Widget createDomainReviewDialog(
 
   readReviewObjDialog = XmCreateFileSelectionDialog(globals.topl,
 						    "read_review_obj_dialog",
-						    NULL, 0);
+						    arg, 1);
   XtAddCallback(readReviewObjDialog, XmNokCallback,
 		readReviewObjectCb, (XtPointer) NULL);
   XtAddCallback(readReviewObjDialog, XmNokCallback,
@@ -1219,6 +1225,10 @@ Widget createDomainReviewDialog(
     {
       pixel = globals.cmapstruct->ovly_cols[i];
     }
+    pixel = HGU_XGetColorPixel(XtDisplay(topl), globals.cmap,
+			       (float) globals.colormap[0][pixel]/255.0,
+			       (float) globals.colormap[1][pixel]/255.0,
+			       (float) globals.colormap[2][pixel]/255.0);
     XmChangeColor(widget, pixel);
   }
 

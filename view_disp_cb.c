@@ -19,6 +19,58 @@
 
 #include <MAPaint.h>
 
+void HGU_XPutImage8To24(
+  Display	*dpy,
+  Window	win,
+  GC		gc,
+  XImage	*ximage,
+  int		srcX,
+  int		srcY,
+  int		dstX,
+  int		dstY,
+  unsigned int	width,
+  unsigned int	height,
+  unsigned char	colormap[3][256])
+{
+  XImage	*new;
+  unsigned char	*newdata, *data;
+  int		i, j, w, h, srcOff, dstOff;
+  XWindowAttributes	win_att;
+
+  /* get window attribute to get the visual */
+  if( XGetWindowAttributes(dpy, win, &win_att) == 0 )
+  {
+    return;
+  }
+
+  /* assume 24 bit required and so don't check the window attributes */
+  data = (unsigned char *) ximage->data;
+  newdata = (unsigned char *) AlcMalloc(4*width*height*sizeof(char));
+  new = XCreateImage(dpy, win_att.visual, win_att.depth,
+		     ZPixmap, 0, (char *) newdata,
+		     width, height, 32, 0);
+
+  /* transfer data  via colormap to 24 bit */
+  srcOff = 0;
+  for(j=0; j < height; j++){
+    dstOff = (srcY+j) * ximage->bytes_per_line + srcX;
+    for(i=0; i < width; i++, dstOff++){
+      newdata[srcOff++] = 0;
+      newdata[srcOff++] = colormap[2][data[dstOff]];
+      newdata[srcOff++] = colormap[1][data[dstOff]];
+      newdata[srcOff++] = colormap[0][data[dstOff]];
+    }
+  }
+
+  /* display the image and clear allocated memory */
+  XPutImage(dpy, win, gc, new, 0, 0, dstX, dstY, width, height);
+  new->data = NULL;
+  XDestroyImage(new);
+  AlcFree(newdata);
+
+  return;
+}
+
 static void display_scaled_image(
   Display		*dpy,
   Window		win,
@@ -92,8 +144,16 @@ static void display_scaled_image(
       }
     }
 
-    XPutImage(dpy, win, globals.gc_greys, scaled_image, 0, 0,
-	      x_exp*scale, y_exp*scale, width_exp*scale, height_exp*scale);
+    if( globals.toplDepth == 8 ){
+      XPutImage(dpy, win, globals.gc_greys, scaled_image, 0, 0,
+		x_exp*scale, y_exp*scale, width_exp*scale,
+		height_exp*scale);
+    }
+    else {
+      HGU_XPutImage8To24(dpy, win, globals.gc_greys, scaled_image, 0, 0,
+			 x_exp*scale, y_exp*scale, width_exp*scale,
+			 height_exp*scale, globals.colormap);
+    }
     XFlush(dpy);
     AlcFree((void *) scaled_image->data);
     scaled_image->data = NULL;
@@ -163,8 +223,15 @@ static void display_scaled_down_image(
       }
     }
 
-    XPutImage(dpy, win, globals.gc_greys, scaled_image, 0, 0,
-	      x_exp, y_exp, width_exp, height_exp);
+    if( globals.toplDepth == 8 ){
+      XPutImage(dpy, win, globals.gc_greys, scaled_image, 0, 0,
+		x_exp, y_exp, width_exp, height_exp);
+    }
+    else {
+      HGU_XPutImage8To24(dpy, win, globals.gc_greys, scaled_image, 0, 0,
+			 x_exp, y_exp, width_exp, height_exp,
+			 globals.colormap);
+    }
 
     XFlush(dpy);
     AlcFree((void *) scaled_image->data);
@@ -179,7 +246,6 @@ static void display_scaled_down_image(
   return;
 }
  
-
 void redisplay_view_cb(
   Widget		w,
   XtPointer	client_data,
@@ -276,9 +342,20 @@ void redisplay_view_cb(
   }
   else
   {
-    XPutImage(dpy, win, globals.gc_greys, view_struct->ximage,
-	      event.x, event.y, event.x, event.y,
-	      event.width, event.height);
+    if( globals.toplDepth == 8 ){
+      XPutImage(dpy, win, globals.gc_greys, view_struct->ximage,
+		event.x, event.y, event.x, event.y,
+		event.width, event.height);
+    }
+    else {
+      GC	gc;
+      XGCValues  gcvalues;
+      gc = XCreateGC(dpy, win, 0, &gcvalues);
+      HGU_XPutImage8To24(dpy, win, gc, view_struct->ximage,
+			 event.x, event.y, event.x, event.y,
+			 event.width, event.height,
+			 globals.colormap);
+    }
   }
 
   /* if dist is zero check for display fixed point or fixed line */
@@ -508,6 +585,11 @@ XtPointer	call_data)
 	    vl2->next = vl1->next;
 	    AlcFree( (void *) vl1 );
 	}
+    }
+
+    /* release paint key */
+    if( paint_key == view_struct ){
+      paint_key = NULL;
     }
 
     free_view_struct( view_struct );

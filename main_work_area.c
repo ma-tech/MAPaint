@@ -78,35 +78,50 @@ void ThreeDResetCb(
 }
 
 Widget create_main_work_area(
-Widget	main_w)
+  Widget	main_w)
 {
-    Widget	work_area;
-    Pixel	bg;
+  Widget	work_area;
+  Pixel	bg;
+  XVisualInfo	*visualInfo, visualTemplate;
+  int		nitems;
+  Boolean	rgbModeFlag=False;
 
-    bg = BlackPixelOfScreen(XtScreen(main_w));
+  bg = BlackPixelOfScreen(XtScreen(main_w));
 
-    work_area = XtVaCreateManagedWidget("work_area", hguGLwCanvasTbWidgetClass,
-					main_w,
-					XmNbackground,		bg,
-					HGUglwNtrackballSize,	512,
-					NULL);
+  visualTemplate.visualid = globals.toplVisual->visualid;
+  visualInfo = XGetVisualInfo(XtDisplay(main_w), VisualIDMask,
+			      &visualTemplate, &nitems);
+  if( globals.toplDepth == 24 ){
+    rgbModeFlag = True;
+  }
 
-    XtAddCallback(work_area, HGUglwNexposeCallback,	ThreeDDrawSceneCb,
-		  NULL);
-    XtAddCallback(work_area, HGUglwNresizeCallback,	ThreeDResizeCb, NULL);
-    XtAddCallback(work_area, HGUglwNinitCallback, 	MAOpenGLInitCb, NULL);
-    XtAddCallback(work_area, HGUglwNinputCallback, 	ThreeDInputCb, NULL);
-    XtAddCallback(work_area, HGUglwNtrackballCallback, 	ThreeDDrawSceneCb,
-		  NULL);
+  work_area = XtVaCreateManagedWidget("work_area", hguGLwCanvasTbWidgetClass,
+				      main_w,
+				      XmNbackground,		bg,
+				      HGUglwNtrackballSize,	512,
+				      HGUglwNvisualInfo,	visualInfo,
+				      XtNvisual,	globals.toplVisual,
+				      XtNcolormap,	globals.cmap,
+				      XtNdepth,		globals.toplDepth,
+				      HGUglwNrgba,	rgbModeFlag,
+				      NULL);
 
-    globals.canvas = work_area;
-    XtVaSetValues(work_area, XmNcolormap, globals.cmap, NULL);
+  XtAddCallback(work_area, HGUglwNexposeCallback,	ThreeDDrawSceneCb,
+		NULL);
+  XtAddCallback(work_area, HGUglwNresizeCallback,	ThreeDResizeCb, NULL);
+  XtAddCallback(work_area, HGUglwNinitCallback, 	MAOpenGLInitCb, NULL);
+  XtAddCallback(work_area, HGUglwNinputCallback, 	ThreeDInputCb, NULL);
+  XtAddCallback(work_area, HGUglwNtrackballCallback, 	ThreeDDrawSceneCb,
+		NULL);
 
-    XtManageChild( work_area );
-    return( work_area );
+  globals.canvas = work_area;
+  XtVaSetValues(work_area, XmNcolormap, globals.cmap, NULL);
+
+  XtManageChild( work_area );
+  return( work_area );
 }
 
-Widget create_main_work_area_test(
+Widget create_main_work_area_X(
 Widget	main_w)
 {
     Widget	work_area;

@@ -253,8 +253,12 @@ void getViewDomains(
      propogation.
      This will either be if the current domain exists or if the 
      propogating domain overlaps the union of all existing domains */
-  if( (errNum == WLZ_ERR_NONE) && globals.propogate ){
+  if( (errNum == WLZ_ERR_NONE) && (globals.propogate||globals.propogate_sel) ){
     for(i=1; (i <= numOverlays) && (errNum == WLZ_ERR_NONE); i++){
+      /* test for propogate currently selected domain only */
+      if((!globals.propogate) && (i != globals.current_domain)){
+	continue;
+      }
       if((view_struct->prev_domain[i]) &&
 	 (view_struct->prev_domain[i]->type != WLZ_EMPTY_OBJ)){
 	if( allDomainsObj ){

@@ -393,6 +393,10 @@ Boolean			highlight)
       pixel = globals.cmapstruct->ovly_cols[globals.current_domain] +
 	globals.cmapstruct->gmax - globals.cmapstruct->gmin;
     }
+    pixel = HGU_XGetColorPixel(globals.dpy, globals.cmap,
+			       (float) globals.colormap[0][pixel]/255.0,
+			       (float) globals.colormap[1][pixel]/255.0,
+			       (float) globals.colormap[2][pixel]/255.0);
 
     if( highlight == True ){
 	XtVaSetValues(widget1, XmNshadowType, XmSHADOW_IN, NULL);

@@ -45,14 +45,21 @@ void MAOpenGLInitCb(
   }
   glShadeModel(GL_FLAT);
   glEnable(GL_DEPTH_TEST);
-  glClearIndex( (GLfloat) BlackPixelOfScreen(XtScreen(w)) );
+  if( globals.toplDepth == 24 ){
+    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glEnable(GL_FOG);
+    glFogf(GL_FOG_MODE, GL_LINEAR);
+  }
+  else {
+    glClearIndex( (GLfloat) BlackPixelOfScreen(XtScreen(w)) );
+  }
 
   /* set the initial transform - should be from resources */
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
-  glRotated( 90.0, 1.0, 0.0, 0.0);
-  glRotated(-40.0, 0.0, 0.0, 1.0);
-  glRotated( 20.0, 0.6, 0.4, 0.0);
+  glRotated( (GLdouble) 90.0, (GLdouble) 1.0, (GLdouble) 0.0, (GLdouble) 0.0);
+  glRotated((GLdouble) -40.0, (GLdouble) 0.0, (GLdouble) 0.0, (GLdouble) 1.0);
+  glRotated( (GLdouble) 20.0, (GLdouble) 0.6, (GLdouble) 0.4, (GLdouble) 0.0);
   glGetDoublev(GL_MODELVIEW_MATRIX, &initial_rot[0][0]);
 
   /* create the default 3D display  DisplayList */
@@ -60,7 +67,12 @@ void MAOpenGLInitCb(
   glNewList( globals.ref_display_list, GL_COMPILE );
   WLZ_VTX_3_SET(tVtx, 10.0, 10.0, 10.0);
   WLZ_VTX_3_SET(orgVtx, 5.0, 5.0, 5.0);
-  glIndexi( HGU_XGetColorPixel(dpy, globals.cmap, 1.0, 1.0, 1.0) );
+  if( globals.toplDepth == 24 ){
+    glColor3d((GLdouble) 1.0, (GLdouble) 1.0, (GLdouble) 1.0);
+  }
+  else {
+    glIndexi( HGU_XGetColorPixel(dpy, globals.cmap, 1.0, 1.0, 1.0) );
+  }
   HGUglShapeWireCube(tVtx, orgVtx);
 
   glEndList();
@@ -179,8 +191,13 @@ int		domain_index)
     red = (float) globals.cmapstruct->ovly_red[domain_index] / 255.0;
     green = (float) globals.cmapstruct->ovly_green[domain_index] / 255.0;
     blue = (float) globals.cmapstruct->ovly_blue[domain_index] / 255.0;
-    glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap,
-				red, green, blue)); 
+    if( globals.toplDepth == 24 ){
+      glColor3f((GLfloat) red, (GLfloat) green, (GLfloat) blue);
+    }
+    else {
+      glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap,
+				  red, green, blue));
+    }
 
     planedmn = obj->domain.p;
     for(z=planedmn->plane1; z <= planedmn->lastpl;
@@ -203,7 +220,12 @@ int		domain_index)
     }
 
     /* reset the colour */
-    glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 1.0));
+    if( globals.toplDepth == 24 ){
+      glColor3f((GLfloat) 1.0, (GLfloat) 1.0, (GLfloat) 1.0);
+    }
+    else {
+      glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 1.0));
+    }
 
     glEndList();
 
@@ -244,7 +266,7 @@ void MAOpenGLDrawScene(Widget canvasW)
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     aspect = (GLfloat) width / (GLfloat) height;
-    theta = (GLdouble) width
+    theta = (GLdouble) height
       / 3.0 				/* pixels/mm */
       / 300.0; 				/* viewer dist. in mm */
     gluPerspective( (GLdouble) (theta * 180 / 3.1415962),
@@ -266,6 +288,9 @@ void MAOpenGLDrawScene(Widget canvasW)
       glOrtho(-(aspect), aspect, -max_radius, max_radius,
 	      -max_radius, +max_radius);
     }*/
+    /* set the fog parameters */
+    glFogf(GL_FOG_START, 0.0);
+    glFogf(GL_FOG_END, max_radius / theta / 2.0);
 
     HGUglwCanvasTbGetTranslate(canvasW, &trans);
     HGUglwCanvasTbGetRotateMatrixGL(canvasW, rot);
@@ -276,9 +301,9 @@ void MAOpenGLDrawScene(Widget canvasW)
 		 trans.vtZ*max_radius);
     glMultMatrixd(&rot[0][0]);
     glMultMatrixd(&initial_rot[0][0]);
-    glTranslated(-(globals.bbox_vtx.vtX + globals.bbox_size.vtX/2),
-		 -(globals.bbox_vtx.vtY + globals.bbox_size.vtY/2),
-		 -(globals.bbox_vtx.vtZ + globals.bbox_size.vtZ/2));
+    glTranslated((GLdouble) -(globals.bbox_vtx.vtX + globals.bbox_size.vtX/2),
+		 (GLdouble) -(globals.bbox_vtx.vtY + globals.bbox_size.vtY/2),
+		 (GLdouble) -(globals.bbox_vtx.vtZ + globals.bbox_size.vtZ/2));
 
     /* display the reference image sisplay list */
     glCallList( globals.ref_display_list );
@@ -335,7 +360,13 @@ void MAOpenGLDisplaySection(
 
   if( view_struct->controlFlag & MAPAINT_SHOW_SOLID_SECTION )
   {
-    glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 0.0));
+    if( globals.toplDepth == 24 ){
+      glColor3f((GLfloat) 1.0, (GLfloat) 1.0, (GLfloat) 0.0);
+    }
+    else {
+      glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap,
+				  1.0, 1.0, 0.0));
+    }
     glBegin(GL_TRIANGLE_FAN);
     vtxCntr = 0;
     while( vtxCntr < num_vtxs ){
@@ -348,41 +379,78 @@ void MAOpenGLDisplaySection(
 
   if( view_struct->controlFlag & MAPAINT_SHOW_FIXED_POINT )
   {
-    glPointSize(4.0);
-    glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 1.0));
+    /*glPointSize((GLfloat) 4.0); - until solaris 8 is standard */
+    if( globals.toplDepth == 24 ){
+      glColor3f((GLfloat) 1.0, (GLfloat) 1.0, (GLfloat) 1.0);
+    }
+    else {
+      glPointSize((GLfloat) 4.0);
+      glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap,
+				  1.0, 1.0, 1.0));
+    }
     glBegin(GL_POINTS);
-    glVertex3d(wlzViewStr->fixed.vtX, wlzViewStr->fixed.vtY,
-	       wlzViewStr->fixed.vtZ);
+    glVertex3d((GLdouble) wlzViewStr->fixed.vtX,
+	       (GLdouble) wlzViewStr->fixed.vtY,
+	       (GLdouble) wlzViewStr->fixed.vtZ);
     glEnd();
 
     glBegin(GL_LINES);
-    glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 0.0, 0.0));
-    glVertex3d((double) wlzViewStr->ref_obj->domain.p->kol1,
-	       wlzViewStr->fixed.vtY, wlzViewStr->fixed.vtZ);
-    glVertex3d((double) wlzViewStr->ref_obj->domain.p->lastkl,
-	       wlzViewStr->fixed.vtY, wlzViewStr->fixed.vtZ);
+    if( globals.toplDepth == 24 ){
+      glColor3f((GLfloat) 1.0, (GLfloat) 0.0, (GLfloat) 0.0);
+    }
+    else {
+      glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap,
+				  1.0, 0.0, 0.0));
+    }
+    glVertex3d((GLdouble) wlzViewStr->ref_obj->domain.p->kol1,
+	       (GLdouble) wlzViewStr->fixed.vtY,
+	       (GLdouble) wlzViewStr->fixed.vtZ);
+    glVertex3d((GLdouble) wlzViewStr->ref_obj->domain.p->lastkl,
+	       (GLdouble) wlzViewStr->fixed.vtY,
+	       (GLdouble) wlzViewStr->fixed.vtZ);
 
-    glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 0.0, 1.0, 0.0));
-    glVertex3d(wlzViewStr->fixed.vtX,
-	       (double) wlzViewStr->ref_obj->domain.p->line1,
-	       wlzViewStr->fixed.vtZ);
-    glVertex3d(wlzViewStr->fixed.vtX,
-	       (double) wlzViewStr->ref_obj->domain.p->lastln,
-	       wlzViewStr->fixed.vtZ);
+    if( globals.toplDepth == 24 ){
+      glColor3f((GLfloat) 0.0, (GLfloat) 1.0, (GLfloat) 0.0);
+    }
+    else {
+      glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap,
+				  0.0, 1.0, 0.0));
+    }
+    glVertex3d((GLdouble) wlzViewStr->fixed.vtX,
+	       (GLdouble) wlzViewStr->ref_obj->domain.p->line1,
+	       (GLdouble) wlzViewStr->fixed.vtZ);
+    glVertex3d((GLdouble) wlzViewStr->fixed.vtX,
+	       (GLdouble) wlzViewStr->ref_obj->domain.p->lastln,
+	       (GLdouble) wlzViewStr->fixed.vtZ);
 
-    glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 0.0, 0.0, 1.0));
-    glVertex3d(wlzViewStr->fixed.vtX, wlzViewStr->fixed.vtY,
-	       (double) wlzViewStr->ref_obj->domain.p->plane1);
-    glVertex3d(wlzViewStr->fixed.vtX, wlzViewStr->fixed.vtY,
-	       (double) wlzViewStr->ref_obj->domain.p->lastpl);
+    if( globals.toplDepth == 24 ){
+      glColor3f((GLfloat) 0.0, (GLfloat) 0.0, (GLfloat) 1.0);
+    }
+    else {
+      glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap,
+				  0.0, 0.0, 1.0));
+    }
+    glVertex3d((GLdouble) wlzViewStr->fixed.vtX,
+	       (GLdouble) wlzViewStr->fixed.vtY,
+	       (GLdouble) wlzViewStr->ref_obj->domain.p->plane1);
+    glVertex3d((GLdouble) wlzViewStr->fixed.vtX,
+	       (GLdouble) wlzViewStr->fixed.vtY,
+	       (GLdouble) wlzViewStr->ref_obj->domain.p->lastpl);
     glEnd();
   }
 
   if((view_struct->controlFlag&MAPAINT_SHOW_FIXED_LINE) &&
      (view_struct->controlFlag&MAPAINT_FIXED_LINE_SET) )
   {
-    glPointSize(4.0);
-    glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 1.0));
+    /* glPointSize((GLfloat) 4.0); - until openGL bugs fixed */
+    if( globals.toplDepth == 24 ){
+      glColor3f((GLfloat) 1.0, (GLfloat) 1.0, (GLfloat) 1.0);
+    }
+    else {
+      glPointSize((GLfloat) 4.0);
+      glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap,
+				  1.0, 1.0, 1.0));
+    }
     glBegin(GL_POINTS);
     glVertex3d(wlzViewStr->fixed.vtX, wlzViewStr->fixed.vtY,
 	       wlzViewStr->fixed.vtZ);
@@ -391,12 +459,20 @@ void MAOpenGLDisplaySection(
     glEnd();
 
     glLineWidth( (GLfloat) 2.0 );
-    glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 0.0));
+    if( globals.toplDepth == 24 ){
+      glColor3f((GLfloat) 1.0, (GLfloat) 1.0, (GLfloat) 0.0);
+    }
+    else {
+      glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap,
+				  1.0, 1.0, 0.0));
+    }
     glBegin(GL_LINES);
-    glVertex3d(wlzViewStr->fixed.vtX, wlzViewStr->fixed.vtY,
-	       wlzViewStr->fixed.vtZ);
-    glVertex3d(wlzViewStr->fixed_2.vtX, wlzViewStr->fixed_2.vtY,
-	       wlzViewStr->fixed_2.vtZ);
+    glVertex3d((GLdouble) wlzViewStr->fixed.vtX,
+	       (GLdouble) wlzViewStr->fixed.vtY,
+	       (GLdouble) wlzViewStr->fixed.vtZ);
+    glVertex3d((GLdouble) wlzViewStr->fixed_2.vtX,
+	       (GLdouble) wlzViewStr->fixed_2.vtY,
+	       (GLdouble) wlzViewStr->fixed_2.vtZ);
     glEnd();
   }
 
@@ -410,46 +486,74 @@ void MAOpenGLDisplaySection(
     r = (r > rp) ? r : rp;
 
     glPushMatrix();
-    (void) glLineWidth( (GLfloat) 1.0 );
-    glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 0.0));
-    glTranslated(wlzViewStr->fixed.vtX, wlzViewStr->fixed.vtY,
-                 wlzViewStr->fixed.vtZ);
-    glRotated( (wlzViewStr->theta*180.0/WLZ_M_PI), 0.0, 0.0, 1.0);
-    glRotated( (wlzViewStr->phi*180.0/WLZ_M_PI), 0.0, 1.0, 0.0);
+    (void) glLineWidth((GLfloat) 1.0 );
+    if( globals.toplDepth == 24 ){
+      glColor3f((GLfloat) 1.0, (GLfloat) 1.0, (GLfloat) 0.0);
+    }
+    else {
+      glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap,
+				  1.0, 1.0, 0.0));
+    }
+    glTranslated((GLdouble) wlzViewStr->fixed.vtX,
+		 (GLdouble) wlzViewStr->fixed.vtY,
+                 (GLdouble) wlzViewStr->fixed.vtZ);
+    glRotated((GLdouble) (wlzViewStr->theta*180.0/WLZ_M_PI),
+	      (GLdouble) 0.0, (GLdouble) 0.0, (GLdouble) 1.0);
+    glRotated((GLdouble) (wlzViewStr->phi*180.0/WLZ_M_PI),
+	      (GLdouble) 0.0, (GLdouble) 1.0, (GLdouble) 0.0);
     glBegin(GL_LINES);
-    glVertex3d(0.0, 0.0, 0.0);
-    glVertex3d(0.0, 0.0, r);
+    glVertex3d((GLdouble) 0.0, (GLdouble) 0.0, (GLdouble) 0.0);
+    glVertex3d((GLdouble) 0.0, (GLdouble) 0.0, (GLdouble) r);
     glEnd();
     glBegin(GL_TRIANGLE_FAN);
-    glVertex3d(0.0, 0.0, r);
-    glVertex3d(0.08*r, 0.0, 0.8*r);
-    glVertex3d(0.0, 0.08*r, 0.8*r);
-    glVertex3d(-0.08*r, 0.0, 0.8*r);
-    glVertex3d(0.0, -0.08*r, 0.8*r);
-    glVertex3d(0.08*r, 0.0, 0.8*r);
+    glVertex3d((GLdouble) 0.0, (GLdouble) 0.0, (GLdouble) r);
+    glVertex3d((GLdouble) 0.08*r, (GLdouble) 0.0, (GLdouble) 0.8*r);
+    glVertex3d((GLdouble) 0.0, (GLdouble) 0.08*r, (GLdouble) 0.8*r);
+    glVertex3d((GLdouble) -0.08*r, (GLdouble) 0.0, (GLdouble) 0.8*r);
+    glVertex3d((GLdouble) 0.0, (GLdouble) -0.08*r, (GLdouble) 0.8*r);
+    glVertex3d((GLdouble) 0.08*r, (GLdouble) 0.0, (GLdouble) 0.8*r);
     glEnd();
     glPopMatrix();
   }
 
   if( view_struct->controlFlag & MAPAINT_HIGHLIGHT_SECTION ){
-    (void) glLineWidth( (GLfloat) 3.0 );
-    glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 0.0, 0.0));
+    (void) glLineWidth((GLfloat) 3.0 );
+    if( globals.toplDepth == 24 ){
+      glColor3f((GLfloat) 1.0, (GLfloat) 0.0, (GLfloat) 0.0);
+    }
+    else {
+      glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap,
+				  1.0, 0.0, 0.0));
+    }
   }
   else {
-    (void) glLineWidth( (GLfloat) 1.0 );
-    glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 0.0));
+    (void) glLineWidth((GLfloat) 1.0 );
+    if( globals.toplDepth == 24 ){
+      glColor3f((GLfloat) 1.0, (GLfloat) 1.0, (GLfloat) 0.0);
+    }
+    else {
+      glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap,
+				  1.0, 1.0, 0.0));
+    }
   }
   glBegin(GL_LINE_LOOP);
   vtxCntr = 0;
   while( vtxCntr < num_vtxs ){
-      glVertex3d(vtxs[vtxCntr].vtX, vtxs[vtxCntr].vtY,
-		 vtxs[vtxCntr].vtZ);
+      glVertex3d((GLdouble) vtxs[vtxCntr].vtX,
+		 (GLdouble) vtxs[vtxCntr].vtY,
+		 (GLdouble) vtxs[vtxCntr].vtZ);
       vtxCntr++;
   }
   glEnd();
 
-  glIndexi( HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 1.0) );
-  (void) glLineWidth( (GLfloat) 1.0 );
+  if( globals.toplDepth == 24 ){
+    glColor3f((GLfloat) 1.0, (GLfloat) 1.0, (GLfloat) 1.0);
+  }	
+  else {
+    glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap,
+				1.0, 1.0, 1.0));
+  }
+  (void) glLineWidth((GLfloat) 1.0 );
   glPopMatrix();
   glEndList();
 

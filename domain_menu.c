@@ -213,6 +213,10 @@ static MenuItem domain_menu_itemsP[] = {		/* file_menu items */
      int_toggle_cb, (caddr_t) &(globals.propogate),
      HGU_XmHelpStandardCb, "paint/paint.html#propogate",
      XmTEAR_OFF_DISABLED, False, False, NULL},
+{"propogate_sel", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+     int_toggle_cb, (caddr_t) &(globals.propogate_sel),
+     HGU_XmHelpStandardCb, "paint/paint.html#propogate",
+     XmTEAR_OFF_DISABLED, False, False, NULL},
 {"", &xmSeparatorGadgetClass, 0, NULL, NULL, False,
      NULL, NULL, NULL, NULL,
      XmTEAR_OFF_DISABLED, False, False, NULL},
@@ -593,6 +597,10 @@ void select_domain_cb(
       pixel = globals.cmapstruct->ovly_cols[globals.current_domain] +
 	globals.cmapstruct->gmax - globals.cmapstruct->gmin;
     }
+    pixel = HGU_XGetColorPixel(globals.dpy, globals.cmap,
+			       (float) globals.colormap[0][pixel]/255.0,
+			       (float) globals.colormap[1][pixel]/255.0,
+			       (float) globals.colormap[2][pixel]/255.0);
     widget = XtNameToWidget(paint_key->dialog, "*.scrolled_window");
     XtVaSetValues(widget, XmNborderColor, pixel, NULL);
   }
@@ -1788,17 +1796,21 @@ static Widget create_domain_controls_dialog(
     /* create the dominance buttons */
     for(i=1; i <= num_overlays; i++)
     {
-      int		data_index;
+      int	col_index, data_index;
 
       sprintf(str_buf, "%d", i);
       data_index = globals.priority_to_domain_lut[i];
 
-      pixel = globals.cmapstruct->ovly_cols[data_index] +
+      col_index = globals.cmapstruct->ovly_cols[data_index] +
 	globals.cmapstruct->gmax - globals.cmapstruct->gmin;
       if( data_index > globals.cmapstruct->num_overlays )
       {
-	pixel = globals.cmapstruct->ovly_cols[data_index];
+	col_index = globals.cmapstruct->ovly_cols[data_index];
       }
+      pixel = HGU_XGetColorPixel(XtDisplay(topl), globals.cmap,
+				 (float) globals.colormap[0][col_index]/255.0,
+				 (float) globals.colormap[1][col_index]/255.0,
+				 (float) globals.colormap[2][col_index]/255.0);
       widget = XtVaCreateManagedWidget
 	(str_buf, xmPushButtonWidgetClass,
 	 form,
@@ -1955,6 +1967,7 @@ int domain_menu_init(
   globals.current_col    = 64;
   globals.auto_increment = 0;
   globals.propogate      = 0;
+  globals.propogate_sel  = 0;
 
   globals.gc_greys  = NULL;
   globals.gc_reds   = NULL;
@@ -2068,9 +2081,9 @@ int domain_menu_init(
 
   for(i=1; i < 33; i++){
     XmString	xmstr;
-    char		str_buf[64];
-    Pixel		pixel;
-    int		data_index;
+    char	str_buf[64];
+    Pixel	pixel;
+    int		data_index, col_index;
 
     /* get the widgets in priority order */
     sprintf(str_buf, "*menubar*domain_menu*select*domain_%d", i);
@@ -2085,12 +2098,17 @@ int domain_menu_init(
     /* get the data for each priority */
     data_index = globals.priority_to_domain_lut[i];
     xmstr = XmStringCreateSimple( globals.domain_name[data_index] );
-    pixel = globals.cmapstruct->ovly_cols[data_index] +
+    col_index = globals.cmapstruct->ovly_cols[data_index] +
       globals.cmapstruct->gmax - globals.cmapstruct->gmin;
     if( data_index > globals.cmapstruct->num_overlays )
     {
-      pixel = globals.cmapstruct->ovly_cols[data_index];
+      col_index = globals.cmapstruct->ovly_cols[data_index];
     }
+    pixel = HGU_XGetColorPixel(XtDisplay(topl), globals.cmap,
+			       (float) globals.colormap[0][col_index]/255.0,
+			       (float) globals.colormap[1][col_index]/255.0,
+			       (float) globals.colormap[2][col_index]/255.0);
+/*    pixel = col_index;*/
     XmChangeColor(widget, pixel);
     XtVaSetValues(widget,
 		  XmNlabelString, xmstr,

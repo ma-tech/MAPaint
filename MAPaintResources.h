@@ -40,13 +40,13 @@ static String  fallback_resources[] = {
     /* fonts and backgrounds */
     "MAPaint*background:		grey85",
     "MAPaint*XmScrollBar.background:	grey95",
-    "MAPaint*.fontList:	      -linotype-helvetica-bold-r-*-*-12-*-*-*-*-*-*-*",
-    "MAPaint*.XmText.fontList:		8x13",
-    "MAPaint*.XmTextField.fontList:	8x13",
-    "MAPaint*.XmList.fontList:		8x13",
-    "MAPaint*.XmText.background:	grey95",
-    "MAPaint*.XmTextField.background:	grey95",
-    "MAPaint*.XmList.background:	grey95",
+    "MAPaint*fontList:	      -linotype-helvetica-bold-r-*-*-12-*-*-*-*-*-*-*",
+    "MAPaint*XmText.fontList:		8x13",
+    "MAPaint*XmTextField.fontList:	8x13",
+    "MAPaint*XmList.fontList:		8x13",
+    "MAPaint*XmText.background:	grey95",
+    "MAPaint*XmTextField.background:	grey95",
+    "MAPaint*XmList.background:	grey95",
     "MAPaint*menubar.XmCascadeButton.marginWidth: 1",
 
     /* widget and gadget class resources */
@@ -78,9 +78,9 @@ static String  fallback_resources[] = {
 
 
     /* drawing area defaults */
-    "MAPaint*HGU_DrawingArea.visual:		PseudoColor",
-    "MAPaint*HGU_DrawingArea.depth:		8",
-    "MAPaint*HGU_DrawingArea.background:	white",
+    /*"MAPaint*HGU_DrawingArea.visual:		PseudoColor",
+      "MAPaint*HGU_DrawingArea.depth:		8",*/
+    "*HGU_DrawingArea.background:	white",
 
     /* dialog defaults */
 
@@ -194,8 +194,10 @@ static String  fallback_resources[] = {
     "*domain_menu*auto_increment.labelString:	Auto-increment",
     "*domain_menu*auto_increment.mnemonic:	A",
     "*domain_menu*auto_increment.borderwidth:	0",
-    "*domain_menu*propogate.labelString:	Propogate",
+    "*domain_menu*propogate.labelString:	Propogate all",
     "*domain_menu*propogate.mnemonic:		P",
+    "*domain_menu*propogate.borderwidth:	0",
+    "*domain_menu*propogate_sel.labelString:	Propogate current",
     "*domain_menu*propogate.borderwidth:	0",
     "*domain_menu*read_domain.labelString:	Read domain...",
     "*domain_menu*read_domain.mnemonic:		R",

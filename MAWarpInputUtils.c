@@ -71,7 +71,7 @@ WlzErrorNum WlzSetMeshAffineProduct(
 	meshTr->nodes[i].displacement.vtX;
       vtx.vtY = meshTr->nodes[i].position.vtY +
 	meshTr->nodes[i].displacement.vtY;
-      vtx = WlzAffineTransformVertexD(affineTr, vtx, &errNum);
+      vtx = WlzAffineTransformVertexD2(affineTr, vtx, &errNum);
       vtx.vtX -= meshTr->nodes[i].position.vtX;
       vtx.vtY -= meshTr->nodes[i].position.vtY;
       meshTr->nodes[i].displacement = vtx;
@@ -182,7 +182,7 @@ void warpSetOvlyObject(void)
   /* apply the inverse transform to the dst tie-points */
   if( trans = WlzAffineTransformInverse(warpGlobals.affine, &errNum) ){
     for(i=0; i < warpGlobals.num_vtxs; i++){
-      dstVtxs[i] = WlzAffineTransformVertexD(trans, dstVtxs[i], &errNum);
+      dstVtxs[i] = WlzAffineTransformVertexD2(trans, dstVtxs[i], &errNum);
     }
     WlzFreeAffineTransform(trans);
   }

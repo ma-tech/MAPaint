@@ -297,6 +297,10 @@ Widget		dialog)
       {
 	col = globals.cmapstruct->ovly_cols[i];
       }
+      col = HGU_XGetColorPixel(XtDisplay(parent), globals.cmap,
+			       (float) globals.colormap[0][col]/255.0,
+			       (float) globals.colormap[1][col]/255.0,
+			       (float) globals.colormap[2][col]/255.0);
       (void) sprintf(str, "*%s", ovly_strs[i]);
       if( widget = XtNameToWidget(option_menu, str) ){
 	XtVaSetValues(widget, XmNbackground, col, NULL);

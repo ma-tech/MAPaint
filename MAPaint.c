@@ -70,6 +70,9 @@ Cardinal	*num_params)
 
     /* initialise the button bar */
     (void) init_main_buttonbar( w );
+
+    /* flush the X-request queue */
+    XFlush(globals.dpy);
 }
 
 void clear_autosave(void)
@@ -143,18 +146,37 @@ void save_domains(void)
 }
 
 int XNonFatalErrorHandler(
-  Display		*dpy,
-  XErrorEvent	*err_event)
+Display		*dpy,
+XErrorEvent	*err_event)
 {
-  if( HGU_XmUserConfirm(globals.topl,
-			"An X11 error has occurred, do\n"
-			"you want to try and save domains\n"
-			"before attempting to continue?",
+  char *errStr, *str;
+
+  errStr = (char *) AlcMalloc(sizeof(char)*80);
+  str = (char *) AlcMalloc(sizeof(char)*512);
+
+  XGetErrorText(dpy, err_event->error_code, errStr, 80);
+  sprintf(str,
+	  "An X11 error has occurred:\n\n"
+	  "X Error of failed request: %s\n"
+	  "Value in failed request: 0x%x\n"
+	  "Major opcode of failed request: %d (%s)\n"
+	  "Minor opcode of failed request: %d\n"
+	  "Serial number of request: %d\n\n"
+	  "do you want to save domains\n"
+	  "before attempting to continue?",
+	  errStr, err_event->resourceid,
+	  err_event->request_code,
+	  HGU_XRequestToString(err_event->request_code),
+	  err_event->minor_code,
+	  err_event->serial);
+
+  if( HGU_XmUserConfirm(globals.topl, str,
 			"Yes", "No", 1) ){
-    autosave_all_domains();
-    save_domains();
+    /* blah blah blah action here */
   }
 
+  AlcFree(str);
+  AlcFree(errStr);
   return( 0 );
 }
 
@@ -223,118 +245,182 @@ static XrmOptionDescRec mapaint_options[] = {
    XrmoptionNoArg, "True"},
   {"-realign",	"*options_menu*realignment.sensitive",
    XrmoptionNoArg, "True"},
-  {"-listen",	"*view_dialog*listen.sensitive",
-   XrmoptionNoArg, "True"},
-  {"-help",	"*help_menu.sensitive",
-   XrmoptionNoArg, "True"},
+  {"-listen",	"*view_dialog*listen.sensitive", XrmoptionNoArg, "True"},
+  {"-24bit",	".24bit", XrmoptionNoArg, "True"},
+  {"-cdrom",	".theilerDir", XrmoptionSepArg, NULL},
+  {"-theilerStage",	".theilerStage", XrmoptionSepArg, NULL},
+  {"-stage",	".theilerStage", XrmoptionSepArg, NULL},
+  {"-help",	"*help_menu.sensitive", XrmoptionNoArg, "True"},
 };
 
 main(
-int	argc,
-char	**argv)
+  int	argc,
+  char	**argv)
 {
-    Widget		topl, main_w, buttonbar, menubar, work_area;
-    Widget		xmdisplay;
-    XtAppContext	app_con;
-    XtTranslations	translations;
-    Atom		WM_DELETE_WINDOW;
-
-    /* create the top level shell */
-    topl = XtAppInitialize(&app_con, "MAPaint",
-			   mapaint_options, XtNumber(mapaint_options),
-			   &argc, argv, fallback_resources,
-			   NULL, 0);
-
-    /* check for command line reference image */
-    if( argc > 1 ){
-      if(strcmp(argv[1], "-cdrom") == 0){
-	int i;
-	if( argc > 2){
-	  globals.base_theiler_dir = strdup(argv[2]);
-	  for(i=1; i < argc-2; i++){
-	    argv[i] = argv[i+2];
-	  }
-	}
-	else {
-	  for(i=1; i < argc-1; i++){
-	    argv[i] = argv[i+1];
-	  }
-	}
+  Widget		topl, main_w, buttonbar, menubar, work_area;
+  Widget		xmdisplay;
+  XtAppContext		app_con;
+  XtTranslations	translations;
+  Atom			WM_DELETE_WINDOW;
+  Display		*dpy;
+  Visual		*visual;
+  Arg			arg[3];
+  Boolean		d24Flg=False;
+  XrmValue		xrmValue;
+  char			*rtnStrType;
+  char			*nameStr, *depthRscStr;
+  
+  /* get the application name in case it is not MAPaint */
+  if( argv[0] ){
+    int i;
+    for(i=strlen(argv[0]); i > 0; i--){
+      if( argv[0][i-1] == '/' ){
+	nameStr = (argv[0]) + i;
+	break;
       }
     }
-    if( argc > 1 ){
-      initial_reference_file = argv[1];
+  }
+  else {
+    nameStr = "MAPaint";
+  }
+  depthRscStr = (char *) AlcMalloc(sizeof(char) * (strlen(nameStr) +10));
+  sprintf(depthRscStr, "%s.24bit", nameStr);
+
+  /* create the top level shell */
+  XtToolkitInitialize();
+  app_con = XtCreateApplicationContext();
+  XtAppSetFallbackResources(app_con, fallback_resources);
+  dpy = XtOpenDisplay(app_con, NULL, nameStr, "MAPaint", mapaint_options, 8,
+		      &argc, argv);
+  globals.dpy = dpy;
+
+  /* now check what visuals are available to determine the mode */
+  if( XrmGetResource(XtDatabase(dpy), depthRscStr, "MAPaint.24bit",
+		     &rtnStrType, &xrmValue) == True ){
+    if( !strcmp(xrmValue.addr, "True") ){
+      d24Flg = True;
+    }
+  }
+  if(!(visual = HGU_XGetVisual(dpy, DefaultScreen(dpy), PseudoColor, 8)) ||
+     (d24Flg == True)){
+    if( visual = HGU_XGetVisual(dpy, DefaultScreen(dpy), TrueColor, 24) ){
+      globals.visualMode = MAPAINT_24BIT_ONLY_MODE;
+      globals.toplDepth = 24;
+      globals.toplVisual = visual;
+      globals.warpVisual = visual;
     }
     else {
-      initial_reference_file = NULL;
+      fprintf(stderr,
+	      "%s: can't get required 8-bit or 24-bit visual.\n"
+	      "MAPaint requires either an 8-bit and/or a 24bit visual\n"
+	      "for operation. Please check if your workstation can be set\n"
+	      "to 8-bit or 24-bit mode (full operation requires 24-bit)\n"
+	      "If only 8-bit is available then warp input will be\n"
+	      "disabled\n",
+	      argv[0]);
+      return 1;
     }
+  }
+  else {
+    globals.toplDepth = 8;
+    globals.toplVisual = visual;
+    globals.visualMode = MAPAINT_8BIT_ONLY_MODE;
+    if( visual = HGU_XGetVisual(dpy, DefaultScreen(dpy), TrueColor, 24) ){
+      globals.visualMode = MAPAINT_8_24BIT_MODE;
+      globals.warpVisual = visual;
+    }
+  }
+  
+  /* also need to create and set the colormap */
+  if( globals.toplDepth == 8 ){
+    HGU_XmCreatePrivateColormap(dpy);
+  }
+  else {
+    globals.cmap = XCreateColormap(dpy, DefaultRootWindow(dpy),
+				   globals.toplVisual, AllocNone);
+  }
+  XtSetArg(arg[0], XtNdepth, globals.toplDepth);
+  XtSetArg(arg[1], XmNvisual, globals.toplVisual);
+  XtSetArg(arg[2], XtNcolormap, globals.cmap);
 
-    if( argc > 2 ){
-      initial_domain_file = argv[2];
-    }
-    else {
-      initial_domain_file = NULL;
-    }
+  /* finally create the top-level shell */
+  topl = XtAppCreateShell(NULL, "MAPaint", applicationShellWidgetClass,
+			  dpy, arg, 3);
+  
+  /* check for command line reference image */
+  if( argc > 1 ){
+    initial_reference_file = argv[1];
+  }
+  else {
+    initial_reference_file = NULL;
+  }
 
-    /* add some additional translations to initialise the process when the
+  if( argc > 2 ){
+    initial_domain_file = argv[2];
+  }
+  else {
+    initial_domain_file = NULL;
+  }
+
+  /* add some additional translations to initialise the process when the
        top-level widget is mapped */
-    translations = XtParseTranslationTable( translations_table );
-    XtAugmentTranslations( topl, translations );
+  translations = XtParseTranslationTable( translations_table );
+  XtAugmentTranslations( topl, translations );
 
-    globals.topl    = topl;
-    globals.app_con = app_con;
-    globals.app_name = "MAPaint";
-    globals.sectViewFlg = 0;
+  globals.topl    = topl;
+  globals.app_con = app_con;
+  globals.app_name = "MAPaint";
+  globals.sectViewFlg = 0;
 
-    /* install a private colormap */
-    HGU_XmCreatePrivateColormap( topl );
+  /* initialise the colormap */
+  init_paint_cmapstruct( topl );
 
-    /* initialise the save-restore facility */
-    HGU_XmSaveRestoreInit( topl, &argc, argv );
-    HGU_XmSaveRestoreHelpCallback(topl, HGU_XmHelpStandardCb,
-				  "libhguXm/HGU_XmSaveRestore.html");
+  /* initialise the save-restore facility */
+  HGU_XmSaveRestoreInit( topl, &argc, argv );
+  HGU_XmSaveRestoreHelpCallback(topl, HGU_XmHelpStandardCb,
+				"libhguXm/HGU_XmSaveRestore.html");
 
-    /* create the motif main window */
-    main_w = XtVaCreateManagedWidget("main_w", xmMainWindowWidgetClass,
-				     topl,
-				     XmNcommandWindowLocation,
-				     XmCOMMAND_BELOW_WORKSPACE,
-				     NULL);
-    XtAddCallback(main_w, XmNhelpCallback, HGU_XmHelpStandardCb,
-		  "paint/paint.html");
+  /* create the motif main window */
+  main_w = XtVaCreateManagedWidget("main_w", xmMainWindowWidgetClass,
+				   topl,
+				   XmNcommandWindowLocation,
+				   XmCOMMAND_BELOW_WORKSPACE,
+				   NULL);
+  XtAddCallback(main_w, XmNhelpCallback, HGU_XmHelpStandardCb,
+		"paint/paint.html");
 
-    /* create the menu bar */
-    menubar = create_main_menubar( main_w );
+  /* create the menu bar */
+  menubar = create_main_menubar( main_w );
 
-    /* create the work area */
-    work_area = create_main_work_area( main_w );
+  /* create the work area */
+  work_area = create_main_work_area( main_w );
     
-    /* create the command push buttons */
-    buttonbar = create_main_buttonbar( main_w );
-    XtVaSetValues(main_w, XmNcommandWindow, buttonbar, NULL);
+  /* create the command push buttons */
+  buttonbar = create_main_buttonbar( main_w );
+  XtVaSetValues(main_w, XmNcommandWindow, buttonbar, NULL);
 
-    /* add application action procedures */
-    XtAppAddActions(app_con, actions, XtNumber(actions));
+  /* add application action procedures */
+  XtAppAddActions(app_con, actions, XtNumber(actions));
 
-    /* install signal and error handlers */
-    signal(SIGHUP,  non_abort_signal_handler);
-    signal(SIGINT,  non_abort_signal_handler);
-    signal(SIGQUIT, abort_signal_handler);
-    signal(SIGBUS,  abort_signal_handler);
-    signal(SIGSEGV, abort_signal_handler);
-    signal(SIGSYS,  abort_signal_handler);
-    (void) XSetErrorHandler( XNonFatalErrorHandler );
-    (void) XSetIOErrorHandler( XFatalErrorHandler );
+  /* install signal and error handlers */
+  signal(SIGHUP,  non_abort_signal_handler);
+  signal(SIGINT,  non_abort_signal_handler);
+  signal(SIGQUIT, abort_signal_handler);
+  signal(SIGBUS,  abort_signal_handler);
+  signal(SIGSEGV, abort_signal_handler);
+  signal(SIGSYS,  abort_signal_handler);
+  (void) XSetErrorHandler( XNonFatalErrorHandler );
+  (void) XSetIOErrorHandler( XFatalErrorHandler );
     
-    WM_DELETE_WINDOW = XmInternAtom(XtDisplay(topl),
-				    "WM_DELETE_WINDOW", False);
-    XmAddWMProtocols(topl, &WM_DELETE_WINDOW, 1);
-    XmAddWMProtocolCallback(topl, WM_DELETE_WINDOW, quit_cb, (XtPointer) topl);
+  WM_DELETE_WINDOW = XmInternAtom(XtDisplay(topl),
+				 "WM_DELETE_WINDOW", False);
+  XmAddWMProtocols(topl, &WM_DELETE_WINDOW, 1);
+  XmAddWMProtocolCallback(topl, WM_DELETE_WINDOW, quit_cb, (XtPointer) topl);
 
-    XtRealizeWidget( topl );
-    XtAppMainLoop( app_con );
+  XtRealizeWidget( topl );
+  XtAppMainLoop( app_con );
 
-    return( 0 );
+  return( 0 );
 }
 
 static int set_MainWindow_XSizeHints(
