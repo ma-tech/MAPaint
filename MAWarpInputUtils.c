@@ -983,11 +983,13 @@ void warpIORead(
 	      srcVtx.vtX += warpGlobals.srcXOffset;
 	      srcVtx.vtY += warpGlobals.srcYOffset;
 	    }
-	    warpGlobals.dst_vtxs[warpGlobals.num_vtxs].vtX = dstVtx.vtX;
-	    warpGlobals.dst_vtxs[warpGlobals.num_vtxs].vtY = dstVtx.vtY;
-	    warpGlobals.src_vtxs[warpGlobals.num_vtxs].vtX = srcVtx.vtX;
-	    warpGlobals.src_vtxs[warpGlobals.num_vtxs].vtY = srcVtx.vtY;
-	    warpGlobals.num_vtxs++;
+	    if( warpGlobals.num_vtxs < WARP_MAX_NUM_VTXS ){
+	      warpGlobals.dst_vtxs[warpGlobals.num_vtxs].vtX = dstVtx.vtX;
+	      warpGlobals.dst_vtxs[warpGlobals.num_vtxs].vtY = dstVtx.vtY;
+	      warpGlobals.src_vtxs[warpGlobals.num_vtxs].vtX = srcVtx.vtX;
+	      warpGlobals.src_vtxs[warpGlobals.num_vtxs].vtY = srcVtx.vtY;
+	      warpGlobals.num_vtxs++;
+	    }
 	  }
 	  resetOvlyFlg = 1;
 	}

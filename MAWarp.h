@@ -28,7 +28,7 @@
 *   Maintenance :  date - name - comments (Last changes at the top)	*
 ************************************************************************/
 
-#define WARP_MAX_NUM_VTXS 256
+#define WARP_MAX_NUM_VTXS 1024
 
 extern Widget create_view_window_dialog(Widget topl,
 					double theta,

@@ -665,9 +665,11 @@ void warpDstCanvasInputCb(
 	switch( warpGlobals.tp_state ){
 	case TP_INACTIVE:
 	  /* set the dst vertex */
-	  warpGlobals.dst_vtxs[warpGlobals.num_vtxs] =
-	    warpDisplayTransBack(vtx, &(warpGlobals.dst));
-	  warpGlobals.tp_state = TP_DST_DEFINED;
+	  if( warpGlobals.num_vtxs < WARP_MAX_NUM_VTXS ){
+	    warpGlobals.dst_vtxs[warpGlobals.num_vtxs] =
+	      warpDisplayTransBack(vtx, &(warpGlobals.dst));
+	    warpGlobals.tp_state = TP_DST_DEFINED;
+	  }
 	  break;
 
 	case TP_DST_DEFINED:
@@ -951,9 +953,11 @@ void warpSrcCanvasInputCb(
 	switch( warpGlobals.tp_state ){
 	case TP_INACTIVE:
 	  /* set the src vertex */
-	  warpGlobals.src_vtxs[warpGlobals.num_vtxs] =
-	    warpDisplayTransBack(vtx, &(warpGlobals.src));
-	  warpGlobals.tp_state = TP_SRC_DEFINED;
+	  if( warpGlobals.num_vtxs < WARP_MAX_NUM_VTXS ){
+	    warpGlobals.src_vtxs[warpGlobals.num_vtxs] =
+	      warpDisplayTransBack(vtx, &(warpGlobals.src));
+	    warpGlobals.tp_state = TP_SRC_DEFINED;
+	  }
 	  break;
 
 	case TP_SRC_DEFINED:

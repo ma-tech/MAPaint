@@ -370,7 +370,8 @@ int set_paint_colormap(
 	(cmpstr->high_thresh - cmpstr->low_thresh);
     }
 
-    gval = pow( (val / 255), (double) cmpstr->gamma ) * 255;
+    val = pow( (val / 255), (double) cmpstr->gamma ) * 255;
+    gval = WLZ_NINT(val);
     if( cmpstr->invert )
       gval = 255 - gval;
 
