@@ -315,11 +315,18 @@ void setDomainIncrement(
   WlzObject	*obj1, *obj2;
   int		i, j, numOverlays;
   int		dominanceFlag;
+  WlzValues	values;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
+  FILE		*fp;
 
   /* check the object */
   if( obj == NULL || WlzIsEmpty(obj, NULL) )
     return;
+
+  if( fp = fopen("qwe4.wlz", "w") ){
+    WlzWriteObj(fp, obj);
+    fclose(fp);
+  }
 
   /* check the view object */
   if( view_struct->view_object == NULL ){
@@ -365,9 +372,14 @@ void setDomainIncrement(
   if( errNum == WLZ_ERR_NONE ){
     numOverlays = globals.cmapstruct->num_overlays +
       globals.cmapstruct->num_solid_overlays;
-    obj1 = WlzMakeMain(obj->type, obj->domain, obj->values, NULL, NULL, NULL);
+    values.core = NULL;
+    obj1 = WlzMakeMain(obj->type, obj->domain, values, NULL, NULL, NULL);
     obj1 = WlzAssignObject(obj1, NULL);
     dominanceFlag = 1;
+  }
+  if( fp = fopen("qwe5.wlz", "w") ){
+    WlzWriteObj(fp, obj1);
+    fclose(fp);
   }
 
   for(j=1;(errNum == WLZ_ERR_NONE) && (j <= numOverlays); j++){
@@ -449,6 +461,10 @@ void setDomainIncrement(
 				view_struct->painted_object,
 				globals.cmapstruct->ovly_cols[i],
 				globals.cmapstruct->ovly_planes);
+  }
+  if( fp = fopen("qwe8.wlz", "w") ){
+    WlzWriteObj(fp, view_struct->curr_domain[i]);
+    fclose(fp);
   }
   
   /* redisplay this view */

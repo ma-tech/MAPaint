@@ -1037,6 +1037,29 @@ WlzObject *mapaintWarpObj(
   }
   else {
     if( warpGlobals.meshTr ){
+      /* int	i, numObjs;
+	 WlzObject	**objsArray;*/
+
+      /* one object at a time to avoid BoundToObj bug */
+      /* errNum = WlzLabel(obj, &numObjs, &objsArray, 2048, 0, WLZ_8_CONNECTED);
+      if( errNum == WLZ_ERR_NONE ){
+	for(i=0; i < numObjs; i++){
+	  if( obj1 = WlzMeshTransformObj(objsArray[i], warpGlobals.meshTr,
+					 interpType, &errNum) ){
+	    WlzFreeObj(objsArray[i]);
+	    objsArray[i] = WlzAssignObject(obj1, NULL);
+	  }
+	  else {
+	    break;
+	  }
+	}
+	if( errNum == WLZ_ERR_NONE ){
+	  obj1 = WlzUnionN(numObjs, objsArray, 0, &errNum);
+	}
+      }
+      for(i=0; i < numObjs; i++){
+	WlzFreeObj(objsArray[i]);
+	}*/
       obj1 = WlzMeshTransformObj(obj, warpGlobals.meshTr,
 				 interpType, &errNum);
     }
@@ -1056,10 +1079,15 @@ void mapWarpDataCb(
   ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
   WlzObject		*obj, *tmpObj;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
+  FILE			*fp;
 
   /* check for signal domain and warp transform */
   if((warpGlobals.sgnlObj == NULL)){
     return;
+  }
+  if( fp = fopen("qwe1.wlz", "w") ){
+    WlzWriteObj(fp, warpGlobals.sgnlObj);
+    fclose(fp);
   }
 
   /* shift the signal object for the -ve bounds-obj mesh bug */
@@ -1070,7 +1098,15 @@ void mapWarpDataCb(
     /* transform the domain and add to current domain */
     if( obj = mapaintWarpObj(tmpObj,
 			     WLZ_INTERPOLATION_NEAREST) ){
+  if( fp = fopen("qwe3.wlz", "w") ){
+    WlzWriteObj(fp, obj);
+    fclose(fp);
+  }
       pushUndoDomains(view_struct);
+  if( fp = fopen("qwe3a.wlz", "w") ){
+    WlzWriteObj(fp, obj);
+    fclose(fp);
+  }
       setDomainIncrement(obj, view_struct, globals.current_domain, 0);
       WlzFreeObj(obj);
     }

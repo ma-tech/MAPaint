@@ -1095,9 +1095,17 @@ void warpIOWriteAffine(
 	WlzObject *obj;
 	WlzDomain	domain;
 	WlzValues	values;
-	WlzAffineTransform	*t;
+	WlzAffineTransform	*t1, *t2;
 
-	domain.t = warpGlobals.affine;
+	/* must take acount of source offset - yuk */
+	t1 = WlzAffineTransformFromTranslation(WLZ_TRANSFORM_2D_AFFINE,
+					       warpGlobals.srcXOffset,
+					       warpGlobals.srcYOffset,
+					       0, NULL);
+	t2 = WlzAffineTransformProduct(t1, warpGlobals.affine, NULL);
+
+/*	domain.t = warpGlobals.affine;*/
+	domain.t = t2;
 	values.core = NULL;
 	if( obj = WlzMakeMain(WLZ_AFFINE_TRANS, domain, values,
 			      NULL, NULL, NULL) ){
@@ -1105,6 +1113,8 @@ void warpIOWriteAffine(
 	  domain.core = NULL;
 	  WlzFreeObj(obj);
 	}
+	WlzFreeAffineTransform(t2);
+	WlzFreeAffineTransform(t1);
       }
 
       (void) fclose(fp);
