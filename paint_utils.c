@@ -15,6 +15,27 @@
 #include <X11/cursorfont.h>
 #include <X11/Xproto.h>
 
+void myHGU_XmHelpStandardCb(Widget	w,
+			  XtPointer	client_data,
+			  XtPointer	call_data)
+{
+  /* dummy routine to switch off help */
+  HGU_XmUserMessage(w,
+		    "Button and context help has been\n"
+		    "disabled to switch to a more usable\n"
+		    "system based on JavaHelp.\n\n"
+		    "For now please see help pages on the\n"
+		    "Mouse Atlas web site:\n"
+		    "http://genex.hgu.mrc.ac.uk/Resources/"
+		    "or email ma-tech@hgu.mrc.ac.uk.\n"
+		    "Thank you",
+		    XmDIALOG_FULL_APPLICATION_MODAL);
+
+  return;
+}
+
+
+
 void popup_dialog_cb(
 Widget	w,
 XtPointer	client_data,

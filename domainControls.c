@@ -848,7 +848,7 @@ Widget create_domain_controls_dialog(
   /* create the controls dialog */
   dialog = HGU_XmCreateStdDialog(topl, "domain_controls_dialog",
 				 xmFormWidgetClass,
-				 domain_control_actions, 4);
+				 domain_control_actions, 5);
 
   if( (widget = XtNameToWidget(dialog, "*.Dismiss")) != NULL ){
     XtAddCallback(widget, XmNactivateCallback, PopdownCallback,

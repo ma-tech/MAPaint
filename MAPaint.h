@@ -41,6 +41,7 @@
 #include <MAPaintTypes.h>
 #include <MAPaintProto.h>
 #include <MAPaintHelp.h>
+#include <MAPaintEvent.h>
 
 /* do not add anything after this line */
 #endif /* MAPAINT_H */

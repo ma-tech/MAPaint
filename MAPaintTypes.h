@@ -324,8 +324,6 @@ typedef struct _PaintGlobals{
 
 } PaintGlobals;
 
-extern PaintGlobals	globals;
-
 
 
 /* do not add anything after this line */

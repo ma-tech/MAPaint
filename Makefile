@@ -41,6 +41,7 @@ CSOURCES		= \
 			MADomainSurgeryDialog.c \
 			MAOpenGLUtils.c \
 			MAPaint.c \
+			MAPaintEvent.c \
 			MAPaintUndoDomain.c \
 			MARealignmentDialog.c \
 			MASaveSequenceDialog.c \
@@ -96,6 +97,7 @@ CSOURCES		= \
 			MADomainSurgeryDialog.c \
 			MAOpenGLUtils.c \
 			MAPaint.c \
+			MAPaintEvent.c \
 			MAPaintUndoDomain.c \
 			MARealignmentDialog.c \
 			MASaveSequenceDialog.c \
@@ -150,6 +152,7 @@ CSOURCES		= \
 			MADomainSurgeryDialog.c \
 			MAOpenGLUtils.c \
 			MAPaint.c \
+			MAPaintEvent.c \
 			MAPaintUndoDomain.c \
 			MARealignmentDialog.c \
 			MASaveSequenceDialog.c \
@@ -234,6 +237,7 @@ INCDIRS			= .  \
 			../../HGUX/libHguXm \
 			../../HGUX/libhguGL \
 			../../External/Tiff/tiff-v3.5.7/libtiff \
+			../../External/Jpeg/jpeg-6b \
 			  $(HGU_INC_DIR) \
 			  $(OPENGL_INC_DIR) \
 			  $(X11_INC_DIR) \
@@ -267,6 +271,7 @@ LIBDIRS			= . \
 			../../HGUX/libHguXm \
 			../../HGUX/libhguGL \
 			../../External/Tiff/tiff-v3.5.7/libtiff \
+			../../External/Jpeg/jpeg-6b \
 			  $(HGU_LIB_DIR) \
 			  $(OPENGL_LIB_DIR) \
 			  $(X11_LIB_DIR) \
@@ -284,6 +289,7 @@ LIBDIRS			= . \
 			../../HGUX/libHguXm \
 			../../HGUX/libhguGL \
 			../../External/Tiff/tiff-v3.5.7/libtiff \
+			../../External/Jpeg/jpeg-6b \
 			  $(HGU_LIB_DIR) \
 			  $(OPENGL_LIB_DIR) \
 			  $(X11_LIB_DIR) \

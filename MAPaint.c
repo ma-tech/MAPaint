@@ -22,7 +22,7 @@
 PaintGlobals	globals;
 char		*initial_reference_file;
 char		*initial_domain_file;
-char		*release_str = "$Name$";
+char		*release_str = "MAPaint Version 2.0";
 
 static int set_MainWindow_XSizeHints	(Widget	main_w);
 static String translations_table =
@@ -534,7 +534,7 @@ main(
 
   /* initialise the save-restore facility */
   HGU_XmSaveRestoreInit( topl, &argc, argv );
-  HGU_XmSaveRestoreHelpCallback(topl, HGU_XmHelpStandardCb,
+  HGU_XmSaveRestoreHelpCallback(topl, myHGU_XmHelpStandardCb,
 				"libhguXm/HGU_XmSaveRestore.html");
 
   /* create the motif main window */
@@ -543,7 +543,7 @@ main(
 				   XmNcommandWindowLocation,
 				   XmCOMMAND_BELOW_WORKSPACE,
 				   NULL);
-  XtAddCallback(main_w, XmNhelpCallback, HGU_XmHelpStandardCb,
+  XtAddCallback(main_w, XmNhelpCallback, myHGU_XmHelpStandardCb,
 		"paint/paint.html");
 
   /* create the menu bar */

@@ -33,6 +33,10 @@ WlzObject *WlzXmReadExtFFObject(
   WlzEffFormat				*dstFmt,
   WlzErrorNum				*dstErr);
 
+extern WlzErrorNum WlzXmExtFFObjectFSBSetType(
+  Widget	dialog,
+  WlzEffFormat	format);
+
 
 /* do not add anything after this line */
 #endif /* WLZXM_H */

@@ -263,11 +263,11 @@ XtPointer		call_data)
 static MenuItem surgery_option_items[] = {	/* surgery options items */
   {"section cut", &xmPushButtonGadgetClass, 0, NULL, NULL, True,
    surgeryOptionCb, (XtPointer) MAPAINT_SURGERY_SECTION_CUT,
-   HGU_XmHelpStandardCb, "",
+   myHGU_XmHelpStandardCb, "",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"laser cut", &xmPushButtonGadgetClass, 0, NULL, NULL, True,
    surgeryOptionCb, (XtPointer) MAPAINT_SURGERY_LASER_CUT,
-   HGU_XmHelpStandardCb, "",
+   myHGU_XmHelpStandardCb, "",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   NULL,
 };

@@ -398,5 +398,10 @@ extern void warpColorSpaceCb(
   XtPointer	client_data,
   XtPointer	call_data);
 
+extern void warpResetCWDCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data);
+
 /* do not add anything after this line */
 #endif /* MAWARP_H */

@@ -593,55 +593,67 @@ void warpDstCanvasInputCb(
   Widget	toggle;
   Boolean	autoUpdateFlg;
   int		i;
+  UINT		modMask=ShiftMask|ControlMask|LockMask|Mod1Mask|Mod2Mask|
+    Mod3Mask|Mod4Mask;
 
-  /* check there is and image */
+  /* check there is an image */
   if( winStruct->ximage == NULL ){
     return;
   }
 
   switch( cbs->event->type ){
   case ButtonPress:
+    /* remap the event */
+/*    if( MAPaintEventRemap(MAPAINT_WARP_DST_CONTEXT,
+			  MAPAINT_WARP_MODE, cbs->event) != WLZ_ERR_NONE ){
+      break;
+      }*/
+
     vtx.vtX = cbs->event->xbutton.x;
     vtx.vtY = cbs->event->xbutton.y;
+    fprintf(stderr, "Dst Canvas: ButtonPress\n");
 
-    /* check if a region is being defined */
-    if( cbs->event->xbutton.state & (Mod1Mask|Mod2Mask) ){
-      WlzFVertex2	start, *rect;
+    /* check for any modifiers */
+    if( cbs->event->xbutton.state & modMask ){
+      /* check for shift only */
+      if( !(cbs->event->xbutton.state & (modMask & ~ShiftMask)) ){
+	WlzFVertex2	start, *rect;
 
-      switch( cbs->event->xbutton.button ){
-      case Button1:
-	/* get a rectangle - this will capture the release
-	   event */
-	start.vtX = cbs->event->xbutton.x;
-	start.vtY = cbs->event->xbutton.y;
-	if( rect = HGU_XGetRect(XtDisplay(widget),
-				XtWindow(widget),
-				HGU_XNoConfirmMask,
-				NULL, &start) ){
-	  /* loop through source vertices to check for selection */
-	  rect[1].vtX += rect[0].vtX;
-	  rect[1].vtY += rect[0].vtY;
-	  for(i=0; i < warpGlobals.num_vtxs; i++){
-	    vtx = warpDisplayTransFore(warpGlobals.dst_vtxs[i],
-				       &(warpGlobals.dst));
-	    if((vtx.vtX >= rect[0].vtX) &&
-	       (vtx.vtX <= rect[1].vtX) &&
-	       (vtx.vtY >= rect[0].vtY) &&
-	       (vtx.vtY <= rect[1].vtY)){
-	      warpGlobals.sel_vtxs[i] = 1;
+	switch( cbs->event->xbutton.button ){
+	case Button1:
+	  /* get a rectangle - this will capture the release
+	     event */
+	  start.vtX = cbs->event->xbutton.x;
+	  start.vtY = cbs->event->xbutton.y;
+	  if( rect = HGU_XGetRect(XtDisplay(widget),
+				  XtWindow(widget),
+				  HGU_XNoConfirmMask,
+				  NULL, &start) ){
+	    /* loop through source vertices to check for selection */
+	    rect[1].vtX += rect[0].vtX;
+	    rect[1].vtY += rect[0].vtY;
+	    for(i=0; i < warpGlobals.num_vtxs; i++){
+	      vtx = warpDisplayTransFore(warpGlobals.dst_vtxs[i],
+					 &(warpGlobals.dst));
+	      if((vtx.vtX >= rect[0].vtX) &&
+		 (vtx.vtX <= rect[1].vtX) &&
+		 (vtx.vtY >= rect[0].vtY) &&
+		 (vtx.vtY <= rect[1].vtY)){
+		warpGlobals.sel_vtxs[i] = 1;
+	      }
+	      else {
+		warpGlobals.sel_vtxs[i] = 0;
+	      }
 	    }
-	    else {
-	      warpGlobals.sel_vtxs[i] = 0;
-	    }
+	    AlcFree(rect);
 	  }
-	  AlcFree(rect);
-	}
-	break;
+	  break;
 
-      default:
-	break;
+	default:
+	  break;
+	}
+	warpDisplayTiePoints();
       }
-      warpDisplayTiePoints();
     }
     else {
       /* clear any selected vertices */
@@ -868,6 +880,8 @@ void warpSrcCanvasInputCb(
   Widget	toggle;
   Boolean	autoUpdateFlg;
   int		i;
+  UINT		modMask=ShiftMask|ControlMask|LockMask|Mod1Mask|Mod2Mask|
+    Mod3Mask|Mod4Mask;
 
   /* check there is and image */
   if( winStruct->ximage == NULL ){
@@ -879,44 +893,47 @@ void warpSrcCanvasInputCb(
     vtx.vtX = cbs->event->xbutton.x;
     vtx.vtY = cbs->event->xbutton.y;
 
-    /* check if a region is being defined */
-    if( cbs->event->xbutton.state & (Mod1Mask|Mod2Mask) ){
-      WlzFVertex2	start, *rect;
+    /* check for any modifiers */
+    if( cbs->event->xbutton.state & modMask ){
+      /* check for shift only */
+      if( !(cbs->event->xbutton.state & (modMask & ~ShiftMask)) ){
+	WlzFVertex2	start, *rect;
 
-      switch( cbs->event->xbutton.button ){
-      case Button1:
-	/* get a rectangle - this will capture the release
-	   event */
-	start.vtX = cbs->event->xbutton.x;
-	start.vtY = cbs->event->xbutton.y;
-	if( rect = HGU_XGetRect(XtDisplay(widget),
-				XtWindow(widget),
-				HGU_XNoConfirmMask,
-				NULL, &start) ){
-	  /* loop through source vertices to check for selection */
-	  rect[1].vtX += rect[0].vtX;
-	  rect[1].vtY += rect[0].vtY;
-	  for(i=0; i < warpGlobals.num_vtxs; i++){
-	    vtx = warpDisplayTransFore(warpGlobals.src_vtxs[i],
-				       &(warpGlobals.src));
-	    if((vtx.vtX >= rect[0].vtX) &&
-	       (vtx.vtX <= rect[1].vtX) &&
-	       (vtx.vtY >= rect[0].vtY) &&
-	       (vtx.vtY <= rect[1].vtY)){
-	      warpGlobals.sel_vtxs[i] = 1;
+	switch( cbs->event->xbutton.button ){
+	case Button1:
+	  /* get a rectangle - this will capture the release
+	     event */
+	  start.vtX = cbs->event->xbutton.x;
+	  start.vtY = cbs->event->xbutton.y;
+	  if( rect = HGU_XGetRect(XtDisplay(widget),
+				  XtWindow(widget),
+				  HGU_XNoConfirmMask,
+				  NULL, &start) ){
+	    /* loop through source vertices to check for selection */
+	    rect[1].vtX += rect[0].vtX;
+	    rect[1].vtY += rect[0].vtY;
+	    for(i=0; i < warpGlobals.num_vtxs; i++){
+	      vtx = warpDisplayTransFore(warpGlobals.src_vtxs[i],
+					 &(warpGlobals.src));
+	      if((vtx.vtX >= rect[0].vtX) &&
+		 (vtx.vtX <= rect[1].vtX) &&
+		 (vtx.vtY >= rect[0].vtY) &&
+		 (vtx.vtY <= rect[1].vtY)){
+		warpGlobals.sel_vtxs[i] = 1;
+	      }
+	      else {
+		warpGlobals.sel_vtxs[i] = 0;
+	      }
 	    }
-	    else {
-	      warpGlobals.sel_vtxs[i] = 0;
-	    }
+	    AlcFree(rect);
 	  }
-	  AlcFree(rect);
-	}
-	break;
+	  break;
 
-      default:
-	break;
+	default:
+	  break;
+	}
+	warpDisplayTiePoints();
       }
-      warpDisplayTiePoints();
     }
     else {
       /* clear any selected vertices */

@@ -133,14 +133,12 @@ Widget WlzXmCreateExtFFObjectFSB(
   Visual	visual;
   Arg		arg[1];
   MenuItem	*menuItems;
-  Widget	form, menu, button;
+  Widget	form, menu;
   int		i, numFormats;
-  char		strBuf[32];
-  const char	*buttonName, *fileExt;
   XmString	xmstr;
 
   /* create the file-selection-box, add standard callbacks */
-  dialog = XmCreateFileSelectionDialog(parent, name, arg, 1);
+  dialog = XmCreateFileSelectionDialog(parent, name, arg, 0);
   XtAddCallback(dialog, XmNokCallback, proc, client_data);
   XtAddCallback(dialog, XmNokCallback, PopdownCallback, NULL);
   XtAddCallback(dialog, XmNcancelCallback, PopdownCallback, NULL);
@@ -176,20 +174,7 @@ Widget WlzXmCreateExtFFObjectFSB(
   XmStringFree(xmstr);
 
   /* set woolz as the default */
-  /* set the pattern string and re-filter */
-  buttonName = WlzEffStringFromFormat(WLZEFF_FORMAT_WLZ, &fileExt);
-  sprintf(strBuf, "*.%s", fileExt);
-  xmstr = XmStringCreateSimple(strBuf);
-  XtVaSetValues(dialog, XmNpattern, xmstr, NULL);
-  XmStringFree( xmstr );
-  XmFileSelectionDoSearch( dialog, NULL );
-  
-  /* now set the menu entry */
-  sprintf(strBuf, "*.%s", buttonName);
-  if( button = XtNameToWidget(menu, strBuf) ){
-    XtVaSetValues(menu, XmNmenuHistory, button, NULL);
-  }
-  XtVaSetValues(dialog, XmNuserData, (XtPointer) WLZEFF_FORMAT_WLZ, NULL);
+  WlzXmExtFFObjectFSBSetType(dialog, WLZEFF_FORMAT_WLZ);
 
   return dialog;
 }

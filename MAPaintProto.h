@@ -21,6 +21,15 @@
 *   Maintenance :  date - name - comments (Last changes at the top)	*
 ************************************************************************/
 
+/* the release string defines the version name and version number
+   defined in MAPaint.c */
+extern char		*release_str;
+extern char 		*initial_reference_file;
+extern char 		*initial_domain_file;
+extern PaintGlobals	globals;
+
+
+/* misc */
 extern void 		save_domains(void);
 extern void 		clear_autosave(void);
 
@@ -29,11 +38,6 @@ extern unsigned long 	HGU_XGetColorPixel(Display	*dpy,
 					   float	red,
 					   float	green,
 					   float	blue);
-
-/* MAPaint.c */
-extern char *initial_reference_file;
-extern char *initial_domain_file;
-
 
 /* anatomy_menu.c */
 extern MenuItem	*anatomy_menu_items;
@@ -345,6 +349,10 @@ extern void canvas_warp_painting_cb(
   XtPointer	call_data);
 
 /* paint_utils.c, MAColormapUtils.c */
+extern void myHGU_XmHelpStandardCb(Widget	w,
+				   XtPointer	client_data,
+				   XtPointer	call_data);
+
 extern char *HGU_XRequestToString(
   char	request_code);
 
@@ -721,6 +729,12 @@ extern void sockListenCb	(Widget		w,
 extern void sockCloseCb		(Widget		w,
 				 XtPointer	client_data,
 				 XtPointer	call_data);
+
+/* MAPaintEvent.c */
+extern void eventRemapCb(Widget	widget,
+			 XtPointer	client_data,
+			 XtPointer	call_data);
+extern Widget createEventRemapDialog(Widget parent);
 
 /* do not add anything after this line */
 #endif /* MAPAINTPROTO_H */

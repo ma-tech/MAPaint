@@ -21,11 +21,11 @@
 /* menu item structures */
 
 static MenuItem interact_tool_itemsP[] = {	/* select menu items */
-  {"Draw", &xmToggleButtonGadgetClass, 0, NULL, NULL, True,
+  {"Draw", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    select_interact_tool_cb, (XtPointer) MAPAINT_DRAW_2D,
    NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"Paint ball", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+  {"Paint ball", &xmToggleButtonGadgetClass, 0, NULL, NULL, True,
    select_interact_tool_cb, (XtPointer) MAPAINT_PAINT_BALL_2D,
    NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
@@ -105,6 +105,12 @@ static MenuItem options_menu_itemsP[] = {	/* option_menu items */
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"colormap", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    colormap_cb, NULL, NULL, NULL,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"event_remap", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   eventRemapCb, NULL, NULL, NULL,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"", &xmSeparatorGadgetClass, 0, NULL, NULL, False,
+   NULL, NULL, NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"autosave_opts", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    autosave_opts_cb, NULL, NULL, NULL,
@@ -497,10 +503,10 @@ Widget	topl)
 
     globals.stipple                = (Pixmap) 0;
     globals.paint_action_quit_flag = 0;
-    globals.currentPaintAction = MAPAINT_DRAW_2D;
-    globals.currentPaintActionCbFunc = MAPaintDraw2DCb;
-    globals.currentPaintActionInitFunc = MAPaintDraw2DInit;
-    globals.currentPaintActionQuitFunc = MAPaintDraw2DQuit;
+    globals.currentPaintAction = MAPAINT_PAINT_BALL_2D;
+    globals.currentPaintActionCbFunc = MAPaintPaintBall2DCb;
+    globals.currentPaintActionInitFunc = MAPaintPaintBall2DInit;
+    globals.currentPaintActionQuitFunc = MAPaintPaintBall2DQuit;
     globals.review_domain_obj = NULL;
 
     /* remove the editing options in sectionView mode */

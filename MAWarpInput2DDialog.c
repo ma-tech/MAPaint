@@ -309,22 +309,25 @@ void warpReadSourceCb(
 
 	/* reset the source mesh */
 	if( WlzGreyTypeFromObj(warpGlobals.src.obj, NULL) == WLZ_GREY_RGBA ){
-	  Widget	option_menu, widget;
+	  Widget	option_menu, widget, menuHistory;
 	  /* switch mesh method to block */
 	  if( option_menu = XtNameToWidget(view_struct->dialog,
 					   "*.mesh_method") ){
 	    if( widget = XtNameToWidget(option_menu, "*.block") ){
-	      XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
-	      warpGlobals.meshMthd = WLZ_MESH_GENMETHOD_BLOCK;
-	      HGU_XmUserMessage(globals.topl,
-				"The mesh generation method has been\n"
-				"switched to Block mode because the source\n"
-				"image just read is a colour image. The\n"
-				"gradient mesh method does not produce a\n"
-				"usable mesh in this version.\n\n"
-				"You may want to adjust the mesh minimum\n"
-				"distance parameter",
-				XmDIALOG_FULL_APPLICATION_MODAL);
+	      XtVaGetValues(option_menu, XmNmenuHistory, &menuHistory, NULL);
+	      if( widget != menuHistory ){
+		XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
+		warpGlobals.meshMthd = WLZ_MESH_GENMETHOD_BLOCK;
+		HGU_XmUserMessage(globals.topl,
+				  "The mesh generation method has been\n"
+				  "switched to Block mode because the source\n"
+				  "image just read is a colour image. The\n"
+				  "gradient mesh method does not produce a\n"
+				  "usable mesh in this version.\n\n"
+				  "You may want to adjust the mesh minimum\n"
+				  "distance parameter",
+				  XmDIALOG_FULL_APPLICATION_MODAL);
+	      }
 	    }
 	  }
 	}
@@ -373,6 +376,7 @@ void warpReadSourcePopupCb(
   XtPointer		call_data)
 {
   ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
+  Widget		toggle, form;
 
   /* now use generic Ext format dialog */
   if( warp_read_src_dialog == NULL ){
@@ -380,6 +384,20 @@ void warpReadSourcePopupCb(
 						     "warp_read_src_dialog",
 						     warpReadSourceCb,
 						     client_data);
+
+    /* add a check box to reset the current working directory */
+    if( form = XtNameToWidget(warp_read_src_dialog, "*.formatFormRC") ){
+      toggle = XtVaCreateManagedWidget("reset_cwd", xmToggleButtonGadgetClass,
+				       form,
+				       XmNset,	True,
+				       NULL);
+    }
+
+    XtAddCallback(warp_read_src_dialog, XmNokCallback,
+		  warpResetCWDCb, client_data);
+
+    /* set jpeg default */
+    WlzXmExtFFObjectFSBSetType(warp_read_src_dialog, WLZEFF_FORMAT_JPEG);
   }
 
   XtManageChild(warp_read_src_dialog);
@@ -751,6 +769,15 @@ void warpCanvasMotionEventHandler(
 {
   XmDrawingAreaCallbackStruct cbs;
 
+  /* for reasons unknown need to pass on
+     <Control>Button1 ignore all other
+     ButtonEvents */
+  /* if((event->type != ButtonPress) ||
+     (event->xbutton.button != Button1) ||
+     !(event->xbutton.state&(ControlMask|Mod1Mask|Mod2Mask))){
+    return;
+    }*/
+
   /* call the canvas input callbacks */
   cbs.reason = XmCR_INPUT;
   cbs.event = event;
@@ -1082,19 +1109,19 @@ static ActionAreaItem   warp_interact_actions[] = {
 static MenuItem warpDisplayFramePopupItemsP[] = { 
   {"gradient", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetXImageCb, NULL,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"invert", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetXImageCb, NULL,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"normalise", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetXImageCb, NULL,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"show mesh", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpCanvasMeshCb, NULL,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   NULL,
 };
@@ -1102,47 +1129,47 @@ static MenuItem warpDisplayFramePopupItemsP[] = {
 static MenuItem overlayMethodsItemsP[] = {
   {"red-green 1", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_RG1,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"red-green 2", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_RG2,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"red-blue 1", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_RB1,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"red-blue 2", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_RB2,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"green-blue 1", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_GB1,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"green-blue 2", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_GB2,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"red-cyan", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_RNR,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"green-magenta", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_GNG,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"blue-yellow", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_BNB,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"dither image 1", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_DITHER1,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"dither image 2", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_DITHER2,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   NULL,
 };
@@ -1150,35 +1177,35 @@ static MenuItem overlayMethodsItemsP[] = {
 static MenuItem warpOvlyDisplayFramePopupItemsP[] = { 
   {"gradient dest-image", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetXOvlyImageDstCb, NULL,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"gradient src-image", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetXOvlyImageSrcCb, NULL,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"invert dest-image", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetXOvlyImageDstCb, NULL,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"invert src-image", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetXOvlyImageSrcCb, NULL,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"normalise dest-image", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetXOvlyImageDstCb, NULL,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"normalise src-image", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpSetXOvlyImageSrcCb, NULL,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"show mesh", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    warpCanvasMeshCb, NULL,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"overlay method", &xmCascadeButtonGadgetClass, 0, NULL, NULL, False,
    NULL, NULL,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_ENABLED, True, True, &(overlayMethodsItemsP[0])},
   NULL,
 };
@@ -1265,7 +1292,8 @@ static Widget create2DWarpDialog(
 		warpCanvasExposeCb, (XtPointer) &(warpGlobals.dst));
   XtAddCallback(warpGlobals.dst.canvas, XmNinputCallback,
 		warpDstCanvasInputCb, (XtPointer) &(warpGlobals.dst));
-  XtAddEventHandler(warpGlobals.dst.canvas, 
+  XtAddEventHandler(warpGlobals.dst.canvas,
+		    ButtonPressMask|
 		    PointerMotionMask|EnterWindowMask|LeaveWindowMask,
 		    False, warpCanvasMotionEventHandler, NULL);
 
@@ -1439,11 +1467,11 @@ static ActionAreaItem   warp_controls_actions[] = {
 static MenuItem mesh_menu_itemsP[] = {		/* mesh_menu items */
   {"gradient", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    warpMeshMethodCb, (XtPointer) WLZ_MESH_GENMETHOD_GRADIENT,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"block", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    warpMeshMethodCb, (XtPointer) WLZ_MESH_GENMETHOD_BLOCK,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   NULL,
 };
@@ -1451,19 +1479,19 @@ static MenuItem mesh_menu_itemsP[] = {		/* mesh_menu items */
 static MenuItem interpFunctionItemsP[] = { /* interp_function_menu items */
   {"multiquadric", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    warpMeshFunctionCb, (XtPointer) WLZ_FN_BASIS_2DMQ,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"thin-plate spline", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    warpMeshFunctionCb, (XtPointer) WLZ_FN_BASIS_2DTPS,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"polynomial", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    warpMeshFunctionCb, (XtPointer) WLZ_FN_BASIS_2DPOLY,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
 /*{"gaussian", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    warpMeshFunctionCb, (XtPointer) WLZ_FN_BASIS_2DGAUSS,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},*/
   NULL,
 };
@@ -1471,15 +1499,15 @@ static MenuItem interpFunctionItemsP[] = { /* interp_function_menu items */
 static MenuItem affineTypeItemsP[] = { /* interp_function_menu items */
   {"noshear", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    warpAffineTypeCb, (XtPointer) WLZ_TRANSFORM_2D_NOSHEAR,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"rigid", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    warpAffineTypeCb, (XtPointer) WLZ_TRANSFORM_2D_REG,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"affine", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    warpAffineTypeCb, (XtPointer) WLZ_TRANSFORM_2D_AFFINE,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   NULL,
 };
@@ -1494,7 +1522,6 @@ Widget createWarpInput2DDialog(
   Widget	control, frame, form, title, controls_frame, section_frame;
   Widget	option_menu, button, buttons, radio_box, label, widget;
   Widget	toggle, slider, scale, sgnl_controls;
-  Widget	notebook, page;
   float		fval, fmin, fmax;
   Visual	*visual;
   int		i;
@@ -1557,6 +1584,11 @@ Widget createWarpInput2DDialog(
 		XmNleftAttachment,	XmATTACH_FORM,
 		NULL);
   XtManageChild(option_menu);
+  /* set block by default */
+  if( widget = XtNameToWidget(option_menu, "*.block") ){
+    XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
+    warpGlobals.meshMthd = WLZ_MESH_GENMETHOD_BLOCK;
+  }
   widget = option_menu;
 
   option_menu = HGU_XmBuildMenu(form, XmMENU_OPTION, "mesh_function", 0,
@@ -1747,7 +1779,7 @@ Widget createWarpInput2DDialog(
   warpGlobals.wlzFnType = WLZ_FN_BASIS_2DMQ;
   warpGlobals.meshTr = NULL;
   warpGlobals.meshErrFlg = 0;
-  warpGlobals.meshMthd = WLZ_MESH_GENMETHOD_GRADIENT;
+  warpGlobals.meshMthd = WLZ_MESH_GENMETHOD_BLOCK;
 
   warpGlobals.thresholdType = WLZ_RGBA_THRESH_NONE;
   warpGlobals.threshColorChannel = WLZ_RGBA_CHANNEL_GREY;

@@ -363,10 +363,18 @@ void warpReadSignalCb(
 
 	/* set threshold button sensitivities */
 	if( WlzGreyTypeFromObj(obj, NULL) == WLZ_GREY_RGBA ){
+	  Widget option_menu, option;
 	  warpSetThreshColorTypeSensitive( True );
+	  if( option_menu = 
+	     XtNameToWidget(globals.topl,
+			    "*warp_sgnl_controls_form*color_space") ){
+	    XtVaGetValues(option_menu, XmNmenuHistory, &option, NULL);
+	    XtCallCallbacks(option, XmNactivateCallback, NULL);
+	  }
 	}
 	else {
 	  warpSetThreshColorTypeSensitive( False );
+	  warpGlobals.threshRGBSpace = WLZ_RGBA_SPACE_GREY;
 	}
 
 	/* if colour image and grey channel reset sliders */
@@ -857,21 +865,27 @@ void thresholdChannelSelectCb(
   XtPointer	client_data,
   XtPointer	call_data)
 {
-  warpGlobals.threshColorChannel = (WlzRGBAColorChannel) client_data;
-  warpResetThresholdSliderRange();
+  XmToggleButtonCallbackStruct
+    *cbs=(XmToggleButtonCallbackStruct *) call_data;
 
-  /* reset the threshold object */
-  if( warpGlobals.sgnlThreshObj ){
-    WlzFreeObj(warpGlobals.sgnlThreshObj);
-    warpGlobals.sgnlThreshObj = NULL;
-  }
-  if( warpGlobals.sgnlObj ){
-    warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
-  }
+  if( cbs->set ){
+    fprintf(stderr, "Reseting Channel to %d\n", client_data);
+    warpGlobals.threshColorChannel = (WlzRGBAColorChannel) client_data;
+    warpResetThresholdSliderRange();
+
+    /* reset the threshold object */
+    if( warpGlobals.sgnlThreshObj ){
+      WlzFreeObj(warpGlobals.sgnlThreshObj);
+      warpGlobals.sgnlThreshObj = NULL;
+    }
+    if( warpGlobals.sgnlObj ){
+      warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
+    }
 /*  warpSwitchIncrementDomain(0);*/ /* why switch increment ? */
-  warpSetSignalDomain(NULL);
-  if( warpGlobals.sgnlObj ){
-    warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
+    warpSetSignalDomain(NULL);
+    if( warpGlobals.sgnlObj ){
+      warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
+    }
   }
 
   return;
@@ -1117,15 +1131,15 @@ void sgnlBackgroundSaveCb(
 static MenuItem color_space_itemsP[] = {   /* colour space menu items */
   {"RGB", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    warpColorSpaceCb, (XtPointer) WLZ_RGBA_SPACE_RGB,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"HSB", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    warpColorSpaceCb, (XtPointer) WLZ_RGBA_SPACE_HSB,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"CMY", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    warpColorSpaceCb, (XtPointer) WLZ_RGBA_SPACE_CMY,
-   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   NULL,
 };
@@ -1168,14 +1182,15 @@ Widget createWarpSgnlControlsFrame(
 				     XmNleftAttachment, XmATTACH_FORM,
 				     XmNrightAttachment, XmATTACH_FORM,
 				     NULL);
-  if( widget = XtNameToWidget(notebook, "PageScroller") ){
+  if( widget = XtNameToWidget(notebook, "*PageScroller") ){
     XtUnmanageChild(widget);
   }
   XtAddCallback(notebook, XmNpageChangedCallback,
 		sgnlNotebookPageChangedCb, NULL);
 
   /* page 1 - pre-processing */
-  page = XtVaCreateManagedWidget("pre_process_page",
+  /* make a major page for background removal */
+  page = XtVaCreateManagedWidget("background_page",
 				 xmFormWidgetClass, 	notebook,
 				 XmNnotebookChildType, XmPAGE,
 				 NULL);
@@ -1186,39 +1201,6 @@ Widget createWarpSgnlControlsFrame(
   XtAddCallback(button, XmNactivateCallback, thresholdMajorPageSelectCb,
 		(XtPointer) WLZ_RGBA_THRESH_NONE);
 
-  button = XtVaCreateManagedWidget("pre_process_minor_tab",
-				   xmPushButtonWidgetClass, notebook,
-				   XmNnotebookChildType, XmMINOR_TAB,
-				   NULL);
-
-  /* toggles for the image processing sequence */
-  toggle = XtVaCreateManagedWidget("normalise",
-				   xmToggleButtonGadgetClass, page,
-				   XmNleftAttachment,	XmATTACH_FORM,
-				   XmNtopAttachment,	XmATTACH_FORM,
-				   NULL);
-  XtAddCallback(toggle, XmNvalueChangedCallback, recalcWarpProcObjCb, NULL);
-  widget = toggle;
-  toggle = XtVaCreateManagedWidget("histo_equalise",
-				   xmToggleButtonGadgetClass, page,
-				   XmNtopAttachment,	XmATTACH_WIDGET,
-				   XmNtopWidget,	toggle,
-				   XmNleftAttachment,	XmATTACH_FORM,
-				   NULL);
-  XtAddCallback(toggle, XmNvalueChangedCallback, recalcWarpProcObjCb, NULL);
-  toggle = XtVaCreateManagedWidget("shade_correction",
-				   xmToggleButtonGadgetClass, page,
-				   XmNtopAttachment,	XmATTACH_WIDGET,
-				   XmNtopWidget,	toggle,
-				   XmNleftAttachment,	XmATTACH_FORM,
-				   NULL);
-  XtAddCallback(toggle, XmNvalueChangedCallback, recalcWarpProcObjCb, NULL);
-
-  /* make a new minor page for background removal */
-  page = XtVaCreateManagedWidget("background_page",
-				 xmFormWidgetClass, 	notebook,
-				 XmNnotebookChildType, XmPAGE,
-				 NULL);
   button = XtVaCreateManagedWidget("background_minor_tab",
 				   xmPushButtonWidgetClass, notebook,
 				   XmNnotebookChildType, XmMINOR_TAB,
@@ -1257,6 +1239,40 @@ Widget createWarpSgnlControlsFrame(
 				   XmNleftWidget,	button,
 				   NULL);
   XtAddCallback(button, XmNactivateCallback, sgnlBackgroundSaveCb, NULL);
+
+  /* make a minor page for pre-processing sequence */
+  page = XtVaCreateManagedWidget("pre_process_page",
+				 xmFormWidgetClass, 	notebook,
+				 XmNnotebookChildType, XmPAGE,
+				 NULL);
+
+  button = XtVaCreateManagedWidget("pre_process_minor_tab",
+				   xmPushButtonWidgetClass, notebook,
+				   XmNnotebookChildType, XmMINOR_TAB,
+				   NULL);
+
+  /* toggles for the image processing sequence */
+  toggle = XtVaCreateManagedWidget("normalise",
+				   xmToggleButtonGadgetClass, page,
+				   XmNleftAttachment,	XmATTACH_FORM,
+				   XmNtopAttachment,	XmATTACH_FORM,
+				   NULL);
+  XtAddCallback(toggle, XmNvalueChangedCallback, recalcWarpProcObjCb, NULL);
+  widget = toggle;
+  toggle = XtVaCreateManagedWidget("histo_equalise",
+				   xmToggleButtonGadgetClass, page,
+				   XmNtopAttachment,	XmATTACH_WIDGET,
+				   XmNtopWidget,	toggle,
+				   XmNleftAttachment,	XmATTACH_FORM,
+				   NULL);
+  XtAddCallback(toggle, XmNvalueChangedCallback, recalcWarpProcObjCb, NULL);
+  toggle = XtVaCreateManagedWidget("shade_correction",
+				   xmToggleButtonGadgetClass, page,
+				   XmNtopAttachment,	XmATTACH_WIDGET,
+				   XmNtopWidget,	toggle,
+				   XmNleftAttachment,	XmATTACH_FORM,
+				   NULL);
+  XtAddCallback(toggle, XmNvalueChangedCallback, recalcWarpProcObjCb, NULL);
 
   /* page 2 - filtering */
   page = XtVaCreateManagedWidget("filter_page",
@@ -1532,19 +1548,21 @@ Widget createWarpSgnlControlsFrame(
 		
   toggle = XtVaCreateManagedWidget("box",
 				   xmToggleButtonGadgetClass, radio_box,
-				   XmNset, True,
+				   XmNset, False,
 				   NULL);
   XtAddCallback(toggle, XmNvalueChangedCallback,
 		thresholdInteractToggleSelectCb,
 		(XtPointer) WLZ_RGBA_THRESH_BOX);
   toggle = XtVaCreateManagedWidget("slice",
 				   xmToggleButtonGadgetClass, radio_box,
+				   XmNset, False,
 				   NULL);
   XtAddCallback(toggle, XmNvalueChangedCallback,
 		thresholdInteractToggleSelectCb,
 		(XtPointer) WLZ_RGBA_THRESH_SLICE);
   toggle = XtVaCreateManagedWidget("sphere",
 				   xmToggleButtonGadgetClass, radio_box,
+				   XmNset, True,
 				   NULL);
   XtAddCallback(toggle, XmNvalueChangedCallback,
 		thresholdInteractToggleSelectCb,
