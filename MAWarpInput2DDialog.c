@@ -1248,7 +1248,8 @@ static Widget create2DWarpDialog(
   warpDisplayFramePopupItemsP[1].callback_data = &warpGlobals.dst;
   warpDisplayFramePopupItemsP[2].callback_data = &warpGlobals.dst;
   warpDisplayFramePopupItemsP[3].callback_data = (XtPointer) 0;
-  warpGlobals.dst.popup = HGU_XmBuildMenu(warpGlobals.dst.canvas,
+  warpGlobals.dst.popup = HGU_XmBuildMenu(/*warpGlobals.dst.canvas,*/
+                                          globals.topl,
 					  XmMENU_POPUP, "warp_dst_popup",
 					  '\0', XmTEAR_OFF_DISABLED,
 					  warpDisplayFramePopupItemsP);
@@ -1310,7 +1311,8 @@ static Widget create2DWarpDialog(
   warpDisplayFramePopupItemsP[1].callback_data = &warpGlobals.src;
   warpDisplayFramePopupItemsP[2].callback_data = &warpGlobals.src;
   warpDisplayFramePopupItemsP[3].callback_data = (XtPointer) 1;
-  warpGlobals.src.popup = HGU_XmBuildMenu(warpGlobals.src.canvas,
+  warpGlobals.src.popup = HGU_XmBuildMenu(/*warpGlobals.src.canvas*/
+                                          globals.topl,
 					  XmMENU_POPUP, "warp_src_popup",
 					  '\0', XmTEAR_OFF_DISABLED,
 					  warpDisplayFramePopupItemsP);
@@ -1374,7 +1376,7 @@ static Widget create2DWarpDialog(
   warpOvlyDisplayFramePopupItemsP[5].callback_data = &warpGlobals.ovly;
   warpOvlyDisplayFramePopupItemsP[6].callback_data = (XtPointer) 2;
   warpGlobals.ovly.popup = 
-    HGU_XmBuildMenu(warpGlobals.ovly.canvas,
+    HGU_XmBuildMenu(/*warpGlobals.ovly.canvas*/globals.topl,
 		    XmMENU_POPUP,
 		    "warp_ovly_popup",
 		    '\0', XmTEAR_OFF_DISABLED,

@@ -328,6 +328,11 @@ main(
   else {
     nameStr = "MAPaint";
   }
+
+  /* test for MAPaint_EO */
+  if( strcmp(nameStr, "MAPaint_EO") == 0 ){
+    nameStr = "MAPaint_EMAGE";
+  }
   depthRscStr = (char *) AlcMalloc(sizeof(char) * (strlen(nameStr) +10));
   sprintf(depthRscStr, "%s.24bit", nameStr);
   
