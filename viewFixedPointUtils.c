@@ -1412,7 +1412,7 @@ void setupFixed_1_Menu(
 /*  HGU_XmAttachTimeDelayPulldown(widget, XmTEAR_OFF_DISABLED,
 				fixed_1_menu_itemsP);*/
   popup = HGU_XmBuildMenu(widget, XmMENU_POPUP, XtName(widget), '\0',
-			  XmTEAR_OFF_ENABLED, fixed_1_menu_itemsP);
+			  XmTEAR_OFF_DISABLED, fixed_1_menu_itemsP);
   XtAddEventHandler(widget, ButtonPressMask, True, PostIt, popup);
 
   return;
@@ -1446,7 +1446,7 @@ void setupFixed_2_Menu(
 /*  HGU_XmAttachTimeDelayPulldown(widget, XmTEAR_OFF_DISABLED,
 				fixed_2_menu_itemsP);*/
   popup = HGU_XmBuildMenu(widget, XmMENU_POPUP, XtName(widget), '\0',
-			 XmTEAR_OFF_ENABLED, fixed_2_menu_itemsP);
+			 XmTEAR_OFF_DISABLED, fixed_2_menu_itemsP);
   XtAddEventHandler(widget, ButtonPressMask, False, PostIt, popup);
 
   return;
@@ -1480,7 +1480,7 @@ void setupUpVectorMenu(
 /*  HGU_XmAttachTimeDelayPulldown(widget, XmTEAR_OFF_DISABLED,
 				up_vect_menu_itemsP);*/
   popup = HGU_XmBuildMenu(widget, XmMENU_POPUP, XtName(widget), '\0',
-			 XmTEAR_OFF_ENABLED, up_vect_menu_itemsP);
+			 XmTEAR_OFF_DISABLED, up_vect_menu_itemsP);
   XtAddEventHandler(widget, ButtonPressMask, False, PostIt, popup);
 
   return;
@@ -1517,7 +1517,7 @@ void setupUpIOMenu(
 /*  HGU_XmAttachTimeDelayPulldown(widget, XmTEAR_OFF_DISABLED,
 				io_menu_itemsP);*/
   popup = HGU_XmBuildMenu(widget, XmMENU_POPUP, XtName(widget), '\0',
-			 XmTEAR_OFF_ENABLED, io_menu_itemsP);
+			 XmTEAR_OFF_DISABLED, io_menu_itemsP);
   XtAddEventHandler(widget, ButtonPressMask, False, PostIt, popup);
 
   return;

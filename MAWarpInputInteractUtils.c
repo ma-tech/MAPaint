@@ -18,7 +18,7 @@
 *   Author Name :  Richard Baldock					*
 *   Author Login:  richard@hgu.mrc.ac.uk				*
 *   Date        :  Mon Nov 29 14:17:52 1999				*
-*   $Revision$								*
+*   $Revision$							*
 *   $Name$								*
 *   Synopsis    : 							*
 *************************************************************************
@@ -614,8 +614,8 @@ void warpDstCanvasInputCb(
 
     /* check for any modifiers */
     if( cbs->event->xbutton.state & modMask ){
-      /* check for shift only */
-      if( !(cbs->event->xbutton.state & (modMask & ~ShiftMask)) ){
+      /* check for control only */
+      if( !(cbs->event->xbutton.state & (modMask & ~ControlMask)) ){
 	WlzFVertex2	start, *rect;
 
 	switch( cbs->event->xbutton.button ){

@@ -13,7 +13,7 @@
 *   Author Name :  richard						*
 *   Author Login:  richard@hgu.mrc.ac.uk				*
 *   Date        :  Wed Dec  3 12:25:33 2003				*
-*   $Revision$								*
+*   $Revision$							*
 *   $Name$								*
 *   Synopsis    : 							*
 *************************************************************************
@@ -91,6 +91,9 @@ static MAPaintEventMapping	mapaintEventMappingP[]=
    "Delete tie-point if selected"},
   {MAPAINT_WARP_2D_CONTEXT, MAPAINT_WARP_MODE,
    ButtonPress, Button1, ShiftMask, ButtonPress, Button1, ShiftMask,
+   "Multi select"},
+  {MAPAINT_WARP_2D_CONTEXT, MAPAINT_WARP_MODE,
+   ButtonPress, Button1, ControlMask, ButtonPress, Button1, ControlMask,
    "Rectangle select"},
 
   /* signal window */

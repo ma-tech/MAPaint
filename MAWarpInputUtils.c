@@ -1595,7 +1595,7 @@ void setupWarpIOMenu(
   warpIOMenuItemsP[1].callback_data = (XtPointer) view_struct;
 
   popup = HGU_XmBuildMenu(widget, XmMENU_POPUP, XtName(widget), '\0',
-			  XmTEAR_OFF_ENABLED, warpIOMenuItemsP);
+			  XmTEAR_OFF_DISABLED, warpIOMenuItemsP);
 /*  XtAddEventHandler(widget, ButtonPressMask, True, PostIt, popup);*/
   XtVaSetValues(popup, XmNpopupEnabled, XmPOPUP_AUTOMATIC, NULL);
 
