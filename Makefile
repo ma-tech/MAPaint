@@ -323,8 +323,8 @@ EXTRA_LIBS		= tiff m gen socket nsl
 X11LIBS         	= Xt Xmu X11  Xi Xext
 endif
 ifeq	 	($(UNIXTYPE), LINUX2)
-EXTRA_LIBS		= tiff m Xp SM ICE dl
-X11LIBS         	= Xt Xmu X11 Xext
+EXTRA_LIBS		= tiff m SM ICE dl pthread
+X11LIBS         	= Xt Xmu Xp X11 Xext
 endif
 ifeq	 	($(UNIXTYPE), DARWIN)
 EXTRA_LIBS		= langinfo tiff m
@@ -356,7 +356,7 @@ LDFLAGS			= $(LIBDIRS:%=-L%) -R$(SYSLIB):$(HGU_LIB_DIR):$(OPENGL_LIB_DIR):$(X11_
 endif
 
 ifeq	 	($(UNIXTYPE), LINUX2)
-LDFLAGS			= $(LIBDIRS:%=-L%) -static
+LDFLAGS			= $(LIBDIRS:%=-L%)
 endif
 
 LDLIBS			= $(LOCALLIBS:%=-l%) $(OPENGLLIBS:%=-l%) \
