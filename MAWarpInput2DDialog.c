@@ -1128,7 +1128,7 @@ static MenuItem warpDisplayFramePopupItemsP[] = {
 };
 
 static MenuItem overlayMethodsItemsP[] = {
-  {"red-green 1", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+  {"red-green 1", &xmToggleButtonGadgetClass, 0, NULL, NULL, True,
    warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_RG1,
    myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
