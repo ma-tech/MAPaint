@@ -125,7 +125,9 @@ void distance_cb(
       case KeyPress:
 	switch( XLookupKeysym(&(cbs->event->xkey), 0) ){
 	case XK_Right:
+	case XK_KP_Right:
 	case XK_Left:
+	case XK_KP_Left:
 	  code = 21;
 	  break;
 
@@ -323,7 +325,9 @@ void theta_cb(
       case KeyPress:
 	switch( XLookupKeysym(&(cbs->event->xkey), 0) ){
 	case XK_Right:
+	case XK_KP_Right:
 	case XK_Left:
+	case XK_KP_Left:
 	  code = 21;
 	  break;
 
@@ -444,7 +448,9 @@ void phi_cb(
       case KeyPress:
 	switch( XLookupKeysym(&(cbs->event->xkey), 0) ){
 	case XK_Right:
+	case XK_KP_Right:
 	case XK_Left:
+	case XK_KP_Left:
 	  code = 21;
 	  break;
 

@@ -1703,6 +1703,7 @@ void realignment_input_cb(
     switch( XLookupKeysym(&(cbs->event->xkey), 0) ){
 	
     case XK_Right:
+    case XK_KP_Right:
     case XK_f:
       XWarpPointer(dpy, win, win, x, y, 1, 1, x+1, y);
       x += 1;
@@ -1715,6 +1716,7 @@ void realignment_input_cb(
       break;
 
     case XK_Left:
+    case XK_KP_Left:
     case XK_b:
       XWarpPointer(dpy, win, win, x, y, 1, 1, x-1, y);
       x -= 1;

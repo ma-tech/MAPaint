@@ -218,8 +218,10 @@ void MAPaintTracking2DCb(
   case KeyPress:
     switch( XLookupKeysym(&(cbs->event->xkey), 0) ){
     case XK_Right:
+    case XK_KP_Right:
     case XK_f:
     case XK_Left:
+    case XK_KP_Left:
     case XK_b:
       /* section changed */
       sectFlg = 1;

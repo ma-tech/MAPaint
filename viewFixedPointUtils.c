@@ -1028,6 +1028,7 @@ void special_input_cb(
     switch( XLookupKeysym(&(cbs->event->xkey), 0) ){
 	
     case XK_Right:
+    case XK_KP_Right:
     case XK_f:
       /* in this mode - next section */
       wlzViewStr->dist += 1.0;
@@ -1041,6 +1042,7 @@ void special_input_cb(
       break;
 
     case XK_Left:
+    case XK_KP_Left:
     case XK_b:
       /* in this mode - previous section */
       wlzViewStr->dist -= 1.0;

@@ -513,6 +513,7 @@ void MAPaintAffine2DCb(
     switch( XLookupKeysym(&(cbs->event->xkey), 0) ){
 	
     case XK_Right:
+    case XK_KP_Right:
     case XK_f:
       /* if <alt> or <alt gr> pressed then change tool option */
       if( cbs->event->xkey.state&(Mod1Mask|Mod2Mask) ){
@@ -525,6 +526,7 @@ void MAPaintAffine2DCb(
       break;
 
     case XK_Left:
+    case XK_KP_Left:
     case XK_b:
       /* if <alt> or <alt gr> pressed then change tool option */
       if( cbs->event->xkey.state&(Mod1Mask|Mod2Mask) ){

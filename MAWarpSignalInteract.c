@@ -743,6 +743,7 @@ void sgnlCanvasInputCb(
       break;
 	
     case XK_Right:
+    case XK_KP_Right:
     case XK_f:
       break;
 
@@ -751,6 +752,7 @@ void sgnlCanvasInputCb(
       break;
 
     case XK_Left:
+    case XK_KP_Left:
     case XK_b:
       break;
 

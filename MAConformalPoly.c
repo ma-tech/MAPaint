@@ -594,6 +594,7 @@ void conformal_input_cb(
     switch( XLookupKeysym(&(cbs->event->xkey), 0) ){
 	
     case XK_Right:
+    case XK_KP_Right:
     case XK_f:
       break;
 
@@ -602,6 +603,7 @@ void conformal_input_cb(
       break;
 
     case XK_Left:
+    case XK_KP_Left:
     case XK_b:
       break;
 

@@ -552,6 +552,7 @@ void canvas_input_cb(
     switch( XLookupKeysym(&(cbs->event->xkey), 0) ){
 	
     case XK_Right:
+    case XK_KP_Right:
     case XK_f:
       /* in this mode - next section */
       if( wlzViewStr->dist <= (wlzViewStr->maxvals.vtZ - 1.0) ){
@@ -567,6 +568,7 @@ void canvas_input_cb(
       break;
 
     case XK_Left:
+    case XK_KP_Left:
     case XK_b:
       /* in this mode - previous section */
       if( wlzViewStr->dist >= (wlzViewStr->minvals.vtZ + 1.0) ){

@@ -509,6 +509,7 @@ void canvas_2D_painting_cb(
     switch( XLookupKeysym(&(cbs->event->xkey), 0) ){
 	
     case XK_Right:
+    case XK_KP_Right:
     case XK_f:
       /* in this mode - next section installing and resetting domains
 	 if <alt> or <alt gr> pressed then change tool option
@@ -542,6 +543,7 @@ void canvas_2D_painting_cb(
       break;
 
     case XK_Left:
+    case XK_KP_Left:
     case XK_b:
       /* in this mode - next section installing and resetting domains 
 	 if <alt> pressed then change tool option (tool dependent) */
