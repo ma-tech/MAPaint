@@ -737,10 +737,10 @@ void warpDstCanvasInputCb(
 	break;
 
       case Button3:
-	if( warpGlobals.dst.popup ){
+/*	if( warpGlobals.dst.popup ){
 	  XmMenuPosition(warpGlobals.dst.popup, &(cbs->event->xbutton));
 	  XtManageChild(warpGlobals.dst.popup);
-	}
+	  }*/
 	break;
       }
     }
@@ -1023,10 +1023,10 @@ void warpSrcCanvasInputCb(
 	break;
 
       case Button3:
-	if( warpGlobals.src.popup ){
+/*	if( warpGlobals.src.popup ){
 	  XmMenuPosition(warpGlobals.src.popup, &(cbs->event->xbutton));
 	  XtManageChild(warpGlobals.src.popup);
-	}
+	  }*/
 	break;
       }
     }
@@ -1181,10 +1181,10 @@ void warpOvlyCanvasInputCb(
     switch( cbs->event->xbutton.button ){
 
     case Button3:
-      if( winStruct->popup ){
+/*      if( winStruct->popup ){
 	XmMenuPosition(winStruct->popup, &(cbs->event->xbutton));
 	XtManageChild(winStruct->popup);
-      }
+	}*/
       break;
 
     default:

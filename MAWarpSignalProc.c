@@ -869,7 +869,6 @@ void thresholdChannelSelectCb(
     *cbs=(XmToggleButtonCallbackStruct *) call_data;
 
   if( cbs->set ){
-    fprintf(stderr, "Reseting Channel to %d\n", client_data);
     warpGlobals.threshColorChannel = (WlzRGBAColorChannel) client_data;
     warpResetThresholdSliderRange();
 
@@ -881,7 +880,6 @@ void thresholdChannelSelectCb(
     if( warpGlobals.sgnlObj ){
       warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
     }
-/*  warpSwitchIncrementDomain(0);*/ /* why switch increment ? */
     warpSetSignalDomain(NULL);
     if( warpGlobals.sgnlObj ){
       warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
@@ -1139,6 +1137,14 @@ static MenuItem color_space_itemsP[] = {   /* colour space menu items */
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"CMY", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    warpColorSpaceCb, (XtPointer) WLZ_RGBA_SPACE_CMY,
+   myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  NULL,
+};
+
+static MenuItem struct_elem_itemsP[] = {   /* structuring element menu items */
+  {"RGB", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   warpColorSpaceCb, (XtPointer) WLZ_RGBA_SPACE_RGB,
    myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   NULL,
@@ -1707,6 +1713,7 @@ Widget createWarpSgnlControlsFrame(
 
   /* page for domain post-procesing - morphological, smoothing
      tracking, cleaning, review */
+  /* first the morphological page */
   page = XtVaCreateManagedWidget("post_process_page",
 				 xmFormWidgetClass, 	notebook,
 				 XmNnotebookChildType, XmPAGE,
@@ -1715,6 +1722,44 @@ Widget createWarpSgnlControlsFrame(
 				   xmPushButtonWidgetClass, notebook,
 				   XmNnotebookChildType, XmMAJOR_TAB,
 				   NULL);
+  XtAddCallback(button, XmNactivateCallback, thresholdMajorPageSelectCb,
+		(XtPointer) WLZ_RGBA_THRESH_NONE);
+  button = XtVaCreateManagedWidget("post_proc_morph_tab",
+				   xmPushButtonWidgetClass, notebook,
+				   XmNnotebookChildType, XmMINOR_TAB,
+				   NULL);
+
+  /* buttons for dilate, erode, open close,
+     include undo since the canvas no longer has input */
+  rc =  XtVaCreateManagedWidget("morph_post_proc_rc",
+				xmRowColumnWidgetClass, 	page,
+				XmNpacking,	XmPACK_COLUMN,
+				XmNorientation,	XmVERTICAL,
+				XmNnumColumns,	3,
+				XmNtopAttachment, XmATTACH_FORM,
+				XmNleftAttachment, XmATTACH_FORM,
+				NULL);
+  button = XtVaCreateManagedWidget("Dilation", xmPushButtonWidgetClass,
+				   rc, NULL);
+  button = XtVaCreateManagedWidget("Erosion", xmPushButtonWidgetClass,
+				   rc, NULL);
+  button = XtVaCreateManagedWidget("Opening", xmPushButtonWidgetClass,
+				   rc, NULL);
+  button = XtVaCreateManagedWidget("Closing", xmPushButtonWidgetClass,
+				   rc, NULL);
+  button = XtVaCreateManagedWidget("Undo", xmPushButtonWidgetClass,
+				   rc, NULL);
+
+  /* option menu and slider for the structuring element */
+  option_menu = HGU_XmBuildMenu(page, XmMENU_OPTION, "struct_elem", 0,
+				XmTEAR_OFF_DISABLED, struct_elem_itemsP);
+  XtVaSetValues(option_menu,
+		XmNtopAttachment,	XmATTACH_WIDGET,
+		XmNtopWidget,		rc,
+		XmNleftAttachment,	XmATTACH_FORM,
+		NULL);
+  XtManageChild(option_menu);
+  widget = option_menu;
 
   /* End of notebook pages */
   /* common buttons to map the data */

@@ -608,6 +608,10 @@ static String  fallback_resources[] = {
   "*view_dialog*warp_sgnl_controls_form*threshold_multi_tab.labelString: Multi",
   "*view_dialog*warp_sgnl_controls_form*threshold_interactive_tab.labelString: Interact",
   "*view_dialog*warp_sgnl_controls_form*threshold_controls_tab.labelString: Controls",
+  "*view_dialog*warp_sgnl_controls_form*post_proc_morph_tab.labelString: Morph",
+  "*view_dialog*warp_sgnl_controls_form*post_proc_smooth_tab.labelString: Smooth",
+  "*view_dialog*warp_sgnl_controls_form*post_proc_density_tab.labelString: Density",
+
   "*view_dialog*warp_sgnl_controls_form*normalise.labelString: Normalise",
   "*view_dialog*warp_sgnl_controls_form*histo_equalise.labelString: Histogram equalise",
   "*view_dialog*warp_sgnl_controls_form*shade_correction.labelString: Shade correction",

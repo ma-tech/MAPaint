@@ -30,7 +30,12 @@ static void WlzXmFSBSelectImageTypeCb(
 
   /* get the extension string and re-filter */
   if( name = WlzEffStringFromFormat(format,  &fileExt) ){
-    sprintf(strBuf, "*.%s*", fileExt);
+    if( format == WLZEFF_FORMAT_JPEG ){
+      sprintf(strBuf, "*.jp*g*");
+    }
+    else {
+      sprintf(strBuf, "*.%s*", fileExt);
+    }
     xmstr = XmStringCreateSimple(strBuf);
     XtVaSetValues(dialog, XmNpattern, xmstr, NULL);
     XmStringFree( xmstr );
@@ -191,7 +196,12 @@ WlzErrorNum WlzXmExtFFObjectFSBSetType(
 
   /* set the pattern string and re-filter */
   buttonName = WlzEffStringFromFormat(format, &fileExt);
-  sprintf(strBuf, "*.%s", fileExt);
+  if( format == WLZEFF_FORMAT_JPEG ){
+    sprintf(strBuf, "*.jp*g*");
+  }
+  else {
+    sprintf(strBuf, "*.%s*", fileExt);
+  }
   xmstr = XmStringCreateSimple(strBuf);
   XtVaSetValues(dialog, XmNpattern, xmstr, NULL);
   XmStringFree( xmstr );

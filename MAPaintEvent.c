@@ -90,9 +90,6 @@ static MAPaintEventMapping	mapaintEventMappingP[]=
    ButtonPress, Button2, 0x0, ButtonPress, Button2, 0x0,
    "Delete tie-point if selected"},
   {MAPAINT_WARP_2D_CONTEXT, MAPAINT_WARP_MODE,
-   ButtonPress, Button3, 0x0, ButtonPress, Button3, 0x0,
-   "Menu popup"},
-  {MAPAINT_WARP_2D_CONTEXT, MAPAINT_WARP_MODE,
    ButtonPress, Button1, ShiftMask, ButtonPress, Button1, ShiftMask,
    "Rectangle select"},
 
