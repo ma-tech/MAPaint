@@ -1832,7 +1832,9 @@ void write_paint_object_cb(
   String		icsfile;
 
   /* get the file pointer or file name if ics format */
-  if( image_type == WLZEFF_FORMAT_ICS )
+  if((image_type == WLZEFF_FORMAT_ICS) ||
+     (image_type == WLZEFF_FORMAT_PNM) ||
+     (image_type == WLZEFF_FORMAT_BMP))
   {
     if( (icsfile = HGU_XmGetFileStr(globals.topl, cbs->value,
 				    cbs->dir)) == NULL )
@@ -1916,7 +1918,11 @@ static void image_type_cb(
      break;
      
    case WLZEFF_FORMAT_PNM:
-     pattern_str = XmStringCreateSimple( "*.pgm" );
+     pattern_str = XmStringCreateSimple( "*.p?m" );
+     break;
+     
+   case WLZEFF_FORMAT_BMP:
+     pattern_str = XmStringCreateSimple( "*.bmp" );
      break;
      
   }

@@ -59,6 +59,10 @@ static void display_scaled_image(
   /* make all measures of width and exposed width consistent */
   width_exp = widthp - x_exp;
   height_exp = heightp - y_exp;
+  /* quit if nothing to display */
+  if( (width_exp * height_exp * scale) <= 0 ){
+    return;
+  }
 
   if( scaled_data = (UBYTE *) AlcMalloc(sizeof(UBYTE) * width_exp *
 					height_exp * scale * scale) ){

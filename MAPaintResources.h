@@ -469,7 +469,10 @@ static String  fallback_resources[] = {
     "*view_dialog*realignment_form*XmDrawnButton.pushButtonEnabled: True",
     "*view_dialog*realignment_form*XmDrawnButton.alignment: XmALIGNMENT_CENTER",
     "*view_dialog*realignment_form*overlay_select.labelString:	Overlay type:",
+    "*view_dialog*realignment_form*overlay_select*dithered.sensitive: False",
+    "*view_dialog*realignment_form*overlay_select*edge.sensitive: False",
     "*view_dialog*realignment_form*overlay_input.labelString: Read overlay",
+    "*view_dialog*realignment_form*overlay_write.labelString: Write overlay",
     "*view_dialog*realignment_form*overlay_adjust_label.labelString: Overlay adjust:",
     "*view_dialog*realignment_form*shift_left_right.labelString: Shift X",
     "*view_dialog*realignment_form*shift_up_down.labelString: Shift Y",
@@ -480,6 +483,8 @@ static String  fallback_resources[] = {
     "*view_dialog*realignment_form*overlay_delete.labelString: Delete",
     "*realign_read_ovly_dialog.dialogTitle:	Read Realign Overlay Object",
     "*realign_read_ovly_dialog.pattern:		*.wlz",
+    "*realign_write_ovly_dialog.dialogTitle:	Write Realign Overlay Object",
+    "*realign_write_ovly_dialog.pattern:		*.wlz",
 
     /* warping dialog */
     "*view_dialog*warp_input_2d_frame_title.labelString: 2D warp input controls",

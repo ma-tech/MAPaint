@@ -65,6 +65,14 @@ static MenuItem file_type_menu_itemsP[] = {   /* file_menu items */
    image_type_cb, (XtPointer) WLZEFF_FORMAT_IPL,
    HGU_XmHelpStandardCb, SEC_INPUT_DATA_FORMATS,
    XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"pgm", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   image_type_cb, (XtPointer) WLZEFF_FORMAT_PNM,
+   HGU_XmHelpStandardCb, SEC_OUTPUT_DATA_FORMATS,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"bmp", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   image_type_cb, (XtPointer) WLZEFF_FORMAT_BMP,
+   HGU_XmHelpStandardCb, SEC_OUTPUT_DATA_FORMATS,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
   NULL,
 };
 
@@ -99,6 +107,10 @@ static MenuItem write_file_type_menu_itemsP[] = {/* write file_menu items */
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"pgm", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    write_image_type_cb, (XtPointer) WLZEFF_FORMAT_PNM,
+   HGU_XmHelpStandardCb, SEC_OUTPUT_DATA_FORMATS,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"bmp", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   write_image_type_cb, (XtPointer) WLZEFF_FORMAT_BMP,
    HGU_XmHelpStandardCb, SEC_OUTPUT_DATA_FORMATS,
    XmTEAR_OFF_DISABLED, False, False, NULL},
   NULL,
@@ -358,9 +370,13 @@ Widget	w,
 XtPointer	client_data,
 XtPointer	call_data)
 {
+  if( read_obj_dialog ){
     XtManageChild( read_obj_dialog );
     XtPopup( XtParent(read_obj_dialog), XtGrabNone );
-    return;
+    /* kludge to update the file selections */
+    XtCallCallbacks(read_obj_dialog, XmNmapCallback, call_data);
+  }
+  return;
 }
 
 void write_obj_cb(
@@ -368,9 +384,13 @@ Widget	w,
 XtPointer	client_data,
 XtPointer	call_data)
 {
+  if( write_obj_dialog ){
     XtManageChild( write_obj_dialog );
     XtPopup( XtParent(write_obj_dialog), XtGrabNone );
-    return;
+    /* kludge to update the file selections */
+    XtCallCallbacks(write_obj_dialog, XmNmapCallback, call_data);
+  }
+  return;
 }
 
 static XmStringCharSet charset = XmSTRING_DEFAULT_CHARSET;
@@ -814,7 +834,9 @@ void read_reference_object_cb(
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* get the file pointer or file name if ics format */
-  if( image_type == WLZEFF_FORMAT_ICS )
+  if((image_type == WLZEFF_FORMAT_ICS) ||
+     (image_type == WLZEFF_FORMAT_PNM) ||
+     (image_type == WLZEFF_FORMAT_BMP))
   {
     if( (icsfile = HGU_XmGetFileStr(globals.topl, cbs->value,
 				    cbs->dir)) == NULL )
@@ -955,7 +977,9 @@ XtPointer	call_data)
     String		icsfile;
 
     /* get the file pointer or file name if ics format */
-    if( image_type == WLZEFF_FORMAT_ICS )
+    if((image_type == WLZEFF_FORMAT_ICS) ||
+       (image_type == WLZEFF_FORMAT_PNM) ||
+       (image_type == WLZEFF_FORMAT_BMP))
     {
       if( (icsfile = HGU_XmGetFileStr(globals.topl, cbs->value,
 				      cbs->dir)) == NULL )
@@ -1097,15 +1121,29 @@ static void image_type_cb(
 		   read_reference_object_cb, (XtPointer) WLZEFF_FORMAT_VTK);
      pattern_str = XmStringCreateSimple( "*.vtk" );
      break;
+
    case WLZEFF_FORMAT_SLC:
      XtAddCallback(read_obj_dialog, XmNokCallback,
 		   read_reference_object_cb, (XtPointer) WLZEFF_FORMAT_SLC);
      pattern_str = XmStringCreateSimple( "*.slc" );
      break;
+
    case WLZEFF_FORMAT_IPL:
      XtAddCallback(read_obj_dialog, XmNokCallback,
 		   read_reference_object_cb, (XtPointer) WLZEFF_FORMAT_IPL);
      pattern_str = XmStringCreateSimple( "*.ipl" );
+     break;
+     
+   case WLZEFF_FORMAT_PNM:
+     XtAddCallback(read_obj_dialog, XmNokCallback,
+		   read_reference_object_cb, (XtPointer) WLZEFF_FORMAT_PNM);
+     pattern_str = XmStringCreateSimple( "*.p?m" );
+     break;
+     
+   case WLZEFF_FORMAT_BMP:
+     XtAddCallback(read_obj_dialog, XmNokCallback,
+		   read_reference_object_cb, (XtPointer) WLZEFF_FORMAT_BMP);
+     pattern_str = XmStringCreateSimple( "*.bmp" );
      break;
   }
 
@@ -1165,6 +1203,10 @@ static void write_image_type_cb(
      
    case WLZEFF_FORMAT_PNM:
      pattern_str = XmStringCreateSimple( "*.p?m" );
+     break;
+     
+   case WLZEFF_FORMAT_BMP:
+     pattern_str = XmStringCreateSimple( "*.bmp" );
      break;
      
   }
@@ -1448,12 +1490,12 @@ void file_menu_init(
 	    /* set the title of the top-level window */
 	    set_topl_title(globals.file);
 	  }
-	  else if( theilerString(initial_reference_file) ){
+	  else if( theilerString(strBuf) ){
 	    /* load in theiler stage anatomy etc. */
 	    globals.app_name = "SectionView";
 	    globals.sectViewFlg = 1;
 	    set_theiler_stage_cb(topl,
-				 theilerString(initial_reference_file),
+				 theilerString(strBuf),
 				 NULL);
 	  }
 	}

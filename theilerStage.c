@@ -37,6 +37,7 @@ char *theilerString(
 {
   int	i;
 
+  i = 0;
   while( theilerStrings[i] ){
     if( strstr(str, theilerStrings[i]) ){
       return theilerStrings[i];

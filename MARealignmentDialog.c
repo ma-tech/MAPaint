@@ -60,6 +60,7 @@ static WlzObject		*transformsObj=NULL;
 static WlzObject		*overlayObj=NULL, *ovlyObj=NULL;
 static MARealignOverlayType	overlayType=MAREALIGN_BOUNDARY_TYPE;
 static Widget			realign_read_ovly_dialog = NULL;
+static Widget			realign_write_ovly_dialog = NULL;
 static int			x_shift=0, y_shift=0;
 static double			x_scale=1.0, y_scale=1.0;
 static double			theta=0.0;
@@ -92,14 +93,28 @@ void realignDisplayOverlayCb(
   Display		*dpy = XtDisplay(view_struct->canvas);
   Window		win = XtWindow(view_struct->canvas);
   GC			gc = globals.gc_set;
+  WlzObject		*obj;
+  WlzAffineTransform	*trans;
 
   /* work on the boundary only for now */
   /* the coordinates should be as required for the canvas window */
   if(view_struct && ovlyObj &&
      (ovlyObj->type == WLZ_BOUNDLIST)){
-    (void) HGU_XColourFromNameGC(dpy, globals.cmap, globals.gc_set,
-				 "blue");
-    DisplayBound(dpy, win, gc, ovlyObj->domain.b);
+    if( trans = WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
+					   0.0, 0.0, 0.0,
+					   wlzViewStr->scale,
+					   0.0, 0.0, 0.0, 0.0, 0.0,
+					   0, NULL) ){
+      if( obj = WlzAffineTransformObj(ovlyObj, trans,
+				      WLZ_INTERPOLATION_NEAREST, NULL) ){
+	
+	(void) HGU_XColourFromNameGC(dpy, globals.cmap, globals.gc_set,
+				     "blue");
+	DisplayBound(dpy, win, gc, obj->domain.b);
+	WlzFreeObj(obj);
+      }
+      WlzFreeAffineTransform(trans);
+    }
   }
 
   return;
@@ -119,52 +134,90 @@ void realignSetOverlay(
   /* regenerate the image to be displayed */
   /* rescale the original */
   if( overlayObj ){
-    dst_height = view_struct->ximage->height;
-    src_height = overlayObj->domain.i->lastln -
-      overlayObj->domain.i->line1 + 1;
-    scale = wlzViewStr->scale * dst_height / src_height;
-    spX = (overlayObj->domain.i->lastkl + overlayObj->domain.i->kol1) / 2;
-    spY = (overlayObj->domain.i->lastln + overlayObj->domain.i->line1) / 2;
-    if( trans = WlzAffineTransformFromSpinSqueeze(spX, spY, theta,
-						  scale*x_scale,
-						  scale*y_scale, &errNum) ){
-      obj1 = WlzAffineTransformObj(overlayObj, trans,
-				   WLZ_INTERPOLATION_NEAREST, &errNum);
-      WlzFreeAffineTransform(trans);
-    }
-  }
-
-  /* translate to the centre */
-  if( (errNum == WLZ_ERR_NONE) && obj1 ){
-    obj1 = WlzAssignObject(obj1, NULL);
-    tx = (view_struct->ximage->width * wlzViewStr->scale -
-	  obj1->domain.i->lastkl -
-	  obj1->domain.i->kol1) / 2 + x_shift * wlzViewStr->scale;
-    ty = (view_struct->ximage->height  * wlzViewStr->scale -
-	  obj1->domain.i->lastln -
-	  obj1->domain.i->line1) / 2 + y_shift * wlzViewStr->scale;
-    if( obj2 = WlzShiftObject(obj1, tx, ty, 0, &errNum) ){
-      WlzFreeObj(obj1);
-      obj1 = WlzAssignObject(obj2, NULL);
-    }
-    else {
-      WlzFreeObj(obj1);
-      obj1 = NULL;
-    }
-  }
-
-  /* generate the object to be displayed */
-  if( (errNum == WLZ_ERR_NONE) && obj1 ){
-    switch( overlayType ){
-    default:
-    case MAREALIGN_DITHERED_TYPE:
-    case MAREALIGN_EDGE_TYPE:
-    case MAREALIGN_BOUNDARY_TYPE:
-      if( ovlyObj ){
-	WlzFreeObj(ovlyObj);
+    /* if the object is a domain object then re-scale and align
+       if it is a boundary/polygon then don't bother - this is
+       to allow the saved overlay to be read back in */
+    switch( overlayObj->type ){
+    case WLZ_2D_DOMAINOBJ:
+      dst_height = view_struct->ximage->height;
+      src_height = overlayObj->domain.i->lastln -
+	overlayObj->domain.i->line1 + 1;
+      scale = dst_height / src_height;
+      spX = (overlayObj->domain.i->lastkl + overlayObj->domain.i->kol1) / 2;
+      spY = (overlayObj->domain.i->lastln + overlayObj->domain.i->line1) / 2;
+      if( trans = WlzAffineTransformFromSpinSqueeze(spX, spY, 0.0,
+						    scale, scale, &errNum) ){
+	obj1 = WlzAffineTransformObj(overlayObj, trans,
+				     WLZ_INTERPOLATION_NEAREST, &errNum);
+	WlzFreeAffineTransform(trans);
       }
-      ovlyObj = WlzAssignObject(WlzObjToBoundary(obj1, 1, &errNum), NULL);
+
+      /* translate to the centre */
+      if( (errNum == WLZ_ERR_NONE) && obj1 ){
+	obj1 = WlzAssignObject(obj1, NULL);
+	tx = (view_struct->ximage->width - obj1->domain.i->lastkl -
+	      obj1->domain.i->kol1) / 2 + x_shift;
+	ty = (view_struct->ximage->height - obj1->domain.i->lastln -
+	      obj1->domain.i->line1) / 2 + y_shift;
+	if( obj2 = WlzShiftObject(obj1, tx, ty, 0, &errNum) ){
+	  WlzFreeObj(obj1);
+	  obj1 = WlzAssignObject(obj2, NULL);
+	}
+	else {
+	  WlzFreeObj(obj1);
+	  obj1 = NULL;
+	}
+      }
+
+      /* convert to required type */
+      if( (errNum == WLZ_ERR_NONE) && obj1 ){
+	switch( overlayType ){
+	default:
+	case MAREALIGN_DITHERED_TYPE:
+	case MAREALIGN_EDGE_TYPE:
+	case MAREALIGN_BOUNDARY_TYPE:
+	  obj2 = WlzObjToBoundary(obj1, 1, &errNum);
+	  obj1 = WlzAssignObject(obj2, NULL);
+	  break;
+	}
+      }
       break;
+
+    case WLZ_2D_POLYGON:
+    case WLZ_BOUNDLIST:
+      obj1 = WlzAssignObject(overlayObj, NULL);
+      break;
+
+    }
+  }
+
+  /* generate the object to be displayed  - apply local scale,
+     rotate and shift*/
+  if( (errNum == WLZ_ERR_NONE) && obj1 ){
+    /* first apply scaling and rotation around the view centre */
+    spX = view_struct->ximage->width / 2;
+    spY = view_struct->ximage->height / 2;
+    if( trans = WlzAffineTransformFromSpinSqueeze(spX, spY, theta,
+						  x_scale, y_scale,
+						  &errNum) ){
+      if( obj2 = WlzAffineTransformObj(obj1, trans,
+				       WLZ_INTERPOLATION_NEAREST, &errNum)){
+	WlzFreeAffineTransform(trans);
+	WlzFreeObj(obj1);
+
+	/* now apply the shift */
+	obj1 = WlzAssignObject(WlzShiftObject(obj2, x_shift, y_shift,
+					      0, &errNum), NULL);
+	WlzFreeObj(obj2);
+      }
+    }
+    if( ovlyObj ){
+      WlzFreeObj(ovlyObj);
+      ovlyObj = NULL;
+    }
+    if( (errNum == WLZ_ERR_NONE) && obj1 ){
+      ovlyObj = WlzAssignObject(obj1, NULL);
+      WlzFreeObj(obj1);
     }
   }
 
@@ -436,12 +489,19 @@ void realignReadOverlayCb(
     if( obj ){
       switch( obj->type ){
       case WLZ_2D_DOMAINOBJ:
+      case WLZ_2D_POLYGON:
+      case WLZ_BOUNDLIST:
 	/* set the overlay object */
 	if( overlayObj ){
 	  WlzFreeObj(overlayObj);
 	}
 	overlayObj = WlzAssignObject(obj, &errNum);
-	realignResetOverlayCb(w, client_data, call_data);
+	realignSetImage(view_struct);
+	realignDisplayPolysCb(w, client_data, call_data);
+	realignSetOverlay(view_struct);
+	realignDisplayOverlayCb(w, client_data, call_data);
+	/* don't reset on re-read */
+/*	realignResetOverlayCb(w, client_data, call_data);*/
 	break;
 
       default:
@@ -492,6 +552,72 @@ void realignReadOverlayPopupCb(
 
   XtManageChild(realign_read_ovly_dialog);
   PopupCallback(w, (XtPointer) XtParent(realign_read_ovly_dialog), NULL);
+
+  return;
+}
+
+void realignWriteOverlayCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
+  XmFileSelectionBoxCallbackStruct *cbs =
+    (XmFileSelectionBoxCallbackStruct *) call_data;
+  String		fileStr;
+  FILE			*fp;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
+  WlzObject		*obj;
+
+  /* check we can open the file and save the filename */
+  if( (fp = HGU_XmGetFilePointer(view_struct->dialog, cbs->value,
+				 cbs->dir, "w")) == NULL ){
+    return;
+  }
+
+  /* write the overlay object */
+  if( ovlyObj ){
+    errNum = WlzWriteObj(fp, ovlyObj);
+  }
+  fclose(fp);
+
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "realignWriteOverlayCb", errNum);
+  }
+  return;
+}
+
+void realignWriteOverlayPopupCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
+  Arg		arg[1];
+  Visual	*visual;
+
+  /* get the visual explicitly */
+  visual = HGU_XmWidgetToVisual(globals.topl);
+  XtSetArg(arg[0], XmNvisual, visual);
+
+  if( realign_write_ovly_dialog == NULL ){
+    realign_write_ovly_dialog =
+      XmCreateFileSelectionDialog(view_struct->dialog,
+				  "realign_write_ovly_dialog", arg, 1);
+
+    XtAddCallback(realign_write_ovly_dialog, XmNokCallback,
+		  realignWriteOverlayCb, client_data);
+    XtAddCallback(realign_write_ovly_dialog, XmNokCallback,
+		  PopdownCallback, NULL);
+    XtAddCallback(realign_write_ovly_dialog, XmNcancelCallback, 
+		  PopdownCallback, NULL);
+    XtAddCallback(realign_write_ovly_dialog, XmNmapCallback,
+		  FSBPopupCallback, NULL);
+  }
+
+  XtManageChild(realign_write_ovly_dialog);
+  PopupCallback(w, (XtPointer) XtParent(realign_write_ovly_dialog), NULL);
 
   return;
 }
@@ -1998,6 +2124,18 @@ Widget createRealignmentDialog(
 				   XmNleftWidget,	option_menu,
 				   NULL);
   XtAddCallback(button, XmNactivateCallback, realignReadOverlayPopupCb,
+		view_struct);
+
+  button = XtVaCreateManagedWidget("overlay_write",
+				   xmPushButtonWidgetClass, form,
+				   XmNtopAttachment,XmATTACH_OPPOSITE_WIDGET,
+				   XmNtopWidget,	option_menu,
+				   XmNbottomAttachment,	XmATTACH_OPPOSITE_WIDGET,
+				   XmNbottomWidget,	option_menu,
+				   XmNleftAttachment,	XmATTACH_WIDGET,
+				   XmNleftWidget,	button,
+				   NULL);
+  XtAddCallback(button, XmNactivateCallback, realignWriteOverlayPopupCb,
 		view_struct);
   widget = option_menu;
 

@@ -1000,7 +1000,7 @@ static WlzObject *get_thresh_obj(
     else {
       WlzFreeObj( obj2 );
       obj2 = NULL;
-      if( num_obj >= 4096 ){
+      if( (errNum == WLZ_ERR_INT_DATA) && (num_obj >= 4096) ){
 	for(i=0; i < num_obj; i++){
 	  if( WlzInsideDomain( obj_list[i], 0.0, 
 			      (double) y, (double) x, NULL ) ){
@@ -1011,6 +1011,7 @@ static WlzObject *get_thresh_obj(
 	  }
 	}
 	AlcFree((void *) obj_list);
+	errNum = WLZ_ERR_NONE;
       }
     }
   }
