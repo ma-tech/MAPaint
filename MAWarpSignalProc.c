@@ -450,6 +450,9 @@ void warpReadSignalPopupCb(
 
     XtAddCallback(warp_read_sgnl_dialog, XmNokCallback,
 		  warpResetCWDCb, client_data);
+
+    /* set jpeg default */
+    WlzXmExtFFObjectFSBSetType(warp_read_sgnl_dialog, WLZEFF_FORMAT_JPEG);
   }
 
   XtManageChild(warp_read_sgnl_dialog);

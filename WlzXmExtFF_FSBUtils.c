@@ -194,3 +194,32 @@ Widget WlzXmCreateExtFFObjectFSB(
   return dialog;
 }
 
+WlzErrorNum WlzXmExtFFObjectFSBSetType(
+  Widget	dialog,
+  WlzEffFormat	format)
+{
+  WlzErrorNum	errNum=WLZ_ERR_NONE;
+  Widget	menu, button;
+  char		strBuf[32];
+  const char	*buttonName, *fileExt;
+  XmString	xmstr;
+
+  /* set the pattern string and re-filter */
+  buttonName = WlzEffStringFromFormat(format, &fileExt);
+  sprintf(strBuf, "*.%s", fileExt);
+  xmstr = XmStringCreateSimple(strBuf);
+  XtVaSetValues(dialog, XmNpattern, xmstr, NULL);
+  XmStringFree( xmstr );
+  XmFileSelectionDoSearch( dialog, NULL );
+  
+  /* now set the menu entry */
+  if( menu = XtNameToWidget(dialog, "*formatMenu") ){
+    sprintf(strBuf, "*.%s", buttonName);
+    if( button = XtNameToWidget(menu, strBuf) ){
+      XtVaSetValues(menu, XmNmenuHistory, button, NULL);
+    }
+  }
+  XtVaSetValues(dialog, XmNuserData, (XtPointer) format, NULL);
+  
+  return errNum;
+}

@@ -707,7 +707,7 @@ void warpIORead(
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   String		fileStr;
   FILE			*fp;
-  double		oldScale, newScale;
+  double		oldScale, newScale, newZeta;
   Display		*dpy = XtDisplay(view_struct->canvas);
   Window		win  = XtWindow(view_struct->canvas);
   Widget		option_menu, widget, slider;
@@ -715,6 +715,7 @@ void warpIORead(
   WlzErrorNum		errNum=WLZ_ERR_NONE;
   WlzObject		*obj;
   WlzEffBibWarpInputThresholdParamsStruct	threshParamStr;
+  int			resetOvlyFlg=0;
 
   /* get a filename for the warp parameters */
   if( fileStr = HGU_XmUserGetFilename(globals.topl,
@@ -747,6 +748,7 @@ void warpIORead(
 	  oldScale = wlzViewStr->scale;
 	  WlzEffBibParse3DSectionViewParamsRecord(bibfileRecord, wlzViewStr);
 	  view_struct->controlFlag &= ~MAPAINT_FIXED_LINE_SET;
+
 	  /* reset the sliders and mode control */
 	  slider = XtNameToWidget(view_struct->dialog, "*.theta_slider");
 	  HGU_XmSetSliderValue
@@ -757,13 +759,82 @@ void warpIORead(
 	  slider = XtNameToWidget(view_struct->dialog, "*.zeta_slider");
 	  HGU_XmSetSliderValue
 	    (slider, (float) (wlzViewStr->zeta * 180.0 / WLZ_M_PI));
+
+	  /* extract the scale and the mode to reset the GUI */
 	  newScale = wlzViewStr->scale;
+	  newZeta = wlzViewStr->zeta;
 	  wlzViewStr->scale = oldScale;
 	  setViewMode(view_struct, wlzViewStr->view_mode);
 	  setViewScale(view_struct, newScale, 0, 0);
 
-	  /* redisplay the section */
-	  reset_view_struct( view_struct );
+	  /* check the section transform - trap mode/zeta bug
+	     note setViewMode will reset zeta to whatever is
+	     appropriate for the mode */
+	  if( fabs(newZeta - wlzViewStr->zeta) > 0.01 ){
+	    switch( wlzViewStr->view_mode ){
+	    case WLZ_UP_IS_UP_MODE:
+	      /* probably should have been in zeta-mode */
+	      if( HGU_XmUserConfirm(
+		    view_struct->dialog,
+		    "Warning: The view-mode and roll angle are inconsistent\n"
+		    "    Selecting absolute mode will probably fix the\n"
+		    "    problem. To check, select Absolute below and check\n"
+		    "    if the input tie-points are correct.\n\n"
+		    "    If they are not then re-read the bibfile and\n"
+		    "    select up-is-up.\n\n"
+		    "    If this still fails then save any work and ask\n"
+		    "    emap-tech@hgu.mrc.ac.uk\n"
+		    "    If the tie-points are correct then save a new\n"
+		    "    bibfile to record the correct values\n\n"
+		    "Select Absolute or Up-is-Up below:",
+		    "Absolute", "Up-is-Up", 0) ){
+		wlzViewStr->view_mode = WLZ_ZETA_MODE;
+		wlzViewStr->zeta = newZeta;
+	      }
+	      break;
+
+	    case WLZ_STATUE_MODE:
+	      /* probably should have been in zeta-mode */
+	      if( HGU_XmUserConfirm(view_struct->dialog,
+				    "Warning: The view-mode and roll angle\n"
+				    "    are inconsistent. Selecting\n"
+				    "    absolute mode will probably fix\n"
+				    "    the problem. To check select\n"
+				    "    absolute below and check if the\n"
+				    "    input tie-points are correct.\n"
+				    "    If they are not then re-read the\n"
+				    "    bibfile and select statue\n"
+				    "    If this still fails then ask\n"
+				    "    emap-tech@hgu.mrc.ac.uk for help\n\n"
+				    "    If the tie-points are correct then\n"
+				    "    save the bibfile to record the\n"
+				    "    correct settings\n\n"
+				    "Select Absolute or Statue below:",
+				    "Absolute", "Statue", 0) ){
+		wlzViewStr->view_mode = WLZ_ZETA_MODE;
+		wlzViewStr->zeta = newZeta;
+	      }
+	      break;
+
+	    case WLZ_ZETA_MODE:
+	      /* should not happen, silently just reset slider */
+	      break;
+
+	    default: /* set zeta mode - what else? */
+	      wlzViewStr->view_mode = WLZ_ZETA_MODE;
+	      wlzViewStr->zeta = newZeta;
+	      break;
+	    }
+
+	    setViewMode(view_struct, wlzViewStr->view_mode);
+	    slider = XtNameToWidget(view_struct->dialog, "*.zeta_slider");
+	    HGU_XmSetSliderValue
+	      (slider, (float) (wlzViewStr->zeta * 180.0 / WLZ_M_PI));
+	    reset_view_struct( view_struct );
+	  }
+
+
+	  /* redisplay */
 	  XClearWindow(dpy, win);
 	  display_view_cb(w, (XtPointer) view_struct, call_data);
 	  view_feedback_cb(w, (XtPointer) view_struct, NULL);
@@ -786,13 +857,12 @@ void warpIORead(
 	  XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback, call_data);
 
 	  /* reset the overlay object */
+	  resetOvlyFlg = 1;
 	  cobj = (WlzCompoundArray *) warpGlobals.ovly.obj;
 	  if( cobj->o[0] ){
 	    WlzFreeObj(cobj->o[0]);
 	  }
 	  cobj->o[0] = WlzAssignObject(warpGlobals.dst.obj, NULL);
-	  warpSetXImage(&(warpGlobals.ovly));
-	  XtCallCallbacks(warpGlobals.ovly.canvas, XmNexposeCallback, call_data);
 	}
 
 	/* check for warp transform parameters */
@@ -896,6 +966,7 @@ void warpIORead(
 					   "*.mesh_max_dist") ){
 	    HGU_XmSetSliderValue(slider, (float) meshMaxDst);
 	  }
+	  resetOvlyFlg = 1;
 	}
 
 	/* read tie-points */
@@ -921,6 +992,7 @@ void warpIORead(
 	    warpGlobals.src_vtxs[warpGlobals.num_vtxs].vtY = srcVtx.vtY;
 	    warpGlobals.num_vtxs++;
 	  }
+	  resetOvlyFlg = 1;
 	}
 
 	/* read warp reference file - check against current
@@ -1001,6 +1073,7 @@ void warpIORead(
 				 (XtPointer) &(warpGlobals.src),
 				 call_data);
 	    }
+	    resetOvlyFlg = 1;
 	  }
 	}
 	  
@@ -1345,13 +1418,30 @@ void warpIORead(
       (void) fclose(fp);
 
       /* calculate the warp transform and display */
-      if( warpGlobals.num_vtxs ){
+      if( warpGlobals.num_vtxs || resetOvlyFlg){
 	warpDisplayTiePoints();
 	warpSetOvlyObject();
+	if( warpGlobals.ovly.ximage ){
+	  AlcFree(warpGlobals.ovly.ximage->data);
+	  warpGlobals.ovly.ximage->data = NULL;
+	  XDestroyImage(warpGlobals.ovly.ximage);
+	  warpGlobals.ovly.ximage = NULL;
+	}
+	if( warpGlobals.ovly.ovlyImages[0] ){
+	  AlcFree(warpGlobals.ovly.ovlyImages[0]->data);
+	  warpGlobals.ovly.ovlyImages[0]->data = NULL;
+	  XDestroyImage(warpGlobals.ovly.ovlyImages[0]);
+	  warpGlobals.ovly.ovlyImages[0] = NULL;
+	}
+	if( warpGlobals.ovly.ovlyImages[1] ){
+	  AlcFree(warpGlobals.ovly.ovlyImages[1]->data);
+	  warpGlobals.ovly.ovlyImages[1]->data = NULL;
+	  XDestroyImage(warpGlobals.ovly.ovlyImages[1]);
+	  warpGlobals.ovly.ovlyImages[1] = NULL;
+	}
 	warpSetOvlyXImage(&(warpGlobals.ovly));
-	warpCanvasExposeCb(warpGlobals.ovly.canvas,
-			 (XtPointer) &(warpGlobals.ovly),
-			 call_data);
+	XtCallCallbacks(warpGlobals.ovly.canvas, XmNexposeCallback,
+			call_data);
 	XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
 		      call_data);
 	XtCallCallbacks(warpGlobals.src.canvas, XmNexposeCallback,
