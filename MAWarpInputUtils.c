@@ -431,6 +431,10 @@ void warpIOWrite(
                         *refFileS = NULL,
                         *srcFileS, *sgnlFileS;
   char			tmpBuf[256];
+  Widget		toggle, slider;
+  Boolean		normFlg=0, histoFlg=0, shadeFlg=0, gaussFlg=0;
+  double		width=1.0;
+
 
   /* get a filename for the warp parameters */
   if( fileStr = HGU_XmUserGetFilename(globals.topl,
@@ -490,8 +494,24 @@ void warpIOWrite(
       BibFileRecordWrite(fp, NULL, bibfileRecord);
       BibFileRecordFree(&bibfileRecord);
 
+      /* if defined write a file record for the source */
+      if( warpGlobals.srcFile ){
+	write_File_Record(fp, "MAPaintWarpInputSourceFile",
+			  warpGlobals.srcFile,
+			  warpGlobals.srcFileType);
+      }
+
+      /* if defined write a file record for the signal */
+      if( warpGlobals.sgnlFile ){
+	write_File_Record(fp, "MAPaintWarpInputSignalFile",
+			  warpGlobals.sgnlFile,
+			  warpGlobals.sgnlFileType);
+      }
+
+
       /* write the section data */
-      if( write_Wlz3DSectionViewParams_Record(fp, wlzViewStr) != WLZ_ERR_NONE ){
+      if( write_Wlz3DSectionViewParams_Record(fp, "Wlz3DSectionViewParams", 
+					      wlzViewStr) != WLZ_ERR_NONE ){
 	HGU_XmUserError(globals.topl,
 			"Save Warp Parameters:\n"
 			"    Error in writing the bibfile\n"
@@ -501,7 +521,7 @@ void warpIOWrite(
       }
 
       /* write the warp transform parameters */
-      if( write_WlzWarpTransformParams_Record(fp,
+      if( write_WlzWarpTransformParams_Record(fp, "WlzWarpTransformParams",
 					      warpGlobals.basisFnType,
 					      warpGlobals.meshMthd,
 					      warpGlobals.meshMinDst,
@@ -516,20 +536,42 @@ void warpIOWrite(
       }
 
       /* write the processing transform parameters */
-      /*if( write_WlzProcessingTransformParams_Record(fp,
-						    normFlg,
-						    histoFlg,
-						    shadeFlg,
-						    gaussFlg,
-						    width)
-	 != WLZ_ERR_NONE ){
+      if( toggle = XtNameToWidget(globals.topl,
+				  "*warp_sgnl_controls_form*normalise") ){
+	XtVaGetValues(toggle, XmNset, &normFlg, NULL);
+      }
+      if( toggle = XtNameToWidget(globals.topl,
+				  "*warp_sgnl_controls_form*histo_equalise") ){
+	XtVaGetValues(toggle, XmNset, &histoFlg, NULL);
+      }
+      if( toggle = XtNameToWidget(globals.topl,
+				  "*warp_sgnl_controls_form*shade_correction") ){
+	XtVaGetValues(toggle, XmNset, &shadeFlg, NULL);
+      }
+      if( toggle = XtNameToWidget(globals.topl,
+				  "*warp_sgnl_controls_form*gauss_smooth") ){
+	XtVaGetValues(toggle, XmNset, &gaussFlg, NULL);
+      }
+      if( slider = XtNameToWidget(globals.topl,
+				  "*warp_sgnl_controls_form*gauss_width") ){
+	width = HGU_XmGetSliderValue(slider);
+      }
+      if( write_MAPaintWarpInputSegmentationParams_Record
+	 (fp, "MAPaintWarpInputSegmentationParams",
+	  normFlg==True?1:0,
+	  histoFlg==True?1:0,
+	  shadeFlg==True?1:0,
+	  gaussFlg==True?1:0,
+	  width,
+	  warpGlobals.threshRangeLow,
+	  warpGlobals.threshRangeHigh) != WLZ_ERR_NONE ){
 	HGU_XmUserError(globals.topl,
-			"Save Processing Parameters:\n"
-			"    Error in writing the bibfile\n"
-			"    Please check disk space or quotas\n"
-			"    Section parameters not saved",
-			XmDIALOG_FULL_APPLICATION_MODAL);
-			}*/
+	 		"Save Processing Parameters:\n"
+		 	"    Error in writing the bibfile\n"
+		 	"    Please check disk space or quotas\n"
+		 	"    Section parameters not saved",
+		 	XmDIALOG_FULL_APPLICATION_MODAL);
+      }
 
       /* write the tie points */
       for(i=0; i < warpGlobals.num_vtxs; i++){
@@ -540,7 +582,7 @@ void warpIOWrite(
 	vtx2.vtX = warpGlobals.src_vtxs[i].vtX;
 	vtx2.vtY = warpGlobals.src_vtxs[i].vtY;
 	vtx2.vtZ = 0.0;
-	if( write_WlzTiePointVtxs_Record(fp, i, vtx1, vtx2)
+	if( write_WlzTiePointVtxs_Record(fp, "WlzTiePointVtxs", i, vtx1, vtx2)
 	   != WLZ_ERR_NONE ){
 	  HGU_XmUserError(globals.topl,
 			  "Save Warp Parameters:\n"
@@ -591,6 +633,8 @@ void warpIORead(
   Window		win  = XtWindow(view_struct->canvas);
   Widget		option_menu, widget, slider;
   WlzCompoundArray	*cobj;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
+  WlzObject		*obj;
 
   /* get a filename for the warp parameters */
   if( fileStr = HGU_XmUserGetFilename(globals.topl,
@@ -722,12 +766,101 @@ void warpIORead(
 	    warpGlobals.num_vtxs++;
 	  }
 	}
-	
+
+	/* read warp source file */
+	if( !strncmp(bibfileRecord->name, "MAPaintWarpInputSourceFile", 26) ){
+	  int		index;
+	  char		*fileStr;
+	  WlzEffFormat	fileType;
+
+	  parse_File_Record(bibfileRecord, &index,
+			    &fileStr, &fileType);
+
+	  /* read the image and install */
+	  if( obj = WlzEffReadObj(NULL, fileStr, fileType, &errNum) ){
+	    warpGlobals.srcFile = fileStr;
+	    warpGlobals.srcFileType = fileType;
+	    if( warpGlobals.src.obj ){
+	      WlzFreeObj(warpGlobals.src.obj);
+	    }
+	    warpGlobals.src.obj = WlzAssignObject(obj, &errNum);
+	  }
+	}
+	  
+	/* read warp signal file */
+	if( !strncmp(bibfileRecord->name, "MAPaintWarpInputSignalFile", 26) ){
+	  int		index;
+	  char		*fileStr;
+	  WlzEffFormat	fileType;
+
+	  parse_File_Record(bibfileRecord, &index,
+			    &fileStr, &fileType);
+
+	  /* read the image and install */
+	  if( obj = WlzEffReadObj(NULL, fileStr, fileType, &errNum) ){
+	    warpGlobals.sgnlFile = fileStr;
+	    warpGlobals.sgnlFileType = fileType;
+	    if( warpGlobals.sgnl.obj ){
+	      WlzFreeObj(warpGlobals.sgnl.obj);
+	    }
+	    warpGlobals.sgnl.obj = WlzAssignObject(obj, &errNum);
+	  }
+	}
+	  
+	/* check for segmentation transform parameters */
+	if( !strncmp(bibfileRecord->name,
+		     "MAPaintWarpInputSegmentationParams", 34) ){
+	  int 		normFlg, histoFlg, shadeFlg, gaussFlg;
+	  int		threshLow, threshHigh;
+	  double	width;
+	  Widget	toggle, slider;
+
+	  parse_MAPaintWarpInputSegmentationParams_Record(bibfileRecord,
+							  &normFlg,
+							  &histoFlg,
+							  &shadeFlg,
+							  &gaussFlg,
+							  &width,
+							  &threshLow,
+							  &threshHigh);
+	  if( toggle = XtNameToWidget(globals.topl,
+				      "*warp_sgnl_controls_form*normalise") ){
+	    XtVaSetValues(toggle, XmNset, normFlg, NULL);
+	  }
+	  if( toggle = XtNameToWidget(globals.topl,
+				      "*warp_sgnl_controls_form*histo_equalise") ){
+	    XtVaSetValues(toggle, XmNset, histoFlg, NULL);
+	  }
+	  if( toggle = XtNameToWidget(globals.topl,
+				      "*warp_sgnl_controls_form*shade_correction") ){
+	    XtVaSetValues(toggle, XmNset, shadeFlg, NULL);
+	  }
+	  if( toggle = XtNameToWidget(globals.topl,
+				      "*warp_sgnl_controls_form*gauss_smooth") ){
+	    XtVaSetValues(toggle, XmNset, gaussFlg, NULL);
+	  }
+	  if( slider = XtNameToWidget(globals.topl,
+				      "*warp_sgnl_controls_form*gauss_width") ){
+	    HGU_XmSetSliderValue(slider, width);
+	  }
+	  if( slider = XtNameToWidget(globals.topl,
+				      "*warp_sgnl_controls_form*thresh_range_low") ){
+	    HGU_XmSetSliderValue(slider, (float) threshLow);
+	    warpGlobals.threshRangeLow = threshLow;
+	  }
+	  if( slider = XtNameToWidget(globals.topl,
+				      "*warp_sgnl_controls_form*thresh_range_high") ){
+	    HGU_XmSetSliderValue(slider, (float) threshHigh);
+	    warpGlobals.threshRangeHigh = threshHigh;
+	  }
+	}
+
 	BibFileRecordFree(&bibfileRecord);
 	bibFileErr = BibFileRecordRead(&bibfileRecord, &errMsg, fp);
       }
       (void) fclose(fp);
 
+      /* calculate the warp transform and display */
       if( warpGlobals.num_vtxs ){
 	warpDisplayTiePoints();
 	warpSetOvlyObject();
@@ -740,6 +873,12 @@ void warpIORead(
 	XtCallCallbacks(warpGlobals.src.canvas, XmNexposeCallback,
 		      call_data);
       }
+
+      /* calculate the signal threshold object */
+      if( warpGlobals.sgnl.obj ){
+	recalcWarpProcObjCb(w, client_data, call_data);
+      }
+
     }
   }
 

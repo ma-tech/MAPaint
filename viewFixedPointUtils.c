@@ -809,7 +809,8 @@ void controls_io_write_cb(
 				      "OK", "cancel", "MAPaintSectParams.bib",
 				      NULL, "*.bib") ){
     if( fp = fopen(fileStr, "w") ){
-      if( write_Wlz3DSectionViewParams_Record(fp, wlzViewStr) != WLZ_ERR_NONE ){
+      if( write_Wlz3DSectionViewParams_Record(fp, "Wlz3DSectionViewParams",
+					      wlzViewStr) != WLZ_ERR_NONE ){
 	HGU_XmUserError(globals.topl,
 			"Save Section Parameters:\n"
 			"    Error in writing the bibfile\n"

@@ -331,7 +331,8 @@ void theta_cb(
 	break;
       }
     }
-    sprintf(strBuf, "(%f,%f)", oldTheta, wlzViewStr->theta);
+    sprintf(strBuf, "(%.1f,%.1f)", oldTheta*180.0/WLZ_M_PI,
+	    wlzViewStr->theta*180.0/WLZ_M_PI);
     MAPaintLogData("Theta", strBuf, code, view_struct->dialog);
   }
   reset_view_struct( view_struct );
@@ -451,7 +452,8 @@ void phi_cb(
 	break;
       }
     }
-    sprintf(strBuf, "(%f,%f)", oldPhi, wlzViewStr->phi);
+    sprintf(strBuf, "(%.1f,%.1f)", oldPhi*180.0/WLZ_M_PI,
+	    wlzViewStr->phi*180.0/WLZ_M_PI);
     MAPaintLogData("Phi", strBuf, code, view_struct->dialog);
   }
   reset_view_struct( view_struct );

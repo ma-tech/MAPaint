@@ -1079,6 +1079,32 @@ void MAPaintThreshold2DCb(
 	constrainedFlg = True;
       }
 
+      /* check the view object */
+      if( view_struct->view_object == NULL ){
+	WlzObject *tmpObj;
+	if( tmpObj = WlzGetSectionFromObject(globals.orig_obj,
+					     view_struct->wlzViewStr,
+					     &errNum) ){
+	  view_struct->view_object = WlzAssignObject(tmpObj, NULL);
+	}
+	else {
+	  MAPaintReportWlzError(globals.topl, "MAPaintThreshold2DCb",
+				errNum);
+	  return;
+	}
+
+	if( threshold_gVWSp ){
+	  WlzGreyValueFreeWSp(threshold_gVWSp);
+	}
+
+	if( (threshold_gVWSp = WlzGreyValueMakeWSp(view_struct->view_object,
+						   &errNum)) == NULL ){
+	  MAPaintReportWlzError(globals.topl, "MAPaintThreshold2DCb",
+				errNum);
+	  return;
+	}
+      }
+
       if( constrainedFlg == True ){
 	obj1 = NULL;
 	if( paintBallCurrDomain ==

@@ -73,7 +73,9 @@ typedef struct {
   ThreeDViewStruct	*view_struct;
   Widget		warp2DInteractDialog;
   char			*srcFile;
+  WlzEffFormat		srcFileType;
   char			*sgnlFile;
+  WlzEffFormat		sgnlFileType;
   WlzObject		*sgnlObj;
   WlzObject		*sgnlProcObj;
 

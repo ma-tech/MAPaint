@@ -741,6 +741,48 @@ static void view_controls_cb(
   return;
 }
 
+static void viewLogXScrollBarCB(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
+
+  /* log the scrollbar change */
+  if( globals.logfileFp ){
+    char strBuf[16];
+    int code = 10;
+    int	value;
+
+    XtVaGetValues(widget, XmNvalue, &value, NULL);
+    sprintf(strBuf, "%d", value);
+    MAPaintLogData("xScrollBar", strBuf, code, view_struct->dialog);
+  }
+
+  return;
+}
+
+static void viewLogYScrollBarCB(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
+
+  /* log the scrollbar change */
+  if( globals.logfileFp ){
+    char strBuf[16];
+    int code = 10;
+    int	value;
+
+    XtVaGetValues(widget, XmNvalue, &value, NULL);
+    sprintf(strBuf, "%d", value);
+    MAPaintLogData("yScrollBar", strBuf, code, view_struct->dialog);
+  }
+
+  return;
+}
+
 static String canvas_translations_table =
 "<BtnMotion>: 	DrawingAreaInput()\n\
 Ctrl<BtnDown>:	DrawingAreaInput()\n\
@@ -935,6 +977,20 @@ Widget create_view_window_dialog(
 			    XmNrightAttachment,	XmATTACH_FORM,
 			    NULL);
 
+  /* add callbacks if logging */
+  if(  globals.logfileFp ){
+    Widget scrollBar;
+
+    XtVaGetValues(scrolled_window, XmNhorizontalScrollBar, &scrollBar, NULL);
+    if( scrollBar ){
+      XtAddCallback(scrollBar, XmNdragCallback, viewLogXScrollBarCB, view_struct);
+    }
+
+    XtVaGetValues(scrolled_window, XmNverticalScrollBar, &scrollBar, NULL);
+    if( scrollBar ){
+      XtAddCallback(scrollBar, XmNdragCallback, viewLogYScrollBarCB, view_struct);
+    }
+  }
   canvas = XtVaCreateManagedWidget("canvas", hgu_DrawingAreaWidgetClass,
 				   scrolled_window,
 				   XmNwidth,  width,
@@ -1018,7 +1074,7 @@ Widget create_view_window_dialog(
 
   /* now the orientation sliders */
   slider = HGU_XmCreateHorizontalSlider("phi_slider", form,
-					phi*180/WLZ_M_PI, 0.0, 180, 2,
+					phi*180/WLZ_M_PI, 0.0, 180, 1,
 					phi_cb, view_struct);
   XtVaSetValues(slider,
 		XmNtopAttachment,	XmATTACH_WIDGET,
@@ -1032,7 +1088,7 @@ Widget create_view_window_dialog(
   add_feedback_callbacks(scale, view_struct);
 
   slider = HGU_XmCreateHorizontalSlider("theta_slider", form,
-					theta*180/WLZ_M_PI, 0.0, 360, 2,
+					theta*180/WLZ_M_PI, 0.0, 360, 1,
 					theta_cb, view_struct);
   XtVaSetValues(slider,
 		XmNtopAttachment,	XmATTACH_WIDGET,
@@ -1046,7 +1102,7 @@ Widget create_view_window_dialog(
   add_feedback_callbacks(scale, view_struct);
 
   slider = HGU_XmCreateHorizontalSlider("zeta_slider", form,
-					0.0, 0.0, 360, 2,
+					0.0, 0.0, 360, 1,
 					zeta_cb, view_struct);
   XtVaSetValues(slider,
 		XmNtopAttachment,	XmATTACH_WIDGET,
@@ -1061,7 +1117,7 @@ Widget create_view_window_dialog(
   add_feedback_callbacks(scale, view_struct);
 
   slider = HGU_XmCreateHorizontalSlider("psi_slider", form,
-					0.0, -180.0, 180.0, 2,
+					0.0, -180.0, 180.0, 1,
 					psi_cb, view_struct);
   XtVaSetValues(slider,
 		XmNtopAttachment,	XmATTACH_WIDGET,

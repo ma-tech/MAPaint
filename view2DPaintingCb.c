@@ -39,6 +39,7 @@ extern void display_pointer_feedback_information(
   int			y);
 
 static int quitPaintingTrigger=0;
+static int buttonPressedFlg=0;
 
 void installCurrentPaintTool(
   Widget		w,
@@ -474,14 +475,6 @@ void canvas_2D_painting_cb(
 
       break;
 
-    case EnterNotify:
-      fprintf(stderr, "Got EnterNotify on view canvas\n");
-      break;
-
-    case LeaveNotify:
-      fprintf(stderr, "Got LeaveNotify on view canvas\n");
-      break;
-
     default:
       break;
 
@@ -500,6 +493,10 @@ void canvas_2D_painting_cb(
     break;
 
   case KeyPress:
+    if( !cbs->event->xkey.state&(Button1Mask|Button2Mask|Button3Mask) ){
+      fprintf(stderr, "\007 Too fast with the fingers %s\n", getenv("USER"));
+      break;
+    }
     switch( XLookupKeysym(&(cbs->event->xkey), 0) ){
 	
     case XK_Right:

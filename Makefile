@@ -49,7 +49,6 @@ CSOURCES		= \
 			MAPMSnake.c \
 			NalgsDPSearch.c \
 			anatomy_menu.c \
-			bibfileIOUtils.c \
 			domain_menu.c \
 			domain_utils.c \
 			file_menu.c \
@@ -96,7 +95,6 @@ CSOURCES		= \
 			MAPMSnake.c \
 			NalgsDPSearch.c \
 			anatomy_menu.c \
-			bibfileIOUtils.c \
 			domain_menu.c \
 			domain_utils.c \
 			file_menu.c \
@@ -156,6 +154,7 @@ INCDIRS			= .  \
 			../../Core/libbibfile \
 			../../Core/libAlg \
 			../../Core/libWlz \
+			../../Core/libWlzIO \
 			../../Core/libWlzExtFF \
 			../../Core/libReconstruct \
 			../../HGUX/libHguX \
@@ -173,6 +172,7 @@ LIBDIRS			= . \
 			../../Core/libbibfile \
 			../../Core/libAlg \
 			../../Core/libWlz \
+			../../Core/libWlzIO \
 			../../Core/libWlzExtFF \
 			../../Core/libReconstruct \
 			../../HGUX/libHguX \
@@ -188,6 +188,7 @@ LIBDIRS			= . \
 			../../Core/libbibfile \
 			../../Core/libAlg \
 			../../Core/libWlz \
+			../../Core/libWlzIO \
 			../../Core/libWlzExtFF \
 			../../Core/libReconstruct \
 			../../HGUX/libHguX \
@@ -205,6 +206,7 @@ LIBDIRS			=  \
 			../../Core/libAlg \
 			../../Core/libWlz \
 			../../Core/libWlzExtFF \
+			../../Core/libWlzIO \
 			../../Core/libReconstruct \
 			../../HGUX/libHguX \
 			../../HGUX/libHguXm \
@@ -220,6 +222,7 @@ LIBDIRS			=  \
 			../../Core/libAlg \
 			../../Core/libWlz \
 			../../Core/libWlzExtFF \
+			../../Core/libWlzIO \
 			../../Core/libReconstruct \
 			../../HGUX/libHguX \
 			../../HGUX/libHguXm \
@@ -248,21 +251,21 @@ INCLUDES_ALL		= $(sort $(INCLUDES_PUB) $(INCLUDES_PRV))
 OBJECTS			= $(CSOURCES:%.c=%.o)
 
 # List of libraries to link (modify as required).
-EXTRA_LIBS		= m gen
+EXTRA_LIBS		= tiff m gen
 X11LIBS         	= Xt Xmu X11 Xext
 ifeq 		($(UNIXTYPE), SUNOS5)
-EXTRA_LIBS		= m gen socket nsl
+EXTRA_LIBS		= tiff m gen socket nsl
 X11LIBS         	= Xt Xmu X11  Xi Xext
 endif
 ifeq	 	($(UNIXTYPE), LINUX2)
-EXTRA_LIBS		= m Xp SM ICE
+EXTRA_LIBS		= tiff m Xp SM ICE
 X11LIBS         	= Xt Xmu X11 Xext
 endif
 
 OPENGLLIBS		= GLU GL
 MOTIFLIBS       	= Xm
-LOCALLIBS		= hguGL HguXm HguX WlzExtFF Wlz bibfile Alg Alc
-LIBRARIES		= hguGL HguXm HguX Wlz bibfile Alg Alc \
+LOCALLIBS		= hguGL HguXm HguX WlzExtFF WlzIO Wlz bibfile Alg Alc
+LIBRARIES		= hguGL HguXm HguX WlzExtFF WlzIO Wlz bibfile Alg Alc \
 			$(OPENGLLIBS) $(MOTIFLIBS) $(X11LIBS) $(EXTRA_LIBS)
 
 # Basic flags for controlling compilation (modify as required).

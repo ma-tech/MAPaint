@@ -318,6 +318,11 @@ extern void warpInput2DCb(Widget	w,
 
 extern Widget createWarpInput2DDialog(Widget	topl);
 
+extern void recalcWarpProcObjCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data);
+
 /* paint_utils.c, MAColormapUtils.c */
 extern char *HGU_XRequestToString(
   char	request_code);
@@ -599,43 +604,6 @@ extern void PostIt(
   XtPointer	client_data,
   XEvent	*event,
   Boolean	*continue_to_dispatch);
-
-/* bibfileIOUtils.c */
-#include <bibFile.h>
-
-extern WlzErrorNum write_Wlz3DSectionViewParams_Record(
-  FILE			*fp,
-  WlzThreeDViewStruct	*wlzViewStr);
-
-extern WlzErrorNum parse_Wlz3DSectionViewParams_Record(
-  BibFileRecord		*bibfileRecord,
-  WlzThreeDViewStruct	*wlzViewStr);
-
-extern WlzErrorNum write_WlzWarpTransformParams_Record(
-  FILE			*fp,
-  WlzBasisFnType	basisFnType,
-  WlzMeshGenMethod	meshMthd,
-  int			meshMinDst,
-  int	 		meshMaxDst);
-
-extern WlzErrorNum parse_WlzWarpTransformParams_Record(
-  BibFileRecord		*bibfileRecord,
-  WlzBasisFnType	*basisFnType,
-  WlzMeshGenMethod	*meshMthd,
-  int			*meshMinDst,
-  int	 		*meshMaxDst);
-
-extern WlzErrorNum write_WlzTiePointVtxs_Record(
-  FILE		*fp,
-  int		index,
-  WlzDVertex3	dstVtx,
-  WlzDVertex3	srcVtx);
-
-extern WlzErrorNum parse_WlzTiePointVtxs_Record(
-  BibFileRecord		*bibfileRecord,
-  int		*index,
-  WlzDVertex3	*dstVtx,
-  WlzDVertex3	*srcVtx);
 
 /* from all over! */
 extern Widget	create_main_buttonbar	(Widget w); /* from main_buttonbar.c */

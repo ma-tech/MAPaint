@@ -409,6 +409,7 @@ void warpReadSignalCb(
   }
   warpGlobals.sgnlFile = HGU_XmGetFileStr(view_struct->dialog, cbs->value,
 				 cbs->dir);
+  warpGlobals.sgnlFileType = WLZEFF_FORMAT_WLZ;
 
   /* read the new signal object - ready to extend to other types */
   obj = WlzEffReadObj(fp, NULL, WLZEFF_FORMAT_WLZ, &errNum);
@@ -518,6 +519,7 @@ void warpReadSourceCb(
   }
   warpGlobals.srcFile = HGU_XmGetFileStr(view_struct->dialog, cbs->value,
 				 cbs->dir);
+  warpGlobals.srcFileType = WLZEFF_FORMAT_WLZ;
 
   /* read the new source object - ready to extend to other types */
   obj = WlzEffReadObj(fp, NULL, WLZEFF_FORMAT_WLZ, &errNum);
@@ -1311,7 +1313,7 @@ static Widget create2DWarpDialog(
   Visual	*visual;
 
   /* create a dialog widget and get control form and 24-bit visual */
-  dialog = HGU_XmCreateStdDialog(parent, "warp2DInteractDialog",
+  dialog = HGU_XmCreateStdDialog(globals.topl, "warp2DInteractDialog",
 				 xmFormWidgetClass,
 				 warp_interact_actions, 5);
   control = XtNameToWidget( dialog, "*.control" );
@@ -1872,8 +1874,10 @@ Widget createWarpInput2DDialog(
   warpGlobals.view_struct = view_struct;
   warpGlobals.warp2DInteractDialog = NULL;
   warpGlobals.srcFile = NULL;
+  warpGlobals.srcFileType = WLZEFF_FORMAT_NONE;
   warpGlobals.sgnlFile = NULL;
   warpGlobals.sgnlObj = NULL;
+  warpGlobals.sgnlFileType = WLZEFF_FORMAT_NONE;
   warpGlobals.sgnlProcObj = NULL;
   warpGlobals.dst.obj = NULL;
   warpGlobals.src.obj = NULL;
