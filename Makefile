@@ -19,6 +19,10 @@ include			../../Makefile.conf
 EXECUTABLES		= \
 			MAPaint \
 			MAPaint.mesa
+ifeq ($(UNIXTYPE), DARWIN)
+EXECUTABLES		= \
+			MAPaint
+endif
 
 SCRIPTS			= \
 			MAPaint.log
@@ -414,8 +418,8 @@ $(CXXFLAGS) CommonTypes.o ./$(ARCHIVE) $(REQUIRED_LIBS)
 
 # Target which installs everything after it has been built (should not need
 # modifying).
-install:		install_includes install_manpages install_archive \
-			install_executables install_www install_doc
+install:		install_includes install_archive \
+			install_executables
 
 # Target which installs an archive (should not need modifying).
 install_archive:	$(ARCHIVE)
