@@ -184,46 +184,51 @@ void canvas_warp_painting_cb(
 	break;
       }
       else {
-	installViewDomains(view_struct);
-	clearUndoDomains();
-	wlzViewStr->dist += 1.0;
-	reset_view_struct( view_struct );
-	display_view_cb(w, (XtPointer) view_struct, call_data);
-	view_feedback_cb(w, (XtPointer) view_struct, NULL);
-	getViewDomains(view_struct);
+	if( wlzViewStr->dist <= (wlzViewStr->maxvals.vtZ - 1.0) ){
+	  installViewDomains(view_struct);
+	  clearUndoDomains();
+	  wlzViewStr->dist += 1.0;
+	  reset_view_struct( view_struct );
+	  display_view_cb(w, (XtPointer) view_struct, call_data);
+	  view_feedback_cb(w, (XtPointer) view_struct, NULL);
+	  getViewDomains(view_struct);
 
 	/* need to reset warp destination image and overlay */
-	if( warpGlobals.dst.obj ){
-	  WlzFreeObj(warpGlobals.dst.obj);
-	}
-	warpGlobals.dst.obj =
-	  WlzAssignObject(WlzGetSectionFromObject(globals.orig_obj,
-						  view_struct->wlzViewStr, NULL),
-			  NULL);
-	warpSetXImage(&(warpGlobals.dst));
-	XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback, call_data);
-
-	/* reset the overlay object */
-	cobj = (WlzCompoundArray *) warpGlobals.ovly.obj;
-	if( cobj->o[0] ){
-	  WlzFreeObj(cobj->o[0]);
-	}
-	cobj->o[0] = WlzAssignObject(warpGlobals.dst.obj, NULL);
-	warpSetXImage(&(warpGlobals.ovly));
-	XtCallCallbacks(warpGlobals.ovly.canvas, XmNexposeCallback, call_data);
-
-	/* check for warp transform */
-	if( warpGlobals.num_vtxs ){
-	  warpDisplayTiePoints();
-	  warpSetOvlyObject();
-	  warpSetOvlyXImage(&(warpGlobals.ovly));
-	  warpCanvasExposeCb(warpGlobals.ovly.canvas,
-			     (XtPointer) &(warpGlobals.ovly),
-			     call_data);
+	  if( warpGlobals.dst.obj ){
+	    WlzFreeObj(warpGlobals.dst.obj);
+	  }
+	  warpGlobals.dst.obj =
+	    WlzAssignObject(WlzGetSectionFromObject(globals.orig_obj,
+						    view_struct->wlzViewStr,
+						    NULL),
+			    NULL);
+	  warpSetXImage(&(warpGlobals.dst));
 	  XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
 			  call_data);
-	  XtCallCallbacks(warpGlobals.src.canvas, XmNexposeCallback,
+
+	  /* reset the overlay object */
+	  cobj = (WlzCompoundArray *) warpGlobals.ovly.obj;
+	  if( cobj->o[0] ){
+	    WlzFreeObj(cobj->o[0]);
+	  }
+	  cobj->o[0] = WlzAssignObject(warpGlobals.dst.obj, NULL);
+	  warpSetXImage(&(warpGlobals.ovly));
+	  XtCallCallbacks(warpGlobals.ovly.canvas, XmNexposeCallback,
 			  call_data);
+
+	/* check for warp transform */
+	  if( warpGlobals.num_vtxs ){
+	    warpDisplayTiePoints();
+	    warpSetOvlyObject();
+	    warpSetOvlyXImage(&(warpGlobals.ovly));
+	    warpCanvasExposeCb(warpGlobals.ovly.canvas,
+			       (XtPointer) &(warpGlobals.ovly),
+			       call_data);
+	    XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
+			    call_data);
+	    XtCallCallbacks(warpGlobals.src.canvas, XmNexposeCallback,
+			    call_data);
+	  }
 	}
       }
       break;
@@ -248,46 +253,51 @@ void canvas_warp_painting_cb(
 	break;
       }
       else {
-	installViewDomains(view_struct);
-	clearUndoDomains();
-	wlzViewStr->dist -= 1.0;
-	reset_view_struct( view_struct );
-	display_view_cb(w, (XtPointer) view_struct, call_data);
-	view_feedback_cb(w, (XtPointer) view_struct, NULL);
-	getViewDomains(view_struct);
+	if( wlzViewStr->dist >= (wlzViewStr->minvals.vtZ + 1.0) ){
+	  installViewDomains(view_struct);
+	  clearUndoDomains();
+	  wlzViewStr->dist -= 1.0;
+	  reset_view_struct( view_struct );
+	  display_view_cb(w, (XtPointer) view_struct, call_data);
+	  view_feedback_cb(w, (XtPointer) view_struct, NULL);
+	  getViewDomains(view_struct);
 
-	/* need to reset warp destination image and overlay */
-	if( warpGlobals.dst.obj ){
-	  WlzFreeObj(warpGlobals.dst.obj);
-	}
-	warpGlobals.dst.obj =
-	  WlzAssignObject(WlzGetSectionFromObject(globals.orig_obj,
-						  view_struct->wlzViewStr, NULL),
-			  NULL);
-	warpSetXImage(&(warpGlobals.dst));
-	XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback, call_data);
-
-	/* reset the overlay object */
-	cobj = (WlzCompoundArray *) warpGlobals.ovly.obj;
-	if( cobj->o[0] ){
-	  WlzFreeObj(cobj->o[0]);
-	}
-	cobj->o[0] = WlzAssignObject(warpGlobals.dst.obj, NULL);
-	warpSetXImage(&(warpGlobals.ovly));
-	XtCallCallbacks(warpGlobals.ovly.canvas, XmNexposeCallback, call_data);
-
-	/* check for warp transform */
-	if( warpGlobals.num_vtxs ){
-	  warpDisplayTiePoints();
-	  warpSetOvlyObject();
-	  warpSetOvlyXImage(&(warpGlobals.ovly));
-	  warpCanvasExposeCb(warpGlobals.ovly.canvas,
-			     (XtPointer) &(warpGlobals.ovly),
-			     call_data);
+	  /* need to reset warp destination image and overlay */
+	  if( warpGlobals.dst.obj ){
+	    WlzFreeObj(warpGlobals.dst.obj);
+	  }
+	  warpGlobals.dst.obj =
+	    WlzAssignObject(WlzGetSectionFromObject(globals.orig_obj,
+						    view_struct->wlzViewStr,
+						    NULL),
+			    NULL);
+	  warpSetXImage(&(warpGlobals.dst));
 	  XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
 			  call_data);
-	  XtCallCallbacks(warpGlobals.src.canvas, XmNexposeCallback,
+
+	  /* reset the overlay object */
+	  cobj = (WlzCompoundArray *) warpGlobals.ovly.obj;
+	  if( cobj->o[0] ){
+	    WlzFreeObj(cobj->o[0]);
+	  }
+	  cobj->o[0] = WlzAssignObject(warpGlobals.dst.obj, NULL);
+	  warpSetXImage(&(warpGlobals.ovly));
+	  XtCallCallbacks(warpGlobals.ovly.canvas, XmNexposeCallback,
 			  call_data);
+
+	  /* check for warp transform */
+	  if( warpGlobals.num_vtxs ){
+	    warpDisplayTiePoints();
+	    warpSetOvlyObject();
+	    warpSetOvlyXImage(&(warpGlobals.ovly));
+	    warpCanvasExposeCb(warpGlobals.ovly.canvas,
+			       (XtPointer) &(warpGlobals.ovly),
+			       call_data);
+	    XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
+			    call_data);
+	    XtCallCallbacks(warpGlobals.src.canvas, XmNexposeCallback,
+			    call_data);
+	  }
 	}
       }
       break;

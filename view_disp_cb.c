@@ -289,6 +289,12 @@ void redisplay_view_cb(
     globals.gc_greys = HGU_XCreateGC( dpy, win );
   }
 
+  if((view_struct->ximage == NULL) ||
+     (view_struct->ximage->data == NULL)){
+    /* something wrong here */
+    return;
+  }
+
 /*    widthp  = wlzViewStr->maxvals.vtX - wlzViewStr->minvals.vtX + 1;
       heightp = wlzViewStr->maxvals.vtY - wlzViewStr->minvals.vtY + 1;*/
   widthp = view_struct->ximage->width * wlzViewStr->scale;

@@ -25,6 +25,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <MAPaint.h>
 #include <MAWarp.h>
@@ -387,6 +388,40 @@ void warpThreshHighCb(
 }
 
 
+void warpResetCWDCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  XmFileSelectionBoxCallbackStruct *cbs =
+    (XmFileSelectionBoxCallbackStruct *) call_data;
+  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
+  Widget	toggle;
+  String	dirStr;
+  Boolean	setFlg;
+
+  if( toggle = XtNameToWidget(w, "*.reset_cwd") ){
+    XtVaGetValues(toggle, XmNset, &setFlg, NULL);
+    if( setFlg == True ){
+      if( XmStringGetLtoR(cbs->dir, XmSTRING_DEFAULT_CHARSET, &dirStr) ){
+	if( chdir((const char *) dirStr) ){
+	  /* report an error */
+	  HGU_XmUserError(view_struct->dialog,
+			  "Read signal image callback:\n"
+			  "  Failed to change current working\n"
+			  "  directory (folder). For the next\n"
+			  "  save please check the domain file\n"
+			  "  names.",
+			  XmDIALOG_FULL_APPLICATION_MODAL);
+	}
+	XtFree(dirStr);
+      }
+    }
+  }
+
+  return;
+}
+
 void warpReadSignalCb(
   Widget		w,
   XtPointer		client_data,
@@ -470,6 +505,7 @@ void warpReadSignalPopupCb(
   ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
   Arg		arg[1];
   Visual	*visual;
+  Widget	toggle;
 
   /* get the visual explicitly */
   visual = HGU_XmWidgetToVisual(globals.topl);
@@ -480,8 +516,16 @@ void warpReadSignalPopupCb(
       XmCreateFileSelectionDialog(view_struct->dialog,
 				  "warp_read_sgnl_dialog", arg, 1);
 
+    /* add a check box to reset the current working directory */
+    toggle = XtVaCreateManagedWidget("reset_cwd", xmToggleButtonGadgetClass,
+				     warp_read_sgnl_dialog,
+				     XmNset,	True,
+				     NULL);
+
     XtAddCallback(warp_read_sgnl_dialog, XmNokCallback,
 		  warpReadSignalCb, client_data);
+    XtAddCallback(warp_read_sgnl_dialog, XmNokCallback,
+		  warpResetCWDCb, client_data);
     XtAddCallback(warp_read_sgnl_dialog, XmNokCallback,
 		  PopdownCallback, NULL);
     XtAddCallback(warp_read_sgnl_dialog, XmNcancelCallback, 
@@ -510,6 +554,7 @@ void warpReadSourceCb(
   WlzGreyType		greyType;
   FILE			*fp;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
+  Widget		scrw;
 
   /* check we can open the file and save the filename */
   if( (fp = HGU_XmGetFilePointer(view_struct->dialog, cbs->value,
@@ -557,6 +602,18 @@ void warpReadSourceCb(
 					 0, &errNum), NULL);
 	WlzFreeObj(obj);
 	obj = warpGlobals.src.obj;
+
+	/* set the display magnification and display get frame
+	   size & image size */
+	if( scrw = XtParent(warpGlobals.src.canvas) ){
+	  Dimension	scrwHeight, scrwWidth;
+	  int		width, height;
+	  double	scale;
+	  XtVaGetValues(scrw, XmNheight, &scrwHeight,
+			XmNwidth, &scrwWidth, NULL);
+	  
+	}
+	
 	warpSetXImage(&(warpGlobals.src));
 	warpCanvasExposeCb(warpGlobals.src.canvas,
 			   (XtPointer) &(warpGlobals.src),
@@ -581,6 +638,7 @@ void warpReadSourceCb(
 	warpCanvasExposeCb(warpGlobals.ovly.canvas,
 			   (XtPointer) &(warpGlobals.ovly),
 			   call_data);
+
 	break;
 
       default:
@@ -1538,6 +1596,7 @@ static Widget create2DWarpDialog(
 
 static ActionAreaItem   warp_controls_actions[] = {
 {"src_read",	NULL,		NULL},
+{"sgnl_read",	NULL,		NULL},
 {"i_o",		NULL,           NULL},
 {"import",	NULL,           NULL},
 };
@@ -1705,6 +1764,14 @@ Widget createWarpInput2DDialog(
 		XmNalignment, XmALIGNMENT_CENTER,
 		NULL); 
   XtAddCallback(widget, XmNactivateCallback, warpReadSourcePopupCb,
+		view_struct);
+
+  widget = XtNameToWidget(buttons, "*.sgnl_read");
+  XtVaSetValues(widget,
+		XmNpushButtonEnabled, True,
+		XmNalignment, XmALIGNMENT_CENTER,
+		NULL); 
+  XtAddCallback(widget, XmNactivateCallback, warpReadSignalPopupCb,
 		view_struct);
 
   widget = XtNameToWidget(buttons, "*.i_o");

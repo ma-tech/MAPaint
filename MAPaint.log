@@ -1,0 +1,9 @@
+#! /bin/tcsh -f
+
+set logfile = /tmp/MAPaintLog.$$
+
+MAPaint -log $logfile $*
+
+cat $logfile | mail Richard.Baldock@hgu.mrc.ac.uk Konstantinos.Liakos@hgu.mrc.ac.uk
+rm -f $logfile
+

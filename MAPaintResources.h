@@ -25,7 +25,21 @@
 /* fallback resources  */
 static String  fallback_resources[] = {
 
-    /* top-level geometry */
+  /* some editorial office specials */
+  "MAPaint_EO*domain_name_1:       High Expression",
+  "MAPaint_EO*domain_name_2:       Medium Expression",
+  "MAPaint_EO*domain_name_3:       Weak Expression",
+  "MAPaint_EO*domain_name_4:       Not Observed",
+  "MAPaint_EO*domain_name_5:       Not Detected",
+  "MAPaint_EO*domain_filename_1:   high.wlz",
+  "MAPaint_EO*domain_filename_2:   medium.wlz",
+  "MAPaint_EO*domain_filename_3:   weak.wlz",
+  "MAPaint_EO*domain_filename_4:   notObserved.wlz",
+  "MAPaint_EO*domain_filename_5:   notDetected.wlz",
+  "MAPaint_EO*numSolidOverlays:    5",
+  "MAPaint_EO*numWashOverlays:     5",
+
+    /* top-level geometry MAPaint ok because it is also the application CLASS */
     "MAPaint.geometry:		280x360",
 
     /* autosave timeout time in seconds */
@@ -214,6 +228,7 @@ static String  fallback_resources[] = {
     "*domain_menu*clear_domain.labelString:	Clear domain",
     "*domain_menu*clear_domain.mnemonic:	l",
     "*domain_menu*clear_all_domains.labelString:	Clear all domains",
+    "*domain_menu*save_all_domains.labelString:		Save all domains",
     "*domain_menu*threed_display_domain.labelString:	Display 3D domain",
     "*domain_menu*threed_display_domain.mnemonic:	3",
     "*domain_menu*write_paint_volume.labelString:	Write painted volume...",
@@ -496,14 +511,15 @@ static String  fallback_resources[] = {
 
     /* warping dialog */
     "*view_dialog*warp_input_2d_frame_title.labelString: 2D warp input controls",
-    "*view_dialog*warp_input_2d_form*src_read.labelString: 	Source",
+    "*view_dialog*warp_input_2d_form*src_read.labelString: 	Read Source",
+    "*view_dialog*warp_input_2d_form*sgnl_read.labelString: 	Read Signal",
     "*view_dialog*warp_input_2d_form*i_o.labelString:		I/O",
-    "*view_dialog*warp_input_2d_form*import.labelString:	Import",
+    "*view_dialog*warp_input_2d_form*import.labelString:	Import >>",
     "*view_dialog*warp_input_2d_form*warp_data_write.labelString: Write warp data",
     "*view_dialog*warp_input_2d_form*warp_data_read.labelString: Read warp data",
     "*view_dialog*warp_input_2d_form*warped_image_write_interp.labelString: Write warped source (interpolated)",
     "*view_dialog*warp_input_2d_form*warped_image_write_nn.labelString: Write warped source (nearest neighbour)",
-    "*warp2DInteractDialog.width:		720",
+    "*warp2DInteractDialog.width:		1280",
     "*warp2DInteractDialog.height:		512",
     "*warp2DInteractDialog.delete_last: Delete last",
     "*warp2DInteractDialog.delete_all:	Delete all",
@@ -539,7 +555,7 @@ static String  fallback_resources[] = {
     "*warp_read_src_dialog.pattern:		*.wlz",
     "*warp_read_sgnl_dialog.dialogTitle:	Read Signal Object",
     "*warp_read_sgnl_dialog.pattern:		*.wlz",
-    
+    "*warp_read_sgnl_dialog*reset_cwd.labelString: Reset current folder",
 
     /* help_menu */
     "*helpDefaultUrl:		http://genex.hgu.mrc.ac.uk/Software/paint/paint_help/MAPaint_1.00/paint_help/paint_help.html",

@@ -377,7 +377,7 @@ void warpCanvasMagCb(
     }
   }
   else {
-    if( winStruct->mag < 16.0 ){
+    if( winStruct->mag < 8.0 ){
       winStruct->mag *= 2.0;
     }
   }	

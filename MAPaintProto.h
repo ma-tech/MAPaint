@@ -91,6 +91,10 @@ extern void	StartDD_DomainDominance(Widget		w,
 					String		*params,
 					Cardinal	*num_params);
 
+extern void save_all_domains_cb(Widget		w,
+				 XtPointer	client_data,
+				 XtPointer	call_data);
+
 extern void clear_all_domains_cb(Widget		w,
 				 XtPointer	client_data,
 				 XtPointer	call_data);

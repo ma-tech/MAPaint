@@ -244,6 +244,10 @@ static MenuItem domain_menu_itemsP[] = {		/* file_menu items */
      clear_all_domains_cb, NULL, HGU_XmHelpStandardCb,
      "paint/paint.html#clear_domain",
      XmTEAR_OFF_DISABLED, False, False, NULL},
+{"save_all_domains", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+     save_all_domains_cb, NULL, HGU_XmHelpStandardCb,
+     "paint/paint.html#save_all_domains",
+     XmTEAR_OFF_DISABLED, False, False, NULL},
 {"write_paint_volume", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
      NULL, NULL, NULL, NULL,
      XmTEAR_OFF_DISABLED, False, False, NULL},
@@ -1102,10 +1106,13 @@ void clear_all_domains_cb(
   install_paint_reference_object(obj);
   WlzFreeObj(obj);
 
-  /* reset the menu and 3D view */
+  /* reset the menu and 3D view - use start-up names and files */
+  XtGetApplicationResources(globals.topl, &globals, domain_res,
+			    XtNumber(domain_res), NULL, 0);
+
   for(domain=1; domain < 33; domain++){
-    set_domain_menu_entry(domain, domain_res[domain].default_addr);
-    globals.domain_filename[domain] = domain_res[domain+32].default_addr;
+    set_domain_menu_entry(domain, globals.domain_name[domain]);
+
     /* clear the 3D view */
     if( globals.domain_display_list[domain] ){
       Widget toggle;
@@ -1173,9 +1180,13 @@ int clearDomain(
     /* clear the domain label and filename to default
        this uses special knowledge of the resource list,
        should really get this from resources */
-    set_domain_menu_entry(domain, domain_res[domain].default_addr);
-    globals.domain_filename[globals.current_domain] =
-      domain_res[domain+32].default_addr;
+    /* now get it from resources - also requires special
+       knowledge of the resourece list */
+    XtGetApplicationResources(globals.topl, &globals, domain_res+domain,
+			      1, NULL, 0);
+    XtGetApplicationResources(globals.topl, &globals, domain_res+domain+32,
+			      1, NULL, 0);
+    set_domain_menu_entry(domain, globals.domain_name[domain]);
     /* clear the 3D view */
     if( globals.domain_display_list[domain] ){
       Widget toggle;
@@ -1391,6 +1402,7 @@ void write_domain_cb(
   return;
 }
 
+static int saveYesToAll=0;
 
 void save_domain_cb(
 Widget		w,
@@ -1399,25 +1411,25 @@ XtPointer	call_data)
 {
     FILE	*fp;
     WlzObject	*obj;
+    DomainSelection	domainIndx;
 
     /* check the reference object */
     if( globals.obj == NULL )
 	return;
 
-    /* get the file pointer */
-    if( (fp = fopen(globals.domain_filename[globals.current_domain], "w"))
-       == NULL ){
-	HGU_XmUserError(globals.topl,
-			"Can't save domain to file\nplease check filename",
-			XmDIALOG_FULL_APPLICATION_MODAL);
-	return;
+    /* select domain */
+    if( client_data == NULL ){
+      domainIndx = globals.current_domain;
+    }
+    else {
+      domainIndx = (DomainSelection) client_data;
     }
 
     /* set hour glass cursor */
     HGU_XmSetHourGlassCursor(globals.topl);
 
     /* check which domain is selected */
-    switch( globals.current_domain ){
+    switch( domainIndx ){
     case DOMAIN_1:
     case DOMAIN_2:
     case DOMAIN_3:
@@ -1450,7 +1462,7 @@ XtPointer	call_data)
     case DOMAIN_30:
     case DOMAIN_31:
     case DOMAIN_32:
-	obj = get_domain_from_object(globals.obj, globals.current_domain);
+	obj = get_domain_from_object(globals.obj, domainIndx);
 	break;
     case MASK_DOMAIN:
 	obj = globals.mask_domain;
@@ -1463,46 +1475,88 @@ XtPointer	call_data)
 	return;
     }
 
-  /* write the domain only */
-  if( obj != NULL ){
-    WlzObject	*tmpObj;
-    WlzValues	objVals;
-    objVals.core = NULL;
-    if( globals.origObjType == WLZ_3D_DOMAINOBJ ){
-      tmpObj = WlzMakeMain(WLZ_3D_DOMAINOBJ, obj->domain, objVals,
-			   NULL, NULL, NULL);
-    }
-    else {
-      tmpObj = WlzMakeMain(WLZ_2D_DOMAINOBJ, obj->domain.p->domains[0],
-			   objVals, NULL, NULL, NULL);
-    }
-    if( WlzWriteObj(fp, tmpObj) == WLZ_ERR_NONE ){
-      globals.domain_changed_since_saved[globals.current_domain] = 0;
-    } else {
-      char		*errstr;
-      errstr = (char *) AlcMalloc(128);
-      sprintf(errstr, "Save Domain Object:\n"
-	      "    woolz error detected:\n"
-	      "    Check disc space or quotas");
-      HGU_XmUserError(globals.topl, errstr,
-		      XmDIALOG_FULL_APPLICATION_MODAL);
-      AlcFree( (void *) errstr );
-    }
-    WlzFreeObj(tmpObj);
-    WlzFreeObj( obj );
-  }
-    if( fclose( fp ) == EOF ){
-      HGU_XmUserError(globals.topl,
-		      "Save Domain:\n"
-		      "    Error closing the domain file.\n"
-		      "    Please check disk space or quotas.\n"
-		      "    Domain not saved",
-		      XmDIALOG_FULL_APPLICATION_MODAL);
+    /* write the domain only */
+    if( obj != NULL ){
+      WlzObject	*tmpObj;
+      WlzValues	objVals;
+      XmString	xmstr;
+
+      /* check for empty */
+      if( WlzIsEmpty(obj, NULL) ){
+	WlzFreeObj(obj);
+	HGU_XmUnsetHourGlassCursor(globals.topl);
+	return;
+      }
+
+      /* get the file pointer */
+      xmstr = XmStringCreateSimple(globals.domain_filename[domainIndx]);
+      if((fp = HGU_XmGetFilePointerBckCnfm(globals.topl, xmstr, NULL,
+					   "w", NULL, &saveYesToAll))
+	 == NULL ){
+	HGU_XmUserError(globals.topl,
+			"Can't save domain to file\nplease check filename",
+			XmDIALOG_FULL_APPLICATION_MODAL);
+	WlzFreeObj( obj );
+	HGU_XmUnsetHourGlassCursor(globals.topl);
+	return;
+      }
+      XmStringFree(xmstr);
+
+      objVals.core = NULL;
+      if( globals.origObjType == WLZ_3D_DOMAINOBJ ){
+	tmpObj = WlzMakeMain(WLZ_3D_DOMAINOBJ, obj->domain, objVals,
+			     NULL, NULL, NULL);
+      }
+      else {
+	tmpObj = WlzMakeMain(WLZ_2D_DOMAINOBJ, obj->domain.p->domains[0],
+			     objVals, NULL, NULL, NULL);
+      }
+      if( WlzWriteObj(fp, tmpObj) == WLZ_ERR_NONE ){
+	globals.domain_changed_since_saved[domainIndx] = 0;
+      } else {
+	char		*errstr;
+	errstr = (char *) AlcMalloc(128);
+	sprintf(errstr, "Save Domain Object:\n"
+		"    woolz error detected:\n"
+		"    Check disc space or quotas");
+	HGU_XmUserError(globals.topl, errstr,
+			XmDIALOG_FULL_APPLICATION_MODAL);
+	AlcFree( (void *) errstr );
+      }
+      WlzFreeObj(tmpObj);
+      WlzFreeObj( obj );
+      if( fclose( fp ) == EOF ){
+	HGU_XmUserError(globals.topl,
+			"Save Domain:\n"
+			"    Error closing the domain file.\n"
+			"    Please check disk space or quotas.\n"
+			"    Domain not saved",
+			XmDIALOG_FULL_APPLICATION_MODAL);
+      }
     }
 
     /* set hour glass cursor */
     HGU_XmUnsetHourGlassCursor(globals.topl);
     return;
+}
+
+void save_all_domains_cb(
+Widget		w,
+XtPointer	client_data,
+XtPointer	call_data)
+{
+  int			i, num_overlays;
+
+  num_overlays = globals.cmapstruct->num_overlays +
+    globals.cmapstruct->num_solid_overlays;
+
+  saveYesToAll = -1;
+  for(i=1; i <= num_overlays; i++)
+  {
+    save_domain_cb(w, (XtPointer) i, call_data);
+  }
+
+  return;
 }
 
 void threed_display_domain_cb(
