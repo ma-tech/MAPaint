@@ -751,8 +751,7 @@ void warpIOWriteImage(
   XtPointer	client_data,
   XtPointer	call_data)
 {
-  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
-  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
+  int		interpFlg = (int) client_data;
   String		fileStr;
   FILE			*fp;
   WlzObject		*obj;
@@ -773,8 +772,13 @@ void warpIOWriteImage(
 
     if( fp = fopen(fileStr, "w") ){
       /* transform the object */
-      if( obj = mapaintWarpObj(warpGlobals.src.obj,
-			       WLZ_INTERPOLATION_LINEAR) ){
+      if( interpFlg ){
+	obj = mapaintWarpObj(warpGlobals.src.obj, WLZ_INTERPOLATION_LINEAR);
+      }
+      else {
+	obj = mapaintWarpObj(warpGlobals.src.obj, WLZ_INTERPOLATION_LINEAR);
+      }
+      if( obj ){
 	WlzWriteObj(fp, obj);
 	WlzFreeObj(obj);
       }
@@ -795,8 +799,14 @@ static MenuItem warpIOMenuItemsP[] = {  /* controls values io menu */
    warpIORead, NULL,
    HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"warped_image_write", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   warpIOWriteImage, NULL,
+  {"warped_image_write_interp", &xmPushButtonGadgetClass,
+   0, NULL, NULL, False,
+   warpIOWriteImage, (XtPointer) 1,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"warped_image_write_nn", &xmPushButtonGadgetClass,
+   0, NULL, NULL, False,
+   warpIOWriteImage, (XtPointer) 0,
    HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   NULL,
@@ -811,7 +821,6 @@ void setupWarpIOMenu(
   /* set up the callback data */
   warpIOMenuItemsP[0].callback_data = (XtPointer) view_struct;
   warpIOMenuItemsP[1].callback_data = (XtPointer) view_struct;
-  warpIOMenuItemsP[2].callback_data = (XtPointer) view_struct;
 
   popup = HGU_XmBuildMenu(widget, XmMENU_POPUP, XtName(widget), '\0',
 			  XmTEAR_OFF_ENABLED, warpIOMenuItemsP);

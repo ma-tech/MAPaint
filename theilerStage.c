@@ -156,6 +156,16 @@ void set_theiler_stage_cb(
   return;
 }
 
+static int cmpMenuItem(
+  const void *p1,
+  const void *p2)
+{
+  MenuItem	*item1 = (MenuItem *) p1;
+  MenuItem	*item2 = (MenuItem *) p2;
+
+  return strcmp(item1->name, item2->name);
+}
+
 void theiler_menu_init(
   Widget	topl)
 {
@@ -220,6 +230,9 @@ void theiler_menu_init(
   AlcFree(file_str);
   closedir(dfd);
   menu_items[stage].name = NULL;
+
+  /* alphabetically sort the list then create the menu */
+  qsort(menu_items, stage, sizeof(MenuItem), cmpMenuItem);
   menu = HGU_XmBuildPulldownMenu(menu_parent,
 				 XmTEAR_OFF_DISABLED, False, False,
 				 menu_items);

@@ -14,7 +14,7 @@
 *   Author Login:  richard@hgu.mrc.ac.uk				*
 *   Date        :  Fri Jun 11 14:13:51 1999				*
 *   $Revision$							*
-*   $Name$								*
+*   $Name$			*
 *   Synopsis    : 							*
 *************************************************************************
 *   Maintenance :  date - name - comments (Last changes at the top)	*
