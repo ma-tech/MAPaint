@@ -206,8 +206,8 @@ void set_view_dialog_title(
   
   XtVaGetValues(dialog, XmNuserData, &view_struct, NULL);
 
-  theta *= 180.0 / M_PI;
-  phi *= 180.0 / M_PI;
+  theta *= 180.0 / WLZ_M_PI;
+  phi *= 180.0 / WLZ_M_PI;
   (void) sprintf(str_buff, "%s: (%.2f, %.2f)",
 		 view_struct->titleStr, phi, theta);
   xmstr = XmStringCreateSimple( str_buff );

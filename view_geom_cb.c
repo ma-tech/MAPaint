@@ -311,8 +311,8 @@ void psi_cb(
 
   wlzViewStr->theta = theta;
   wlzViewStr->phi = phi;
-  theta *= 180 / M_PI;
-  phi   *= 180 / M_PI;
+  theta *= 180 / WLZ_M_PI;
+  phi   *= 180 / WLZ_M_PI;
 
   slider = XtNameToWidget(view_struct->dialog, "*.theta_slider");
   HGU_XmSetSliderValue(slider, theta);

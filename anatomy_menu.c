@@ -23,6 +23,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <string.h>
 
 #include <MAPaint.h>
 
@@ -251,7 +252,11 @@ MenuItem *createAnatomyMenuItems(
     newDirStr = (String) AlcMalloc(strlen(dp->d_name)+strlen(dirStr)+2);
     sprintf(newDirStr, "%s/%s", dirStr, dp->d_name);
     if((stat(newDirStr, &statBuf) == -1) ||
+#ifdef LINUX2 /* don't understand why I need to do this */
+       ((statBuf.st_mode&__S_IFMT) != __S_IFDIR) ){
+#elif
        ((statBuf.st_mode&S_IFMT) != S_IFDIR) ){
+#endif /* LINUX2 */
       /* its an ordinary file - check for object or info file */
       sprintf(strBuf, "%s.wlz", name);
       if( strcmp(dp->d_name, strBuf) == 0 ){
@@ -378,7 +383,11 @@ MenuItem *createAnatomyMenuItems(
     newDirStr = (String) AlcMalloc(strlen(dp->d_name)+strlen(dirStr)+2);
     sprintf(newDirStr, "%s/%s", dirStr, dp->d_name);
     if((stat(newDirStr, &statBuf) == -1) ||
+#ifdef LINUX2 /* don't understand why I need to do this */
+       ((statBuf.st_mode&__S_IFMT) != __S_IFDIR) ){
+#elif
        ((statBuf.st_mode&S_IFMT) != S_IFDIR) ){
+#endif /* LINUX2 */
       /* its an ordinary file */
       continue;
     }
@@ -456,7 +465,11 @@ void set_anatomy_menu(
 
       /* check it is a directory */
       if((stat(dirStr, &statBuf) == -1) ||
+#ifdef LINUX2 /* don't understand why I need to do this */
+	 ((statBuf.st_mode&__S_IFMT) != __S_IFDIR) ){
+#elif
 	 ((statBuf.st_mode&S_IFMT) != S_IFDIR) ){
+#endif /* LINUX2 */
 	AlcFree((void *) dirStr);
 	dp = NULL;
       }

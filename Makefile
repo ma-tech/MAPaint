@@ -14,18 +14,6 @@
 include			../../Makefile.conf
 
 # local mods to Makefile.conf defaults
-OPENGLHOME		= /opt/Mesa
-OPENGL_INC_DIR          = $(OPENGLHOME)/include
-OPENGL_LIB_DIR		= $(OPENGLHOME)/lib
-ifeq ($(UNIXTYPE), IRIX5)
-OPENGL_LIB_DIR		= $(OPENGLHOME)/lib
-endif
-ifeq ($(UNIXTYPE), IRIX6)
-OPENGL_LIB_DIR		= $(OPENGLHOME)/lib
-endif
-ifeq ($(UNIXTYPE), IRIX646)
-OPENGL_LIB_DIR		= $(OPENGLHOME)/lib
-endif
 
 # Names of executables to be built (modify as required).
 EXECUTABLES		= MAPaint
@@ -34,6 +22,53 @@ EXECUTABLES		= MAPaint
 RELEASE			= 1.0
 
 # List of all 'C' source files (modify as required).
+ifeq ($(UNIXTYPE), LINUX2)
+CSOURCES		= \
+			MAAutosaveDialog.c \
+			MAColormapDialog.c \
+			MAColormapUtils.c \
+			MAConformalPoly.c \
+			MADomainReviewDialog.c \
+			MADomainSurgeryDialog.c \
+			MAOpenGLUtils.c \
+			MAPaint.c \
+			MAPaintUndoDomain.c \
+			MARealignmentDialog.c \
+			MASaveSequenceDialog.c \
+			MAPaintSocket.c \
+			MATrackDomain.c \
+			MAWarpInput2DDialog.c \
+			MAWarpInputUtils.c \
+			MAWarpInputInteractUtils.c \
+			MAWarpInputXUtils.c \
+			MAPMSnake.c \
+			NalgsDPSearch.c \
+			anatomy_menu.c \
+			bibfileIOUtils.c \
+			domain_menu.c \
+			domain_utils.c \
+			file_menu.c \
+			main_buttonbar.c \
+			main_menubar.c \
+			main_work_area.c \
+			objPropsDialog.c \
+			options_menu.c \
+			paint_utils.c \
+			theilerStage.c \
+			tools_affine.c \
+			tools_fill_domain.c \
+			tools_interactive_geom.c \
+			tools_interactive_paint.c \
+			tools_morphological.c \
+			tools_edge_tracking.c \
+			tools_tracking.c \
+			view_disp_cb.c \
+			view_geom_cb.c \
+			view_menu.c \
+			view_utils.c \
+			view2DPaintingCb.c \
+			viewFixedPointUtils.c
+else
 CSOURCES		= \
 			HGU_Tablet.c \
 			MAAutosaveDialog.c \
@@ -81,6 +116,7 @@ CSOURCES		= \
 			view_utils.c \
 			view2DPaintingCb.c \
 			viewFixedPointUtils.c
+endif
 
 # List of all header files that are available outside of either this archive
 # or these executables (modify as required).
@@ -127,7 +163,7 @@ INCDIRS			= .  \
 
 # List of library search paths (modify as required).
 ifeq ($(UNIXTYPE), IRIX5)
-LIBDIRS			= \
+LIBDIRS			= . \
 			../../Core/libAlc \
 			../../Core/libbibfile \
 			../../Core/libAlg \
@@ -141,7 +177,7 @@ LIBDIRS			= \
 			  $(SYSLIB) \
 			  $(HGU_LIB_DIR)
 else
-LIBDIRS			= \
+LIBDIRS			= . \
 			  $(SYSLIB) \
 			../../Core/libAlc \
 			../../Core/libbibfile \
@@ -207,23 +243,26 @@ INCLUDES_ALL		= $(sort $(INCLUDES_PUB) $(INCLUDES_PRV))
 OBJECTS			= $(CSOURCES:%.c=%.o)
 
 # List of libraries to link (modify as required).
+EXTRA_LIBS		= m gen
+X11LIBS         	= Xt Xmu X11 Xext
 ifeq 		($(UNIXTYPE), SUNOS5)
 EXTRA_LIBS		= m gen socket nsl
 X11LIBS         	= Xt Xmu X11  Xi Xext
-else
-EXTRA_LIBS		= m gen
+endif
+ifeq	 	($(UNIXTYPE), LINUX2)
+EXTRA_LIBS		= m
 X11LIBS         	= Xt Xmu X11 Xext
 endif
 
 OPENGLLIBS		= GLU GL
 MOTIFLIBS       	= Xm
-LOCALLIBS		= hguGL HguXm HguX WlzExtFF Wlz Reconstruct bibfile Alg Alc
-LIBRARIES		= hguGL HguXm HguX Wlz Reconstruct bibfile Alg Alc \
+LOCALLIBS		= hguGL HguXm HguX WlzExtFF Wlz bibfile Alg Alc
+LIBRARIES		= hguGL HguXm HguX Wlz bibfile Alg Alc \
 			$(OPENGLLIBS) $(MOTIFLIBS) $(X11LIBS) $(EXTRA_LIBS)
 
 # Basic flags for controlling compilation (modify as required).
-#CDEBUG			= -g
-#COPTIMISE		=
+CDEBUG			= -g
+COPTIMISE		=
 
 DEFINES			= -D$(UNIXTYPE) $(UNIXFLAGS) -D__EXTENSIONS__
 CPPFLAGS		= $(INCDIRS:%=-I%) $(DEFINES)

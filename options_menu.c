@@ -60,10 +60,12 @@ static MenuItem interact_tool_itemsP[] = {	/* select menu items */
    select_interact_tool_cb, (XtPointer) MAPAINT_EDGE_TRACKING_2D,
    NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
+#ifndef LINUX2
   {"Tablet", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    select_interact_tool_cb, (XtPointer) MAPAINT_TABLET_2D,
    NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
+#endif /* LINUX2 */
   NULL,
 };
 
@@ -274,8 +276,13 @@ XtPointer	call_data)
 			     "*tracking_controls_form");
     form[6] = XtNameToWidget(tool_controls_dialog,
 			     "*edge_tracking_controls_form");
+#ifdef LINUX2
+    form[7] = NULL;
+#else
     form[7] = XtNameToWidget(tool_controls_dialog,
 			     "*tablet_controls_form");
+#endif /* LINUX2 */
+
     form[8] = XtNameToWidget(tool_controls_dialog,
 			     "*fill_controls_form");
     for(i=0; i < nforms; i++){
@@ -348,12 +355,14 @@ XtPointer	call_data)
       globals.currentPaintActionQuitFunc = MAPaintEdgeTracking2DQuit;
       newForm = form[6];
       break;
+#ifndef LINUX2
     case MAPAINT_TABLET_2D:
       globals.currentPaintActionCbFunc = MAPaintTabletCb;
       globals.currentPaintActionInitFunc = MAPaintTabletInit;
       globals.currentPaintActionQuitFunc = MAPaintTabletQuit;
       newForm = form[7];
       break;
+#endif /* LINUX2 */
     default:
       newForm = form[0];
       break;
@@ -407,7 +416,9 @@ static Widget create_tool_controls_dialog(
     (void) CreateAffineControls( control );
     (void) CreateTracking2DControls( control );
     (void) CreateEdgeTracking2DControls( control );
+#ifndef LINUX2
     (void) CreateTabletControls( control );
+#endif /* LINUX2 */
 
     XtManageChild( form );
 
