@@ -350,6 +350,9 @@ XtPointer	call_data)
      globals.ref_display_list == 0){
     return;
   }
+  /* create a new display list */
+  glDeleteLists(globals.ref_display_list, 1);
+  globals.ref_display_list = glGenLists( (GLsizei) 1 );
 
   planedmn = globals.obj->domain.p;
 
@@ -628,18 +631,24 @@ XtPointer	call_data)
       return;
     }
 
-    if( icsfile = HGU_XmGetFileStr(globals.topl, cbs->value, cbs->dir) )
+    /* set title and reference file list */
+    if(icsfile ||
+       (icsfile = HGU_XmGetFileStr(globals.topl, cbs->value, cbs->dir)) )
     {
       ReferenceFileListPush(icsfile);
-      AlcFree((void *) icsfile);
+      if( XmStringGetLtoR(cbs->value, XmSTRING_DEFAULT_CHARSET, &icsfile) )
+      {
+	set_topl_title(icsfile);
+	globals.file = icsfile;
+      }
+    }
+
+    /* clear feedback object and install new */
+    if( globals.fb_obj ){
+      WlzFreeObj(globals.fb_obj);
+      globals.fb_obj = NULL;
     }
     install_paint_reference_object( obj );
-
-    /* set the title of the top-level car */
-    if( XmStringGetLtoR(cbs->value, XmSTRING_DEFAULT_CHARSET, &icsfile) ){
-       set_topl_title(icsfile);
-       globals.file = icsfile;
-    }
 
     /* set hour glass cursor */
     HGU_XmUnsetHourGlassCursor(globals.topl);
@@ -805,10 +814,10 @@ static void image_type_cb(
      break;
   }
 
-  XtAddCallback(read_obj_dialog, XmNokCallback, setup_ref_display_list_cb,
+  /* XtAddCallback(read_obj_dialog, XmNokCallback, setup_ref_display_list_cb,
 		NULL);
   XtAddCallback(read_obj_dialog, XmNokCallback, setup_obj_props_cb,
-		NULL);
+  NULL);*/
   XtAddCallback(read_obj_dialog, XmNokCallback, PopdownCallback, NULL);
 
   XtVaSetValues(read_obj_dialog, XmNpattern, pattern_str, NULL);

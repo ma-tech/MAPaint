@@ -23,7 +23,7 @@ static void image_type_cb(
 static MenuItem file_type_menu_itemsP[] = {	/* file_menu items */
   {"woolz", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    image_type_cb, (XtPointer) WLZEFF_FORMAT_WLZ,
-   HGU_XmHelpStandardCb, "paint/paint.html#read_object",
+   HGU_XmHelpStandardCb, SEC_READ_WRITE_DOMAINS_DIALOGS,
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"ics", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    image_type_cb, (XtPointer) WLZEFF_FORMAT_ICS,
@@ -197,7 +197,7 @@ NULL,
 
 static MenuItem domain_menu_itemsP[] = {		/* file_menu items */
 {"select", &xmCascadeButtonGadgetClass, 0, NULL, NULL, False,
-     NULL, NULL, HGU_XmHelpStandardCb, "paint/paint.html#select_domain",
+     NULL, NULL, HGU_XmHelpStandardCb, SEC_DOMAIN_MENU,
      XmTEAR_OFF_ENABLED, True, True, &(select_menu_itemsP[0])},
 {"controls", &xmPushButtonGadgetClass, 0,  NULL, NULL, False,
      domain_cb, NULL, HGU_XmHelpStandardCb, "paint/paint.html#domain_controls",

@@ -128,7 +128,9 @@ void theiler_menu_init(
   MenuItem	*menu_items;
   struct dirent *dp;
   DIR		*dfd;
+  FILE		*fp;
   int		stage, num_stages;
+  char		*file_str;
 
   /* get the cascade button to be parent to the menu */
   menu_parent = XtNameToWidget(topl, "*file_menu*theiler_stage");
@@ -149,8 +151,19 @@ void theiler_menu_init(
   /* create a menu items list and new menu */
   menu_items = (MenuItem *) AlcMalloc(sizeof(MenuItem) * (num_stages+1));
   stage = 0;
+  file_str = (String)
+    AlcMalloc(strlen(globals.base_theiler_dir) +
+	      5*2 + 10);
   while( (dp = readdir(dfd)) != NULL ){
     if( strncmp(dp->d_name, "ts", 2) == 0 ){
+
+      /* check for reference image else ignore */
+      sprintf(file_str, "%s/%s/%s.wlz", globals.base_theiler_dir,
+	      dp->d_name, dp->d_name);
+      if( (fp = fopen(file_str, "r")) == NULL ){
+	continue;
+      }
+      fclose(fp);
       menu_items[stage].name = (String) AlcMalloc(strlen(dp->d_name)+2);
       strcpy(menu_items[stage].name, dp->d_name);
       menu_items[stage].wclass = &xmPushButtonGadgetClass;
@@ -169,6 +182,7 @@ void theiler_menu_init(
       stage++;
     }
   }
+  AlcFree(file_str);
   closedir(dfd);
   menu_items[stage].name = NULL;
   menu = HGU_XmBuildPulldownMenu(menu_parent,

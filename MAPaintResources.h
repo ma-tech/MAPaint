@@ -35,7 +35,7 @@ static String  fallback_resources[] = {
 
     /* Theiler stage directory for the anatomy menu 
        this default should be changed when delivered */
-    "MAPaint.theilerDir: /net/homehost/export/ma/richard/MouseAtlas/src/MAPaint/src/reconstructions",
+    "MAPaint.theilerDir: /opt/MouseAtlas/cdrom/reconstructions",
 
     /* fonts and backgrounds */
     "MAPaint*background:		grey85",
@@ -457,21 +457,26 @@ static String  fallback_resources[] = {
     "*view_dialog*warp_input_2d_form*src_transf.labelString: 	Transform",
     "*view_dialog*warp_input_2d_form*i_o.labelString:		I/O",
     "*view_dialog*warp_input_2d_form*apply.labelString:		Apply",
-    "*warp2DInteractDialog.width:		640",
+    "*warp2DInteractDialog.width:		720",
     "*warp2DInteractDialog.height:		512",
     "*warp2DInteractDialog*b_1.labelString:	mag",
     "*warp2DInteractDialog*b_2.labelString:	rot",
     "*warp2DInteractDialog*b_3.labelString:	flip",
     "*warp2DInteractDialog*b_4.labelString:	>o<",
+    "*warp2DInteractDialog*b_5.labelString:	mesh",
+    "*view_dialog*warp_input_2d_form*mesh_method.labelString: Mesh generation method:",
+    "*view_dialog*warp_input_2d_form*mesh_min_dist.labelString:	Mesh min distance:",
+    "*view_dialog*warp_input_2d_form*mesh_max_dist.labelString:	Mesh max distance:",
     "*warp_read_src_dialog.dialogTitle:		Read Warp Input Source Object",
     "*warp_read_src_dialog.pattern:		*.wlz",
+    
 
     /* help_menu */
-    "*helpDefaultUrl:		file:/net/glenturret/export/data0/richard/MouseAtlas/Docs/paint_help/paint_help.html",
+    "*helpDefaultUrl:		http://genex.hgu.mrc.ac.uk/Software/paint/paint_help/MAPaint_1.00/paint_help/paint_help.html",
     "*helpIndexUrl:		paint.1.0/paint.html#index",
     "*helpVersionUrl:		paint.1.0/paint.html#version",
-    "*helpWWWServer:		file:",
-    "*helpDir:/net/glenturret/export/data0/richard/MouseAtlas/Docs/paint_help",
+    "*helpWWWServer:		http://genex.hgu.mrc.ac.uk/",
+    "*helpDir:			Software/paint/paint_help/MAPaint_1.00",
     "*help_menu.labelString:            	Help",
     "*help_menu.mnemonic:               	H",
     "*help_menu.borderWidth:            	0",

@@ -271,7 +271,7 @@ XtPointer	call_data)
     heightp = view_struct->ximage->height * wlzViewStr->scale;
 
     /* check for expose event */
-    if( cbs && (cbs->event->type == Expose) ){
+    if( cbs && (cbs->event) && (cbs->event->type == Expose) ){
       event = cbs->event->xexpose;
     }
     else {

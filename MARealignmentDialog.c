@@ -430,8 +430,8 @@ void applyRealignTransCb(
 {
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
-  XmPushButtonCallbackStruct
-    *cbs = (XmPushButtonCallbackStruct *) call_data;
+  XmPushButtonCallbackStruct	*cbs = 
+    (XmPushButtonCallbackStruct *) call_data;
   WlzObject	*newOrigObj, *newObj;
   Widget	widget;
 
@@ -468,6 +468,7 @@ void applyRealignTransCb(
 		      XmDIALOG_FULL_APPLICATION_MODAL);
       return;
     }
+    transformsUpdatedFlg = 0;
   }
   if( !transformsUpdatedFlg ){
     realignUpdateTransformsObj(view_struct);
@@ -495,11 +496,12 @@ void applyRealignTransCb(
   /* reset realignment controls */
   if( widget = XtNameToWidget(view_struct->dialog,
 			      "*.realignment_frame_title") ){
-    XmToggleButtonCallbackStruct cbs;
+    XmToggleButtonCallbackStruct tmpcbs;
 
     XtVaSetValues(widget, XmNset, False, NULL);
-    cbs.set = False;
-    XtCallCallbacks(widget, XmNvalueChangedCallback, (XtPointer) &cbs);
+    tmpcbs.set = False;
+    tmpcbs.event = cbs->event;
+    XtCallCallbacks(widget, XmNvalueChangedCallback, (XtPointer) &tmpcbs);
   }
 
   /* unset hour glass */
@@ -517,6 +519,8 @@ void undoRealignTransCb(
 {
   Widget		widget;
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  XmPushButtonCallbackStruct	*cbs = 
+    (XmPushButtonCallbackStruct *) call_data;
 
   /* install the new reference object and painted image */
   if( globals.orig_obj != NULL ){
@@ -536,11 +540,12 @@ void undoRealignTransCb(
   /* reset realignment controls */
   if( widget = XtNameToWidget(view_struct->dialog,
 			      "*.realignment_frame_title") ){
-    XmToggleButtonCallbackStruct cbs;
+    XmToggleButtonCallbackStruct tmpcbs;
 
     XtVaSetValues(widget, XmNset, False, NULL);
-    cbs.set = False;
-    XtCallCallbacks(widget, XmNvalueChangedCallback, (XtPointer) &cbs);
+    tmpcbs.set = False;
+    tmpcbs.event = cbs->event;
+    XtCallCallbacks(widget, XmNvalueChangedCallback, (XtPointer) &tmpcbs);
   }
 
   /* clear the transform object */
@@ -756,8 +761,8 @@ void readRealignTransCb(
 {
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
-  XmPushButtonCallbackStruct
-    *cbs = (XmPushButtonCallbackStruct *) call_data;
+  XmPushButtonCallbackStruct	*cbs = 
+    (XmPushButtonCallbackStruct *) call_data;
   String		fileStr;
   FILE			*fp;
   int			i, p;
