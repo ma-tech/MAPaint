@@ -119,6 +119,7 @@ void set_theiler_stage_cb(
 	globals.origObjType = WLZ_3D_DOMAINOBJ;
 	install_paint_reference_object( obj );
 	set_topl_title(globals.theiler_stage);
+	globals.origObjExtType = WLZEFF_FORMAT_WLZ;
       }
       (void) fclose( fp );
     }

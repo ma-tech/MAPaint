@@ -95,6 +95,34 @@ static MenuItem view_mode_menu_itemsP[] = {	/* view_mode_menu items */
   NULL,
 };
 
+static MenuItem feedback_mode_menu_itemsP[] = {	/* 3d feedback menu items */
+  {"poly", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   NULL, (XtPointer) MAPAINT_POLY_VIEWFB_MODE,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"solid", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   NULL, (XtPointer) MAPAINT_SOLID_VIEWFB_MODE,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"mask", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   NULL, (XtPointer) MAPAINT_MASK_VIEWFB_MODE,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"template", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   NULL, (XtPointer) MAPAINT_TEMPLATE_VIEWFB_MODE,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"switch", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   NULL, (XtPointer) MAPAINT_SWITCH_VIEWFB_MODE,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"image", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   NULL, (XtPointer) MAPAINT_IMAGE_VIEWFB_MODE,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  NULL,
+};
+
 
 MenuItem	*view_menu_items = &(view_menu_itemsP[0]);
 static unsigned long    borderColor;
@@ -261,8 +289,10 @@ void ViewFeedback(
     break;
 
   case FocusOut:
-    vl->view_struct->controlFlag &= ~MAPAINT_HIGHLIGHT_SECTION;
-    view_feedback_cb(w, (XtPointer) vl->view_struct, NULL);
+    if( event->xfocus.detail != NotifyInferior ){
+      vl->view_struct->controlFlag &= ~MAPAINT_HIGHLIGHT_SECTION;
+      view_feedback_cb(w, (XtPointer) vl->view_struct, NULL);
+    }
     break;
 
   case MapNotify:
@@ -622,6 +652,48 @@ static void solid_FB_toggle_cb(
   return;
 }
 
+static void view_feedback_mode_cb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+
+  /* clear feedback options */
+  view_struct->controlFlag &= ~(MAPAINT_POLY_VIEWFB_MODE|
+				MAPAINT_SOLID_VIEWFB_MODE|
+				MAPAINT_MASK_VIEWFB_MODE|
+				MAPAINT_TEMPLATE_VIEWFB_MODE|
+				MAPAINT_SWITCH_VIEWFB_MODE|
+				MAPAINT_IMAGE_VIEWFB_MODE);
+
+  /* get current selection */
+  if( strcmp(XtName(w), "poly") == 0 ){
+    view_struct->controlFlag |= MAPAINT_POLY_VIEWFB_MODE;
+  }
+  else if( strcmp(XtName(w), "solid") == 0 ){
+    view_struct->controlFlag |= MAPAINT_SOLID_VIEWFB_MODE;
+  }
+  else if( strcmp(XtName(w), "mask") == 0 ){
+    view_struct->controlFlag |= MAPAINT_MASK_VIEWFB_MODE;
+  }
+  else if( strcmp(XtName(w), "template") == 0 ){
+    view_struct->controlFlag |= MAPAINT_TEMPLATE_VIEWFB_MODE;
+  }
+  else if( strcmp(XtName(w), "switch") == 0 ){
+    view_struct->controlFlag |= MAPAINT_SWITCH_VIEWFB_MODE;
+  }
+  else if( strcmp(XtName(w), "image") == 0 ){
+    view_struct->controlFlag |= MAPAINT_IMAGE_VIEWFB_MODE;
+  }
+  else {
+    view_struct->controlFlag |= MAPAINT_POLY_VIEWFB_MODE;
+  }
+  view_feedback_cb(w, (XtPointer) view_struct, NULL);
+
+  return;
+}
+
 static void saveSectionCb(
   Widget	widget,
   XtPointer	client_data,
@@ -853,6 +925,7 @@ Widget create_view_window_dialog(
   view_struct->prev_dist = 0.0;
   view_struct->view_object = NULL;
   view_struct->painted_object = NULL;
+  view_struct->masked_object = NULL;
   view_struct->noPaintingFlag = 0;
   view_struct->titleStr = "Section view";
 
@@ -891,18 +964,41 @@ Widget create_view_window_dialog(
   title = XtVaCreateManagedWidget("section_frame_title",
 				  xmLabelWidgetClass, title_form,
 				  XmNleftAttachment,	XmATTACH_FORM,
+				  XmNtopAttachment,	XmATTACH_FORM,
+				  XmNbottomAttachment,	XmATTACH_FORM,
 				  NULL);
-  widget = XtVaCreateManagedWidget("section_frame_FB_toggle",
+
+  for(i=0; feedback_mode_menu_itemsP[i].name != NULL; i++){
+    feedback_mode_menu_itemsP[i].callback = view_feedback_mode_cb;
+    feedback_mode_menu_itemsP[i].callback_data = view_struct;
+  }
+  option_menu = HGU_XmBuildMenu(title_form, XmMENU_OPTION,
+				"view_feedback_mode", 0,
+				XmTEAR_OFF_DISABLED,
+				feedback_mode_menu_itemsP);
+  XtVaSetValues(option_menu,
+		XmNleftAttachment,	XmATTACH_WIDGET,
+		XmNleftWidget,	title,
+		XmNtopAttachment,	XmATTACH_FORM,
+		XmNbottomAttachment,	XmATTACH_FORM,
+		NULL);
+  XtManageChild(option_menu);
+  widget = option_menu;
+
+  /*widget = XtVaCreateManagedWidget("section_frame_FB_toggle",
 				   xmToggleButtonGadgetClass, title_form,
 				   XmNleftAttachment,	XmATTACH_WIDGET,
 				   XmNleftWidget,	title,
 				   NULL);
   XtAddCallback(widget, XmNvalueChangedCallback, solid_FB_toggle_cb,
-		view_struct);
+  view_struct);*/
+
   widget = XtVaCreateManagedWidget("section_frame_direction_toggle",
 				   xmToggleButtonGadgetClass, title_form,
 				   XmNleftAttachment,	XmATTACH_WIDGET,
 				   XmNleftWidget,	widget,
+				   XmNtopAttachment,	XmATTACH_FORM,
+				   XmNbottomAttachment,	XmATTACH_FORM,
 				   NULL);
   XtAddCallback(widget, XmNvalueChangedCallback, view_direction_toggle_cb,
 		view_struct);

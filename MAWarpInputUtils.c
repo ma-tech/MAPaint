@@ -494,6 +494,13 @@ void warpIOWrite(
       BibFileRecordWrite(fp, NULL, bibfileRecord);
       BibFileRecordFree(&bibfileRecord);
 
+      /* if write a file record for the reference file */
+      if( globals.file ){
+	WlzEffBibWriteFileRecord(fp, "MAPaintReferenceFile",
+			  globals.file,
+			  globals.origObjExtType);
+      }
+
       /* if defined write a file record for the source */
       if( warpGlobals.srcFile ){
 	WlzEffBibWriteFileRecord(fp, "MAPaintWarpInputSourceFile",
@@ -764,6 +771,38 @@ void warpIORead(
 	    warpGlobals.src_vtxs[warpGlobals.num_vtxs].vtX = srcVtx.vtX;
 	    warpGlobals.src_vtxs[warpGlobals.num_vtxs].vtY = srcVtx.vtY;
 	    warpGlobals.num_vtxs++;
+	  }
+	}
+
+	/* read warp reference file - check against current
+	   and query continue if they are different */
+	if( !strncmp(bibfileRecord->name, "MAPaintReferenceFile", 20) ){
+	  int		index;
+	  char		*fileStr;
+	  WlzEffFormat	fileType;
+
+	  errNum = WlzEffBibParseFileRecord(bibfileRecord, &index,
+					    &fileStr, &fileType);
+	  if( errNum == WLZ_ERR_NONE ){
+	    if( strcmp(fileStr, globals.file) ){
+	      errMsg = (char *)
+		AlcMalloc(sizeof(char) *
+			  (strlen(fileStr) + strlen(globals.file) +
+			   160));
+	      sprintf(errMsg,
+		      "The bibfile reference object is different"
+		      " to the reference\n"
+		      "object currently read into MAPaint:-\n"
+		      "bibfile: %s\n"
+		      "current: %s\n"
+		      "Do you want to continue?", fileStr, globals.file);
+	      if( !HGU_XmUserConfirm(globals.topl, errMsg,
+				     "Yes", "No", 1) ){
+		AlcFree(errMsg);
+		return;
+	      }
+	      AlcFree(errMsg);
+	    }
 	  }
 	}
 

@@ -358,7 +358,9 @@ void MAOpenGLDisplaySection(
   glMatrixMode(GL_MODELVIEW);
   glPushMatrix();
 
-  if( view_struct->controlFlag & MAPAINT_SHOW_SOLID_SECTION )
+  /* solid view feedback - fill polygon with yellow
+     transparency would be good here */
+  if( view_struct->controlFlag & MAPAINT_SOLID_VIEWFB_MODE )
   {
     if( globals.toplDepth == 24 ){
       glColor3f((GLfloat) 1.0, (GLfloat) 1.0, (GLfloat) 0.0);
@@ -375,6 +377,107 @@ void MAOpenGLDisplaySection(
       vtxCntr++;
     }
     glEnd();
+  }
+
+  /* mask view feedback - simple fill of the region outside of the
+     object but within the bounding box intersection polygon.
+     if selected then use the domain of the object itself */
+  if( view_struct->controlFlag & 
+     (MAPAINT_MASK_VIEWFB_MODE|MAPAINT_TEMPLATE_VIEWFB_MODE|
+      MAPAINT_SWITCH_VIEWFB_MODE) ){
+    WlzObject	*templ, *mask, *poly, *tmpObj;
+    WlzDomain	domain;
+    WlzValues	values;
+    WlzIntervalWSpace	iwsp;
+    int		lineFlg;
+    WlzErrorNum	errNum;
+
+    /* get the mask and set the colour */
+    if((view_struct->controlFlag&MAPAINT_MASK_VIEWFB_MODE) ||
+       ((view_struct->controlFlag&MAPAINT_SWITCH_VIEWFB_MODE)&&
+	(view_struct->controlFlag&MAPAINT_HIGHLIGHT_SECTION)) ){
+      mask = WlzAssignObject(view_struct->masked_object, &errNum);
+      (void) glLineWidth((GLfloat) 3.0 );
+      if( globals.toplDepth == 24 ){
+	glColor3f((GLfloat) 0.8, (GLfloat) 0.8, (GLfloat) 0.2);
+      }
+      else {
+	glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap,
+				    0.8, 0.8, 0.2));
+      }
+    }
+    else {
+      /* transform the 3D vertex sequence back to section coordinates */
+      WlzDVertex2	vtxs2[12];
+      WlzDVertex3	vtxs3[12];
+
+      /* create a polygon object and convert to a domain */
+      vtxCntr = 0;
+      while( vtxCntr < num_vtxs ){
+	Wlz3DSectionTransformVtxR(wlzViewStr, vtxs[vtxCntr],
+				  &vtxs3[vtxCntr]);
+	vtxs2[vtxCntr].vtX = vtxs3[vtxCntr].vtX;
+	vtxs2[vtxCntr].vtY = vtxs3[vtxCntr].vtY;
+	vtxCntr++;
+      }
+      domain.poly = WlzMakePolyDmn(WLZ_POLYGON_DOUBLE,
+				   (WlzIVertex2 *) (&vtxs2[0]),
+				   num_vtxs, num_vtxs, 1, &errNum);
+      if( templ = WlzPolyToObj(domain.poly, WLZ_SIMPLE_FILL, &errNum) ){
+	templ = WlzAssignObject(templ, NULL);
+	if( mask = WlzDiffDomain(templ, view_struct->masked_object,
+				 &errNum) ){
+	  mask = WlzAssignObject(mask, NULL);
+	}
+	WlzFreeObj(templ);
+      }
+      WlzFreePolyDmn(domain.poly);
+
+      /* set the colour */
+      (void) glLineWidth((GLfloat) 1.0 );
+      if( globals.toplDepth == 24 ){
+	glColor3f((GLfloat) 0.8, (GLfloat) 0.2, (GLfloat) 0.2);
+      }
+      else {
+	glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap,
+				    0.8, 0.2, 0.2));
+      }
+    }
+
+    /* for now just display the mask */
+    if( errNum == WLZ_ERR_NONE ){
+      errNum = WlzInitRasterScan(mask, &iwsp, WLZ_RASTERDIR_ILIC);
+      lineFlg = 0;
+      while((errNum == WLZ_ERR_NONE) &&
+	    ((errNum = WlzNextInterval(&iwsp)) == WLZ_ERR_NONE)){
+	if( iwsp.nwlpos ){
+	  lineFlg++;
+	}
+	if( (lineFlg % 2) == 0 ){
+	  WlzDVertex3	vtx;
+	  vtx.vtX = iwsp.lftpos;
+	  vtx.vtY = iwsp.linpos;
+	  Wlz3DSectionTransformInvVtx(&vtx, wlzViewStr);
+	  glBegin(GL_LINES);
+	  glVertex3d((GLdouble) vtx.vtX,
+		     (GLdouble) vtx.vtY,
+		     (GLdouble) vtx.vtZ);
+	  vtx.vtX = iwsp.rgtpos;
+	  vtx.vtY = iwsp.linpos;
+	  Wlz3DSectionTransformInvVtx(&vtx, wlzViewStr);
+	  glVertex3d((GLdouble) vtx.vtX,
+		     (GLdouble) vtx.vtY,
+		     (GLdouble) vtx.vtZ);
+	  glEnd();
+	}
+      }
+      if( errNum == WLZ_ERR_EOO ){
+	errNum = WLZ_ERR_NONE;
+      }
+    }
+    if( mask ){
+      WlzFreeObj(mask);
+    }
   }
 
   if( view_struct->controlFlag & MAPAINT_SHOW_FIXED_POINT )

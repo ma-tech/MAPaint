@@ -100,7 +100,14 @@ typedef enum {
   MAPAINT_SHOW_FIXED_LINE	= 1<<3,
   MAPAINT_SHOW_UP_VECTOR	= 1<<4,
   MAPAINT_SHOW_VIEW_DIRECTION	= 1<<5,
-  MAPAINT_FIXED_LINE_SET	= 1<<6
+  MAPAINT_FIXED_LINE_SET	= 1<<6,
+  MAPAINT_POLY_VIEWFB_MODE	= 1<<7,
+  MAPAINT_SOLID_VIEWFB_MODE	= 1<<8,
+  MAPAINT_MASK_VIEWFB_MODE	= 1<<9,
+  MAPAINT_TEMPLATE_VIEWFB_MODE	= 1<<10,
+  MAPAINT_SWITCH_VIEWFB_MODE	= 1<<11,
+  MAPAINT_IMAGE_VIEWFB_MODE	= 1<<12,
+  MAPAINT_CONTROL_MAXIMUM	= 1<<13
 } ThreeDViewControlMask;
 
 typedef enum {
@@ -229,6 +236,7 @@ typedef struct {
   double		prev_dist;
   WlzObject		*view_object;
   WlzObject		*painted_object;
+  WlzObject		*masked_object;
   GLuint		display_list;
   int			noPaintingFlag;
   int			viewLockedFlag;
@@ -258,6 +266,7 @@ typedef struct _PaintGlobals{
   WlzObject		*orig_obj;
   WlzObject		*fb_obj;
   WlzObjectType		origObjType;
+  WlzEffFormat		origObjExtType;
   int			num_lines, num_cols, num_planes;
   unsigned long		autosave_time;
   String		autosave_file;

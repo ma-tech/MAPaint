@@ -1012,6 +1012,7 @@ void read_reference_object_cb(
     HGU_XmUnsetHourGlassCursor(globals.topl);
     return;
   }
+  globals.origObjExtType = image_type;
 
   /* set title and reference file list */
   if(icsfile ||
@@ -1490,6 +1491,7 @@ void file_menu_init(
   globals.obj       = NULL;
   globals.orig_obj  = NULL;
   globals.fb_obj    = NULL;
+  globals.origObjExtType = image_type;
 
   /* setup the theiler directory and menu item - check for stage */
   XtGetApplicationResources(topl, &globals, set_att_res,
@@ -1587,7 +1589,7 @@ void file_menu_init(
 	default:
 	  HGU_XmUserError(globals.topl,
 			  "Read Reference Object:\n"
-			  "    The reference object must be a 2- or 3-D\n"
+			  "    The reference object must be a 2- or 3-D woolz\n"
 			  "    grey-level image. Please select an alternate\n"
 			  "    object",
 			  XmDIALOG_FULL_APPLICATION_MODAL);

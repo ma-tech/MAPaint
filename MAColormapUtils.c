@@ -41,6 +41,229 @@ static unsigned char ovly_cols[33][3] =
   {255,192,128}, {250,128,64}, {192,128,0}
 };
 
+/* define resources for all the colours */
+static XtResource domainColsRed[] = {
+  {"domain0_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   0, XtRImmediate, (caddr_t) 0},
+  {"domain1_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   1, XtRImmediate, (caddr_t) 255},
+  {"domain2_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   2, XtRImmediate, (caddr_t) 0},
+  {"domain3_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   3, XtRImmediate, (caddr_t) 0},
+  {"domain4_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   4, XtRImmediate, (caddr_t) 255},
+  {"domain5_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   5, XtRImmediate, (caddr_t) 0},
+  {"domain6_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   6, XtRImmediate, (caddr_t) 255},
+  {"domain7_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   7, XtRImmediate, (caddr_t) 255},
+  {"domain8_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   8, XtRImmediate, (caddr_t) 255},
+  {"domain9_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   9, XtRImmediate, (caddr_t) 255},
+  {"domain10_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   10, XtRImmediate, (caddr_t) 158},
+  {"domain11_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   11, XtRImmediate, (caddr_t) 76},
+  {"domain12_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   12, XtRImmediate, (caddr_t) 0},
+  {"domain13_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   13, XtRImmediate, (caddr_t) 0},
+  {"domain14_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   14, XtRImmediate, (caddr_t) 0},
+  {"domain15_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   15, XtRImmediate, (caddr_t) 0},
+  {"domain16_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   16, XtRImmediate, (caddr_t) 0},
+  {"domain17_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   17, XtRImmediate, (caddr_t) 0},
+  {"domain18_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   18, XtRImmediate, (caddr_t) 0},
+  {"domain19_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   19, XtRImmediate, (caddr_t) 0},
+  {"domain20_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   20, XtRImmediate, (caddr_t) 0},
+  {"domain21_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   21, XtRImmediate, (caddr_t) 29},
+  {"domain22_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   22, XtRImmediate, (caddr_t) 81},
+  {"domain23_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   23, XtRImmediate, (caddr_t) 128},
+  {"domain24_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   24, XtRImmediate, (caddr_t) 184},
+  {"domain25_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   25, XtRImmediate, (caddr_t) 192},
+  {"domain26_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   26, XtRImmediate, (caddr_t) 255},
+  {"domain27_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   27, XtRImmediate, (caddr_t) 242},
+  {"domain28_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   28, XtRImmediate, (caddr_t) 192},
+  {"domain29_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   29, XtRImmediate, (caddr_t) 174},
+  {"domain30_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   30, XtRImmediate, (caddr_t) 255},
+  {"domain31_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   31, XtRImmediate, (caddr_t) 250},
+  {"domain32_red", "DomainColour", XtRUnsignedChar, sizeof(char),
+   32, XtRImmediate, (caddr_t) 192},
+};
+
+static XtResource domainColsGreen[] = {
+  {"domain0_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   0, XtRImmediate, (caddr_t) 0},
+  {"domain1_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   1, XtRImmediate, (caddr_t) 0},
+  {"domain2_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   2, XtRImmediate, (caddr_t) 0},
+  {"domain3_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   3, XtRImmediate, (caddr_t) 255},
+  {"domain4_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   4, XtRImmediate, (caddr_t) 255},
+  {"domain5_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   5, XtRImmediate, (caddr_t) 255},
+  {"domain6_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   6, XtRImmediate, (caddr_t) 0},
+  {"domain7_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   7, XtRImmediate, (caddr_t) 129},
+  {"domain8_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   8, XtRImmediate, (caddr_t) 184},
+  {"domain9_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   9, XtRImmediate, (caddr_t) 255},
+  {"domain10_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   10, XtRImmediate, (caddr_t) 255},
+  {"domain11_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   11, XtRImmediate, (caddr_t) 122},
+  {"domain12_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   12, XtRImmediate, (caddr_t) 77},
+  {"domain13_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   13, XtRImmediate, (caddr_t) 103},
+  {"domain14_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   14, XtRImmediate, (caddr_t) 147},
+  {"domain15_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   15, XtRImmediate, (caddr_t) 192},
+  {"domain16_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   16, XtRImmediate, (caddr_t) 255},
+  {"domain17_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   17, XtRImmediate, (caddr_t) 214},
+  {"domain18_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   18, XtRImmediate, (caddr_t) 128},
+  {"domain19_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   19, XtRImmediate, (caddr_t) 0},
+  {"domain20_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   20, XtRImmediate, (caddr_t) 0},
+  {"domain21_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   21, XtRImmediate, (caddr_t) 0},
+  {"domain22_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   22, XtRImmediate, (caddr_t) 0},
+  {"domain23_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   23, XtRImmediate, (caddr_t) 0},
+  {"domain24_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   24, XtRImmediate, (caddr_t) 0},
+  {"domain25_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   25, XtRImmediate, (caddr_t) 128},
+  {"domain26_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   26, XtRImmediate, (caddr_t) 187},
+  {"domain27_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   27, XtRImmediate, (caddr_t) 124},
+  {"domain28_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   28, XtRImmediate, (caddr_t) 0},
+  {"domain29_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   29, XtRImmediate, (caddr_t) 0},
+  {"domain30_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   30, XtRImmediate, (caddr_t) 192},
+  {"domain31_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   31, XtRImmediate, (caddr_t) 128},
+  {"domain32_green", "DomainColour", XtRUnsignedChar, sizeof(char),
+   32, XtRImmediate, (caddr_t) 128},
+};
+
+static XtResource domainColsBlue[] = {
+  {"domain0_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   0, XtRImmediate, (caddr_t) 0},
+  {"domain1_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   1, XtRImmediate, (caddr_t) 0},
+  {"domain2_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   2, XtRImmediate, (caddr_t) 255},
+  {"domain3_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   3, XtRImmediate, (caddr_t) 0},
+  {"domain4_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   4, XtRImmediate, (caddr_t) 0},
+  {"domain5_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   5, XtRImmediate, (caddr_t) 255},
+  {"domain6_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   6, XtRImmediate, (caddr_t) 0},
+  {"domain7_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   7, XtRImmediate, (caddr_t) 0},
+  {"domain8_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   8, XtRImmediate, (caddr_t) 0},
+  {"domain9_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   9, XtRImmediate, (caddr_t) 0},
+  {"domain10_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   10, XtRImmediate, (caddr_t) 0},
+  {"domain11_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   11, XtRImmediate, (caddr_t) 0},
+  {"domain12_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   12, XtRImmediate, (caddr_t) 0},
+  {"domain13_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   13, XtRImmediate, (caddr_t) 68},
+  {"domain14_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   14, XtRImmediate, (caddr_t) 110},
+  {"domain15_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   15, XtRImmediate, (caddr_t) 128},
+  {"domain16_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   16, XtRImmediate, (caddr_t) 112},
+  {"domain17_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   17, XtRImmediate, (caddr_t) 255},
+  {"domain18_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   18, XtRImmediate, (caddr_t) 255},
+  {"domain19_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   19, XtRImmediate, (caddr_t) 181},
+  {"domain20_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   20, XtRImmediate, (caddr_t) 108},
+  {"domain21_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   21, XtRImmediate, (caddr_t) 49},
+  {"domain22_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   22, XtRImmediate, (caddr_t) 74},
+  {"domain23_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   23, XtRImmediate, (caddr_t) 137},
+  {"domain24_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   24, XtRImmediate, (caddr_t) 223},
+  {"domain25_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   25, XtRImmediate, (caddr_t) 255},
+  {"domain26_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   26, XtRImmediate, (caddr_t) 250},
+  {"domain27_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   27, XtRImmediate, (caddr_t) 181},
+  {"domain28_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   28, XtRImmediate, (caddr_t) 128},
+  {"domain29_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   29, XtRImmediate, (caddr_t) 47},
+  {"domain30_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   30, XtRImmediate, (caddr_t) 128},
+  {"domain31_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   31, XtRImmediate, (caddr_t) 64},
+  {"domain32_blue", "DomainColour", XtRUnsignedChar, sizeof(char),
+   32, XtRImmediate, (caddr_t) 0},
+};
+
+static XtResource domainContrasts[] = {
+  {"domain0_contrast", "DomainContrast", XtRFloat, sizeof(float),
+   0*sizeof(float), XtRString, "0.0"},
+  {"domain1_contrast", "DomainContrast", XtRFloat, sizeof(float),
+   1*sizeof(float), XtRString, "0.25"},
+  {"domain2_contrast", "DomainContrast", XtRFloat, sizeof(float),
+   2*sizeof(float), XtRString, "0.25"},
+  {"domain3_contrast", "DomainContrast", XtRFloat, sizeof(float),
+   3*sizeof(float), XtRString, "0.25"},
+  {"domain4_contrast", "DomainContrast", XtRFloat, sizeof(float),
+   4*sizeof(float), XtRString, "0.25"},
+  {"domain5_contrast", "DomainContrast", XtRFloat, sizeof(float),
+   5*sizeof(float), XtRString, "0.25"},
+};
+
 /* resource structures and type converters */
 #define set_att_offset(field)   XtOffsetOf(PaintCmapStruct, field)
  
@@ -164,10 +387,12 @@ int set_paint_colormap(
   /* set the wash overlays */
   for(j=1; j <= cmpstr->num_overlays; j++){
     int	incr = cmpstr->ovly_incr[j];
-    float	factor = (255.0 * cmpstr->ovly_contrast[j] /
+/*    float	factor = (255.0 * cmpstr->ovly_contrast[j] /
 			  ((float) cmpstr->ovly_red[j] +
 			   (float) cmpstr->ovly_green[j] +
-			   (float) cmpstr->ovly_blue[j]));
+			   (float) cmpstr->ovly_blue[j]));*/
+    /* what a weird factor - try the obvious for now */
+    float	factor = cmpstr->ovly_contrast[j];
 
     for(i=cmpstr->gmin; i <= cmpstr->gmax; i++){
       colormap[0][i+incr] = 
@@ -251,6 +476,7 @@ Widget	canvas)
 {
     PaintCmapStruct	*cmpstr;
     int			i;
+    unsigned char	ovlyRed[33], ovlyGreen[33], ovlyBlue[33];
 
     /* setup the colormap structure */
     globals.cmapstruct = (PaintCmapStruct *)
@@ -291,19 +517,32 @@ Widget	canvas)
     cmpstr->ovly_incr[4] = 128;
     cmpstr->ovly_incr[5] = 160;
 
+    /* now use resources to get the colours - needs doing properly
+       reading from a proper colour resource definition
+       now done with simple indices */
+    XtGetApplicationResources(canvas, &(ovlyRed[0]), domainColsRed,
+                              XtNumber(domainColsRed), NULL, 0);
+    XtGetApplicationResources(canvas, &(ovlyGreen[0]), domainColsGreen,
+                              XtNumber(domainColsGreen), NULL, 0);
+    XtGetApplicationResources(canvas, &(ovlyBlue[0]), domainColsBlue,
+                              XtNumber(domainColsBlue), NULL, 0);
+
     for(i=0; i < 33; i++)
     {
-      cmpstr->ovly_red[i] = ovly_cols[i][0];
-      cmpstr->ovly_green[i] = ovly_cols[i][1];
-      cmpstr->ovly_blue[i] = ovly_cols[i][2];
+      cmpstr->ovly_red[i] = ovlyRed[i];
+      cmpstr->ovly_green[i] = ovlyGreen[i];
+      cmpstr->ovly_blue[i] = ovlyBlue[i];
     }
       
+    /* convert this to get them from resources */
     cmpstr->ovly_contrast[0] = 0.0;
     cmpstr->ovly_contrast[1] = 0.25;
     cmpstr->ovly_contrast[2] = 0.25;
     cmpstr->ovly_contrast[3] = 0.25;
     cmpstr->ovly_contrast[4] = 0.25;
     cmpstr->ovly_contrast[5] = 0.25;
+    XtGetApplicationResources(canvas, &(cmpstr->ovly_contrast[0]), domainContrasts,
+                              XtNumber(domainContrasts), NULL, 0);
 
     for(i=6; i < 33; i++)
     {

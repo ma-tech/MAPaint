@@ -68,10 +68,23 @@ WlzObject *getSelectedRegion(
 
   /* check for painted object */
   if( view_struct->painted_object == NULL ){
-    WlzObject	*sectObj;
-    sectObj = WlzGetSectionFromObject(globals.obj, wlzViewStr, &errNum);
+    WlzObject	*sectObj, *rectObj;
+    WlzDomain	domain;
+    sectObj = WlzGetMaskedSectionFromObject(globals.obj, wlzViewStr, &errNum);
     if( sectObj ){
-      view_struct->painted_object = WlzAssignObject(sectObj, NULL);
+      domain.i = WlzMakeIntervalDomain(WLZ_INTERVALDOMAIN_RECT,
+				       WLZ_NINT(wlzViewStr->minvals.vtY),
+				       WLZ_NINT(wlzViewStr->maxvals.vtY),
+				       WLZ_NINT(wlzViewStr->minvals.vtX),
+				       WLZ_NINT(wlzViewStr->maxvals.vtX),
+				       &errNum);
+      rectObj = WlzMakeMain(WLZ_2D_DOMAINOBJ, domain, sectObj->values,
+			    NULL, NULL, &errNum);
+      if( view_struct->masked_object ){
+	WlzFreeObj(view_struct->masked_object);
+      }
+      view_struct->masked_object = WlzAssignObject(sectObj, NULL);
+      view_struct->painted_object = WlzAssignObject(rectObj, NULL);
     }
     else {
       if( errNum != WLZ_ERR_NONE ){

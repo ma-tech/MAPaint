@@ -397,6 +397,8 @@ static XtResource domain_res[] = {
      res_offset(domain_filename[32]), XtRString, "domain_32.wlz"},
 {"OpenGLDisplayDomainStep", "OpenGLDisplayDomainStep", XtRInt, sizeof(int),
      res_offset(OpenGLDisplayDomainStep), XtRImmediate, (caddr_t) 2},
+{"currentDomain", "Domain", XtRInt, sizeof(int),
+     res_offset(current_domain), XtRImmediate, (caddr_t) 1},
 };
 
 static void setMenuLabelsAndColors(void)
@@ -430,8 +432,11 @@ static void setMenuLabelsAndColors(void)
     /* get the widgets by priority and reset resources */
     sprintf(str_buf, "*menubar*domain_menu*select*domain_%d", i);
     widget = XtNameToWidget(globals.topl, str_buf);
-    XtVaSetValues(widget, XmNlabelString, xmstr,
-		  XmNbackground, pixel, NULL);
+    XtVaSetValues(widget,
+		  XmNlabelString, xmstr,
+		  XmNbackground, pixel,
+		  XmNset, (i == globals.current_domain)?True:False,
+		  NULL);
 
     sprintf(str_buf, "*domain_controls_dialog*dominance_form*%d", i);
     widget = XtNameToWidget(globals.topl, str_buf);

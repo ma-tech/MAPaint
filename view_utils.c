@@ -134,11 +134,13 @@ int reset_view_struct(
     view_struct->view_object = NULL;
   }
 
-  /* free the painted object */
+  /* free the painted and masked objects */
   if( (errNum == WLZ_ERR_NONE) && (view_struct->painted_object != NULL) )
   {
     errNum = WlzFreeObj( view_struct->painted_object );
     view_struct->painted_object = NULL;
+    errNum = WlzFreeObj( view_struct->masked_object );
+    view_struct->masked_object = NULL;
   }
 
   if( errNum != WLZ_ERR_NONE ){
@@ -164,7 +166,7 @@ int free_view_struct(
     MAOpenGLDrawScene( globals.canvas );
   }
 
-  /* check the view and painted objects */
+  /* check the view, painted and masked objects */
   if( (errNum == WLZ_ERR_NONE) && (view_struct->view_object != NULL) )
   {
     errNum = WlzFreeObj( view_struct->view_object );
@@ -175,6 +177,12 @@ int free_view_struct(
   {
     errNum = WlzFreeObj( view_struct->painted_object );
     view_struct->painted_object = NULL;
+  } 
+ 
+  if( (errNum == WLZ_ERR_NONE) && (view_struct->masked_object != NULL) )
+  {
+    errNum = WlzFreeObj( view_struct->masked_object );
+    view_struct->masked_object = NULL;
   }  
 
   if( (errNum == WLZ_ERR_NONE) && (view_struct->prev_view_obj != NULL) )

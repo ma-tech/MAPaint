@@ -26,20 +26,42 @@
 static String  fallback_resources[] = {
 
   /* some editorial office specials */
-  "MAPaint_EO*domain_name_1:       High Expression",
-  "MAPaint_EO*domain_name_2:       Medium Expression",
+  "MAPaint_EO*domain_name_1:       Not Examined",
+  "MAPaint_EO*domain_name_2:       Strong Expression",
   "MAPaint_EO*domain_name_3:       Weak Expression",
-  "MAPaint_EO*domain_name_4:       Not Observed",
+  "MAPaint_EO*domain_name_4:       Possible Expression",
   "MAPaint_EO*domain_name_5:       Not Detected",
-  "MAPaint_EO*domain_filename_1:   high.wlz",
-  "MAPaint_EO*domain_filename_2:   medium.wlz",
+  "MAPaint_EO*domain_filename_1:   notExamined.wlz",
+  "MAPaint_EO*domain_filename_2:   strong.wlz",
   "MAPaint_EO*domain_filename_3:   weak.wlz",
-  "MAPaint_EO*domain_filename_4:   notObserved.wlz",
+  "MAPaint_EO*domain_filename_4:   possible.wlz",
   "MAPaint_EO*domain_filename_5:   notDetected.wlz",
-  "MAPaint_EO*numSolidOverlays:    5",
+  "MAPaint_EO*numSolidOverlays:    0",
   "MAPaint_EO*numWashOverlays:     5",
+  "MAPaint_EO*currentDomain:       2",
+  "MAPaint_EO*domain1_red: 	   255",
+  "MAPaint_EO*domain1_green:       255",
+  "MAPaint_EO*domain1_blue:        0",
+  "MAPaint_EO*domain2_red:         255",
+  "MAPaint_EO*domain2_green:       0",
+  "MAPaint_EO*domain2_blue:        0",
+  "MAPaint_EO*domain3_red:         0",
+  "MAPaint_EO*domain3_green:       0",
+  "MAPaint_EO*domain3_blue:        255",
+  "MAPaint_EO*domain4_red:         0",
+  "MAPaint_EO*domain4_green:       255",
+  "MAPaint_EO*domain4_blue:        0",
+  "MAPaint_EO*domain5_red:         0",
+  "MAPaint_EO*domain5_green:       255",
+  "MAPaint_EO*domain5_blue:        255",
+  "MAPaint_EO*domain1_contrast:    0.25",
+  "MAPaint_EO*domain2_contrast:    0.25",
+  "MAPaint_EO*domain3_contrast:    0.25",
+  "MAPaint_EO*domain4_contrast:    0.25",
+  "MAPaint_EO*domain5_contrast:    0.25",
 
-    /* top-level geometry MAPaint ok because it is also the application CLASS */
+    /* top-level geometry MAPaint ok because it is
+       also the application CLASS */
     "MAPaint.geometry:		280x360",
 
     /* autosave timeout time in seconds */

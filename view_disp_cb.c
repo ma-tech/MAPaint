@@ -19,6 +19,22 @@
 
 #include <MAPaint.h>
 
+static int byteOffsetFromMask24Bit(
+  unsigned int	mask)
+{
+  switch( mask ){
+  default:
+  case 0xff:
+    return 0;
+  case 0xff00:
+    return 1;
+  case 0xff0000:
+    return 2;
+  case 0xff000000:
+    return 3;
+  }
+}
+
 void HGU_XPutImage8To24(
   Display	*dpy,
   Window	win,
@@ -36,6 +52,7 @@ void HGU_XPutImage8To24(
   unsigned char	*newdata, *data;
   int		i, j, w, h, srcOff, dstOff;
   XWindowAttributes	win_att;
+  int		r_off, g_off, b_off, a_off;
 
   /* get window attribute to get the visual */
   if( XGetWindowAttributes(dpy, win, &win_att) == 0 )
@@ -53,39 +70,30 @@ void HGU_XPutImage8To24(
   /* transfer data  via colormap to 24 bit  - use visual for colour masks */
   srcOff = 0;
   /* assume only two options for the rgb masks - no doubt wrong */
-  if( win_att.visual->red_mask == 0xff ){
-    for(j=0; j < height; j++){
-      dstOff = (srcY+j) * ximage->bytes_per_line + srcX;
-      for(i=0; i < width; i++, dstOff++){
-	newdata[srcOff++] = 0;
-	newdata[srcOff++] = colormap[2][data[dstOff]];
-	newdata[srcOff++] = colormap[1][data[dstOff]];
-	newdata[srcOff++] = colormap[0][data[dstOff]];
-      }
+  /* try harder - find the rgba byte offsets from the masks
+     Note - must also take account of byte-ordering - yuk */
+  r_off = byteOffsetFromMask24Bit(win_att.visual->red_mask);
+  g_off = byteOffsetFromMask24Bit(win_att.visual->green_mask);
+  b_off = byteOffsetFromMask24Bit(win_att.visual->blue_mask);
+  a_off = 6 - r_off - g_off - b_off;
+  for(j=0; j < height; j++){
+    dstOff = (srcY+j) * ximage->bytes_per_line + srcX;
+    for(i=0; i < width; i++, dstOff++){
+#if defined (__sparc) || defined (__mips) || defined (__ppc)
+      newdata[srcOff + 3 - r_off] = colormap[0][data[dstOff]];
+      newdata[srcOff + 3 - g_off] = colormap[1][data[dstOff]];
+      newdata[srcOff + 3 - b_off] = colormap[2][data[dstOff]];
+      newdata[srcOff + 3 - a_off] = 0;
+      srcOff += 4;
+#endif /* __sparc || __mips || __ppc */
+#if defined (__x86) || defined (__alpha)
+      newdata[srcOff + r_off] = colormap[0][data[dstOff]];
+      newdata[srcOff + g_off] = colormap[1][data[dstOff]];
+      newdata[srcOff + b_off] = colormap[2][data[dstOff]];
+      newdata[srcOff + a_off] = 0;
+      srcOff += 4;
+#endif /* __x86 || __alpha */
     }
-  }
-  else {
-#if defined (__ppc)
-    for(j=0; j < height; j++){
-      dstOff = (srcY+j) * ximage->bytes_per_line + srcX;
-      for(i=0; i < width; i++, dstOff++){
-	newdata[srcOff++] = 0;
-	newdata[srcOff++] = colormap[0][data[dstOff]];
-	newdata[srcOff++] = colormap[1][data[dstOff]];
-	newdata[srcOff++] = colormap[2][data[dstOff]];
-      }
-    }
-#else
-    for(j=0; j < height; j++){
-      dstOff = (srcY+j) * ximage->bytes_per_line + srcX;
-      for(i=0; i < width; i++, dstOff++){
-	newdata[srcOff++] = colormap[2][data[dstOff]];
-	newdata[srcOff++] = colormap[1][data[dstOff]];
-	newdata[srcOff++] = colormap[0][data[dstOff]];
-	newdata[srcOff++] = 0;
-      }
-    }
-#endif /* __ppc */
   }
 
   /* display the image and clear allocated memory */
@@ -469,12 +477,28 @@ void display_view_cb(
   }
 
   /* get the section and set the painted object pointer */
-  if( sectObj = WlzGetSectionFromObject(globals.obj, wlzViewStr,
-					&errNum) ){
+  if( sectObj = WlzGetMaskedSectionFromObject(globals.obj, wlzViewStr,
+					      &errNum) ){
+    WlzObject	*rectObj;
+    WlzDomain	domain;
+
+    domain.i = WlzMakeIntervalDomain(WLZ_INTERVALDOMAIN_RECT,
+				     WLZ_NINT(wlzViewStr->minvals.vtY),
+				     WLZ_NINT(wlzViewStr->maxvals.vtY),
+				     WLZ_NINT(wlzViewStr->minvals.vtX),
+				     WLZ_NINT(wlzViewStr->maxvals.vtX),
+				     &errNum);
+    rectObj = WlzMakeMain(WLZ_2D_DOMAINOBJ, domain, sectObj->values,
+			  NULL, NULL, &errNum);
+    if( view_struct->masked_object ){
+      WlzFreeObj(view_struct->masked_object);
+    }
+    view_struct->masked_object = WlzAssignObject(sectObj, NULL);
+
     if( view_struct->painted_object ){
       WlzFreeObj(view_struct->painted_object);
     }
-    view_struct->painted_object = WlzAssignObject(sectObj, NULL);
+    view_struct->painted_object = WlzAssignObject(rectObj, NULL);
 
     /* set the section object to the ximage */
     view_struct->ximage->data = (char *)
