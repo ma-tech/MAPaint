@@ -572,6 +572,30 @@ void CanvasMotionEventHandler(
   return;
 }
 
+void CanvasButtonEventHandler(
+  Widget        w,
+  XtPointer     client_data,
+  XEvent        *event,
+  Boolean       *continue_to_dispatch)
+{
+  XmDrawingAreaCallbackStruct cbs;
+  unsigned int	modMask=(ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|
+			 Mod4Mask|Mod5Mask);
+
+  /* call the canvas input callbacks for the special case of
+     Ctrl<Btn1Down> which is currently trapped by something unknown */
+  if((event->type == ButtonPress) &&
+     (event->xbutton.button == Button1) &&
+     ((event->xbutton.state & modMask) == ControlMask)){
+    cbs.reason = XmCR_INPUT;
+    cbs.event = event;
+    cbs.window = XtWindow(w);
+    XtCallCallbacks(w, XmNinputCallback, (XtPointer) &cbs);
+  }
+
+  return;
+}
+
 static void solid_FB_toggle_cb(
   Widget	widget,
   XtPointer	client_data,
@@ -719,10 +743,11 @@ static void view_controls_cb(
 
 static String canvas_translations_table =
 "<BtnMotion>: 	DrawingAreaInput()\n\
-Alt<BtnDown>:	DrawingAreaInput()\n\
-Alt<BtnUp>: 	DrawingAreaInput()";
+Ctrl<BtnDown>:	DrawingAreaInput()\n\
+Ctrl<BtnUp>: 	DrawingAreaInput()";
 
 static XtTranslations	translations=NULL;
+static XtTranslations	canvas_translations=NULL;
 
 Widget create_view_window_dialog(
   Widget	topl,
@@ -901,8 +926,10 @@ Widget create_view_window_dialog(
 				   NULL);
   view_struct->canvas = canvas;
 
-  /* translations = XtParseTranslationTable( canvas_translations_table );
-  XtOverrideTranslations( canvas, translations );*/
+  /*if( !canvas_translations ){
+    canvas_translations = XtParseTranslationTable( canvas_translations_table );
+  }
+  XtAugmentTranslations( canvas, canvas_translations );*/
   if( !translations ){
     translations = XtParseTranslationTable( translations_table );
   }
@@ -914,6 +941,8 @@ Widget create_view_window_dialog(
   XtAddCallback(canvas, XmNinputCallback, canvas_input_cb, view_struct);
   XtAddEventHandler(canvas, ButtonMotionMask,
 		    False, CanvasMotionEventHandler, view_struct);
+  XtAddEventHandler(canvas, ButtonPressMask,
+		    False, CanvasButtonEventHandler, view_struct);
 
   /* create the controls frame */
   frame = XtVaCreateManagedWidget("controls_frame",

@@ -54,7 +54,7 @@ Cardinal	*num_params)
     Widget	widget;
 
     static	initialised=0;
-    char	butMap[10];
+    unsigned char	butMap[10];
     int		numEl;
 
     if( initialised )
@@ -81,15 +81,15 @@ Cardinal	*num_params)
       break;
 
     case 2:
-      HGU_XmUserMessage(globals.topl,
+      /*HGU_XmUserMessage(globals.topl,
 			"You have a two-button mouse, to get\n"
 			"middle mouse-button events use the\n"
 			" <alt> key with the left-button.\n"
-			"E.g. to get anaomty and domain feedback\n"
+			"E.g. to get anatomy and domain feedback\n"
 			"press the <alt> key then press and drag\n"
 			"the left mouse button over the image\n"
 			"displayed in a view window\n",
-			XmDIALOG_FULL_APPLICATION_MODAL);
+			XmDIALOG_FULL_APPLICATION_MODAL);*/
       /*fprintf(stderr,
 	      "Num map elements: %d\n"
 	      "map[0] = %d\n"
@@ -101,7 +101,7 @@ Cardinal	*num_params)
 
       butMap[0] = 1;
       butMap[1] = 3;
-      XSetPointerMapping(XtDisplay(globals.topl), butMap, numEl);
+      /*XSetPointerMapping(XtDisplay(globals.topl), butMap, numEl);*/
       break;
     }
       
@@ -322,7 +322,7 @@ main(
   }
   depthRscStr = (char *) AlcMalloc(sizeof(char) * (strlen(nameStr) +10));
   sprintf(depthRscStr, "%s.24bit", nameStr);
-
+  
   /* create the top level shell */
   XtToolkitInitialize();
   app_con = XtCreateApplicationContext();
@@ -330,7 +330,7 @@ main(
   dpy = XtOpenDisplay(app_con, NULL, nameStr, "MAPaint", mapaint_options, 8,
 		      &argc, argv);
   globals.dpy = dpy;
-
+  
   /* now check what visuals are available to determine the mode */
   if( XrmGetResource(XtDatabase(dpy), depthRscStr, "MAPaint.24bit",
 		     &rtnStrType, &xrmValue) == True ){
@@ -338,13 +338,86 @@ main(
       d24Flg = True;
     }
   }
-  if(!(visual = HGU_XGetVisual(dpy, DefaultScreen(dpy), PseudoColor, 8)) ||
-     (d24Flg == True)){
+  /* use the default visual unless 24 bit requested */
+  if( d24Flg == True ){
     if( visual = HGU_XGetVisual(dpy, DefaultScreen(dpy), TrueColor, 24) ){
       globals.visualMode = MAPAINT_24BIT_ONLY_MODE;
       globals.toplDepth = 24;
       globals.toplVisual = visual;
       globals.warpVisual = visual;
+    }
+    else {
+      fprintf(stderr,
+	      "%s: can't get requested 24-bit visual.\n"
+	      "MAPaint requires either an 8-bit and/or a 24bit visual\n"
+	      "for operation. Please check if your workstation can be set\n"
+	      "to 8-bit or 24-bit mode (full operation requires 24-bit)\n"
+	      "If only 8-bit is available then warp input will be\n"
+	      "disabled\n",
+	      argv[0]);
+      return 1;
+    }
+  }
+  else {
+    if( visual = DefaultVisual(dpy, DefaultScreen(dpy)) ){
+      XVisualInfo	*visualInfo, visualTemplate;
+      int		nitems;
+
+      visualTemplate.visualid = visual->visualid;
+      visualInfo = XGetVisualInfo(dpy, VisualIDMask,
+				  &visualTemplate, &nitems);
+      switch( visualInfo->depth ){
+
+      case 8:
+	globals.toplDepth = 8;
+	globals.toplVisual = visual;
+	globals.visualMode = MAPAINT_8BIT_ONLY_MODE;
+	if( visual = HGU_XGetVisual(dpy, DefaultScreen(dpy), TrueColor, 24) ){
+	  globals.visualMode = MAPAINT_8_24BIT_MODE;
+	  globals.warpVisual = visual;
+	}
+	break;
+
+      case 24:
+	globals.visualMode = MAPAINT_24BIT_ONLY_MODE;
+	globals.toplDepth = 24;
+	globals.toplVisual = visual;
+	globals.warpVisual = visual;
+	break;
+
+      default:
+	if(!(visual = HGU_XGetVisual(dpy, DefaultScreen(dpy),
+				     PseudoColor, 8))){
+	  if( visual = HGU_XGetVisual(dpy, DefaultScreen(dpy),
+				      TrueColor, 24) ){
+	    globals.visualMode = MAPAINT_24BIT_ONLY_MODE;
+	    globals.toplDepth = 24;
+	    globals.toplVisual = visual;
+	    globals.warpVisual = visual;
+	  }
+	  else {
+	    fprintf(stderr,
+		    "%s: can't get required 8-bit or 24-bit visual.\n"
+		    "MAPaint requires either an 8-bit and/or a 24bit visual\n"
+		    "for operation. Please check if your workstation can be set\n"
+		    "to 8-bit or 24-bit mode (full operation requires 24-bit)\n"
+		    "If only 8-bit is available then warp input will be\n"
+		    "disabled\n",
+	      argv[0]);
+	    return 1;
+	  }
+	}
+	else {
+	  globals.toplDepth = 8;
+	  globals.toplVisual = visual;
+	  globals.visualMode = MAPAINT_8BIT_ONLY_MODE;
+	  if( visual = HGU_XGetVisual(dpy, DefaultScreen(dpy), TrueColor, 24) ){
+	    globals.visualMode = MAPAINT_8_24BIT_MODE;
+	    globals.warpVisual = visual;
+	  }
+	}
+	break;
+      }
     }
     else {
       fprintf(stderr,
@@ -356,15 +429,6 @@ main(
 	      "disabled\n",
 	      argv[0]);
       return 1;
-    }
-  }
-  else {
-    globals.toplDepth = 8;
-    globals.toplVisual = visual;
-    globals.visualMode = MAPAINT_8BIT_ONLY_MODE;
-    if( visual = HGU_XGetVisual(dpy, DefaultScreen(dpy), TrueColor, 24) ){
-      globals.visualMode = MAPAINT_8_24BIT_MODE;
-      globals.warpVisual = visual;
     }
   }
   

@@ -395,6 +395,50 @@ static XtResource domain_res[] = {
      res_offset(OpenGLDisplayDomainStep), XtRImmediate, (caddr_t) 2},
 };
 
+static void setMenuLabelsAndColors(void)
+{
+  int		i, num_overlays;
+  XmString	xmstr;
+  Widget	widget;
+  char		str_buf[64];
+  Pixel		pixel;
+  int		data_index, col_index;
+
+  num_overlays = globals.cmapstruct->num_overlays + 
+    globals.cmapstruct->num_solid_overlays;
+  for(i=1; i <= num_overlays; i++)
+  {
+
+    /* get new  label and background colour */
+    data_index = globals.priority_to_domain_lut[i];
+    xmstr = XmStringCreateSimple( globals.domain_name[data_index] );
+    col_index = globals.cmapstruct->ovly_cols[data_index] +
+      globals.cmapstruct->gmax - globals.cmapstruct->gmin;
+    if( data_index > globals.cmapstruct->num_overlays )
+    {
+      col_index = globals.cmapstruct->ovly_cols[data_index];
+    }
+    pixel = HGU_XGetColorPixel(XtDisplay(globals.topl), globals.cmap,
+			       (float) globals.colormap[0][col_index]/255.0,
+			       (float) globals.colormap[1][col_index]/255.0,
+			       (float) globals.colormap[2][col_index]/255.0);
+
+    /* get the widgets by priority and reset resources */
+    sprintf(str_buf, "*menubar*domain_menu*select*domain_%d", i);
+    widget = XtNameToWidget(globals.topl, str_buf);
+    XtVaSetValues(widget, XmNlabelString, xmstr,
+		  XmNbackground, pixel, NULL);
+
+    sprintf(str_buf, "*domain_controls_dialog*dominance_form*%d", i);
+    widget = XtNameToWidget(globals.topl, str_buf);
+    XtVaSetValues(widget, XmNbackground, pixel, NULL);
+
+    XmStringFree(xmstr);
+  }
+
+  return;
+}
+
 /* action and callback procedures */
 void addSelectDomainCallback(
   XtCallbackProc	callback,
@@ -1558,38 +1602,7 @@ static void TransferProc(
 	      sizeof(int), source_index, dest_index);
 
   /* reset the menu labels and background colours */
-  num_overlays = globals.cmapstruct->num_overlays + 
-    globals.cmapstruct->num_solid_overlays;
-  for(i=1; i <= num_overlays; i++)
-  {
-    XmString	xmstr;
-    Widget	widget;
-    char	str_buf[64];
-    Pixel	pixel;
-    int		data_index;
-
-    /* get new  label and background colour */
-    data_index = globals.priority_to_domain_lut[i];
-    xmstr = XmStringCreateSimple( globals.domain_name[data_index] );
-    pixel = globals.cmapstruct->ovly_cols[data_index] +
-      globals.cmapstruct->gmax - globals.cmapstruct->gmin;
-    if( data_index > globals.cmapstruct->num_overlays )
-    {
-      pixel = globals.cmapstruct->ovly_cols[data_index];
-    }
-
-    /* get the widgets by priority and reset resources */
-    sprintf(str_buf, "*menubar*domain_menu*select*domain_%d", i);
-    widget = XtNameToWidget(globals.topl, str_buf);
-    XtVaSetValues(widget, XmNlabelString, xmstr,
-		  XmNbackground, pixel, NULL);
-
-    sprintf(str_buf, "*domain_controls_dialog*dominance_form*%d", i);
-    widget = XtNameToWidget(globals.topl, str_buf);
-    XtVaSetValues(widget, XmNbackground, pixel, NULL);
-
-    XmStringFree(xmstr);
-  }
+  setMenuLabelsAndColors();
 
   return;
 }
@@ -1637,6 +1650,7 @@ Cardinal	*num_params)
   Arg		args[12];
   Widget	drag_icon, drag_context;
   Pixel		fg, bg;
+  int		depth;
 
   /* if painting then ignore this request - should be fixed elsewhere */
   if( paint_key != NULL )
@@ -1646,27 +1660,34 @@ Cardinal	*num_params)
 
   /* get the atom for data target type */
   export_list[0] = XmInternAtom(XtDisplay(w), "HGU_PAINT_DOMAIN_NAME", False);
-  XtVaGetValues(w, XmNforeground, &fg, XmNbackground, &bg, NULL);
+  XtVaGetValues(w,
+		XmNforeground, &fg,
+		XmNbackground, &bg,
+		XmNdepth, &depth,
+		NULL);
 
   /* create pixmap for the drag icon */
-  icon = XmGetPixmapByDepth(XtScreen(w), "domainbm.xbm", 1, 0, 1);
-/*  icon = XCreatePixmapFromBitmapData(globals.dpy, XtWindow(w),
+  /*icon = XmGetPixmapByDepth(XtScreen(w), "domainbm.xbm", 1, 0, 1);*/
+  icon = XCreatePixmapFromBitmapData(globals.dpy, XtWindow(w),
 				     (char *) domainbm_bits,
 				     domainbm_width, domainbm_height,
-				     1, 0, 1);*/
-  if( icon == XmUNSPECIFIED_PIXMAP )
+				     1, 0, 1);
+  /*if( icon == XmUNSPECIFIED_PIXMAP )
   {
     fprintf(stderr, "Can't read drag bitmap file\n");
-  }
+    }*/
   n = 0;
   XtSetArg(args[n], XmNpixmap, icon); n++;
+  XtSetArg(args[n], XmNdepth, 1); n++;
+  XtSetArg(args[n], XmNwidth, domainbm_width); n++;
+  XtSetArg(args[n], XmNheight, domainbm_height); n++;
   drag_icon = XmCreateDragIcon(w, "drag_icon", args, n);
 
   /* specify resources for the drag context */
   n = 0;
-  fg = BlackPixelOfScreen(XtScreen(w));
-  bg = WhitePixelOfScreen(XtScreen(w));
-  XtSetArg(args[n], XmNblendModel, XmBLEND_ALL); n++;
+  /*fg = BlackPixelOfScreen(XtScreen(w));
+    bg = WhitePixelOfScreen(XtScreen(w));*/
+  XtSetArg(args[n], XmNblendModel, XmBLEND_STATE_SOURCE); n++;
   XtSetArg(args[n], XmNcursorForeground, fg); n++;
   XtSetArg(args[n], XmNcursorBackground, bg); n++;
   XtSetArg(args[n], XmNsourceCursorIcon, drag_icon); n++;
@@ -1738,98 +1759,114 @@ static void DD_DomainDominanceHandleCb(
   return;
 }
 
+static void resetDominanceCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  int	i;
+
+  for(i=0; i < 33; i++)
+  {
+    globals.priority_to_domain_lut[i] = i;
+  }
+  setMenuLabelsAndColors();
+
+  return;
+}
+
+static ActionAreaItem   domain_control_actions[] = {
+{"Reset",	NULL,		NULL},
+{"Dismiss",     NULL,           NULL},
+{"Help",        NULL,           NULL},
+};
+
 static Widget create_domain_controls_dialog(
   Widget	topl)
 {
-    Widget		dialog, control, dominance, row_column,  form, widget;
-    Atom		import_list[1];
-    int			i, n, num_overlays;
-    Arg			args[10];
-    XtTranslations	trans_tb;
-    Pixel		pixel;
-    char		str_buf[16];
+  Widget		dialog, control, dominance, row_column,  form, widget;
+  Atom			import_list[1];
+  int			i, n, num_overlays;
+  Arg			args[10];
+  XtTranslations	trans_tb;
+  Pixel			pixel;
+  char			str_buf[16];
 
 
-    /* create the controls dialog */
-    dialog = HGU_XmCreateStdDialog(topl, "domain_controls_dialog",
-				   xmFormWidgetClass, NULL, 0);
+  /* create the controls dialog */
+  dialog = HGU_XmCreateStdDialog(topl, "domain_controls_dialog",
+				 xmFormWidgetClass,
+				 domain_control_actions, 3);
 
-    control = XtNameToWidget( dialog, "*.control" );
+  if( (widget = XtNameToWidget(dialog, "*.Reset")) != NULL ){
+    XtAddCallback(widget, XmNactivateCallback, resetDominanceCb,
+		  dialog);
+  }
+  if( (widget = XtNameToWidget(dialog, "*.Dismiss")) != NULL ){
+    XtAddCallback(widget, XmNactivateCallback, PopdownCallback,
+		  XtParent(dialog));
+  }
+  control = XtNameToWidget( dialog, "*.control" );
 
-    num_overlays = globals.cmapstruct->num_overlays +
-      globals.cmapstruct->num_solid_overlays;
+  num_overlays = globals.cmapstruct->num_overlays +
+    globals.cmapstruct->num_solid_overlays;
 
-    /* add in frame for the dominance control */
-    widget = XtVaCreateManagedWidget("dominance_frame", xmFrameWidgetClass,
-				     control,
-				     XmNtopAttachment,  	XmATTACH_FORM,
-				     XmNleftAttachment, 	XmATTACH_FORM,
-				     XmNrightAttachment,	XmATTACH_FORM,
-				     NULL);
-
-    form = XtVaCreateManagedWidget("dominance_form", xmFormWidgetClass,
-				   widget,
+  /* add in frame for the dominance control */
+  widget = XtVaCreateManagedWidget("dominance_frame", xmFrameWidgetClass,
+				   control,
+				   XmNtopAttachment,  	XmATTACH_FORM,
 				   XmNleftAttachment, 	XmATTACH_FORM,
 				   XmNrightAttachment,	XmATTACH_FORM,
-				   XmNborderWidth,	0,
-				   XmNfractionBase,	num_overlays*10,
 				   NULL);
 
-    dominance = XtVaCreateManagedWidget("dominance", xmLabelWidgetClass,
-					form,
-					XmNtopAttachment,  	XmATTACH_FORM,
-					XmNleftAttachment, 	XmATTACH_FORM,
-					XmNrightAttachment,	XmATTACH_FORM,
-					XmNborderWidth,	0,
-					NULL);
+  form = XtVaCreateManagedWidget("dominance_form", xmFormWidgetClass,
+				 widget,
+				 XmNleftAttachment, 	XmATTACH_FORM,
+				 XmNrightAttachment,	XmATTACH_FORM,
+				 XmNborderWidth,	0,
+				 XmNfractionBase,	num_overlays*10,
+				 NULL);
 
-    /* setup arguments for dominance drag and drop */
-    trans_tb = XtParseTranslationTable(dragTranslations);
-    n = 0;
-    import_list[0] = XmInternAtom(XtDisplay(topl),
-				  "HGU_PAINT_DOMAIN_NAME", False);
-    XtSetArg(args[n], XmNimportTargets, import_list); n++;
-    XtSetArg(args[n], XmNnumImportTargets, 1); n++;
-    XtSetArg(args[n], XmNdropSiteOperations, XmDROP_MOVE); n++;
-    XtSetArg(args[n], XmNdropProc, DD_DomainDominanceHandleCb); n++;
+  dominance = XtVaCreateManagedWidget("dominance", xmLabelWidgetClass,
+				      form,
+				      XmNtopAttachment,  	XmATTACH_FORM,
+				      XmNleftAttachment, 	XmATTACH_FORM,
+				      XmNrightAttachment,	XmATTACH_FORM,
+				      XmNborderWidth,	0,
+				      NULL);
 
-    /* create the dominance buttons */
-    for(i=1; i <= num_overlays; i++)
-    {
-      int	col_index, data_index;
+  /* setup arguments for dominance drag and drop */
+  trans_tb = XtParseTranslationTable(dragTranslations);
+  n = 0;
+  import_list[0] = XmInternAtom(XtDisplay(topl),
+				"HGU_PAINT_DOMAIN_NAME", False);
+  XtSetArg(args[n], XmNimportTargets, import_list); n++;
+  XtSetArg(args[n], XmNnumImportTargets, 1); n++;
+  XtSetArg(args[n], XmNdropSiteOperations, XmDROP_MOVE); n++;
+  XtSetArg(args[n], XmNdropProc, DD_DomainDominanceHandleCb); n++;
 
-      sprintf(str_buf, "%d", i);
-      data_index = globals.priority_to_domain_lut[i];
+  /* create the dominance buttons */
+  for(i=1; i <= num_overlays; i++)
+  {
+    sprintf(str_buf, "%d", i);
+    widget = XtVaCreateManagedWidget
+      (str_buf, xmPushButtonWidgetClass,
+       form,
+       XmNborderWidth,	0,
+       XmNleftAttachment,	XmATTACH_POSITION,
+       XmNrightAttachment,	XmATTACH_POSITION,
+       XmNleftPosition,	i*10-9,
+       XmNrightPosition,	i*10-1,
+       XmNtopAttachment,	XmATTACH_WIDGET,
+       XmNtopWidget,		dominance,
+       NULL);
 
-      col_index = globals.cmapstruct->ovly_cols[data_index] +
-	globals.cmapstruct->gmax - globals.cmapstruct->gmin;
-      if( data_index > globals.cmapstruct->num_overlays )
-      {
-	col_index = globals.cmapstruct->ovly_cols[data_index];
-      }
-      pixel = HGU_XGetColorPixel(XtDisplay(topl), globals.cmap,
-				 (float) globals.colormap[0][col_index]/255.0,
-				 (float) globals.colormap[1][col_index]/255.0,
-				 (float) globals.colormap[2][col_index]/255.0);
-      widget = XtVaCreateManagedWidget
-	(str_buf, xmPushButtonWidgetClass,
-	 form,
-	 XmNborderWidth,	0,
-	 XmNleftAttachment,	XmATTACH_POSITION,
-	 XmNrightAttachment,	XmATTACH_POSITION,
-	 XmNleftPosition,	i*10-9,
-	 XmNrightPosition,	i*10-1,
-	 XmNtopAttachment,	XmATTACH_WIDGET,
-	 XmNtopWidget,		dominance,
-	 XmNbackground,		pixel,
-	 NULL);
-
-      /* add drag and drop translations and register as a drop site */
-      XtOverrideTranslations(widget, trans_tb);
-      XmDropSiteRegister(widget, args, n);
-    }
+    /* add drag and drop translations and register as a drop site */
+    XtOverrideTranslations(widget, trans_tb);
+    XmDropSiteRegister(widget, args, n);
+  }
 					 
-    return( dialog );
+  return( dialog );
 }
 
 void write_paint_object_cb(
@@ -1958,7 +1995,7 @@ int domain_menu_init(
   Widget		widget, form, file_type_menu;
   int			i, n;
   XtTranslations	trans_tb;
-  Atom		import_list[1];
+  Atom			import_list[1];
   Arg			args[8];
   Visual		*visual;
 
@@ -2078,12 +2115,16 @@ int domain_menu_init(
   XtGetApplicationResources(topl, &globals, domain_res,
 			    XtNumber(domain_res), NULL, 0);
   trans_tb = XtParseTranslationTable(dragTranslations);
+  n = 0;
+  import_list[0] = XmInternAtom(XtDisplay(topl),
+				"HGU_PAINT_DOMAIN_NAME", False);
+  XtSetArg(args[n], XmNimportTargets, import_list); n++;
+  XtSetArg(args[n], XmNnumImportTargets, 1); n++;
+  XtSetArg(args[n], XmNdropSiteOperations, XmDROP_MOVE); n++;
+  XtSetArg(args[n], XmNdropProc, DD_DomainDominanceHandleCb); n++;
 
   for(i=1; i < 33; i++){
-    XmString	xmstr;
     char	str_buf[64];
-    Pixel	pixel;
-    int		data_index, col_index;
 
     /* get the widgets in priority order */
     sprintf(str_buf, "*menubar*domain_menu*select*domain_%d", i);
@@ -2095,39 +2136,14 @@ int domain_menu_init(
       continue;
     }
 
-    /* get the data for each priority */
-    data_index = globals.priority_to_domain_lut[i];
-    xmstr = XmStringCreateSimple( globals.domain_name[data_index] );
-    col_index = globals.cmapstruct->ovly_cols[data_index] +
-      globals.cmapstruct->gmax - globals.cmapstruct->gmin;
-    if( data_index > globals.cmapstruct->num_overlays )
-    {
-      col_index = globals.cmapstruct->ovly_cols[data_index];
-    }
-    pixel = HGU_XGetColorPixel(XtDisplay(topl), globals.cmap,
-			       (float) globals.colormap[0][col_index]/255.0,
-			       (float) globals.colormap[1][col_index]/255.0,
-			       (float) globals.colormap[2][col_index]/255.0);
-/*    pixel = col_index;*/
-    XmChangeColor(widget, pixel);
-    XtVaSetValues(widget,
-		  XmNlabelString, xmstr,
-		  NULL);
-    XmStringFree(xmstr);
-
     /* add drag and drop translations */
-    XtOverrideTranslations(widget, trans_tb);
+    /*XtOverrideTranslations(widget, trans_tb);*/
 
     /* register as a drop site */
-    n = 0;
-    import_list[0] = XmInternAtom(XtDisplay(widget),
-				  "HGU_PAINT_DOMAIN_NAME", False);
-    XtSetArg(args[n], XmNimportTargets, import_list); n++;
-    XtSetArg(args[n], XmNnumImportTargets, 1); n++;
-    XtSetArg(args[n], XmNdropSiteOperations, XmDROP_MOVE); n++;
-    XtSetArg(args[n], XmNdropProc, DD_DomainDominanceHandleCb); n++;
-    XmDropSiteRegister(widget, args, n);
+    /*XmDropSiteRegister(widget, args, n);*/
   }
+
+  setMenuLabelsAndColors();
 
   return( 0 );
 }

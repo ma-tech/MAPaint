@@ -331,7 +331,8 @@ void canvas_2D_painting_cb(
       /* if shift is pressed then increase the magnification
 	 the scrolled window must be set to keep the pointer
 	 position fixed */
-      switch( cbs->event->xbutton.state & (ShiftMask|ControlMask|Mod1Mask) ){
+      switch(cbs->event->xbutton.state & (ShiftMask|ControlMask|Mod1Mask)){
+
       case ShiftMask: /* magnify */
 	setViewScale(view_struct, wlzViewStr->scale * 2.0,
 		     cbs->event->xbutton.x, cbs->event->xbutton.y);

@@ -95,7 +95,8 @@ Widget create_main_work_area(
     rgbModeFlag = True;
   }
 
-  work_area = XtVaCreateManagedWidget("work_area", hguGLwCanvasTbWidgetClass,
+  work_area = XtVaCreateManagedWidget("work_area",
+				      hguGLwCanvasTbWidgetClass,
 				      main_w,
 				      XmNbackground,		bg,
 				      HGUglwNtrackballSize,	512,
@@ -106,12 +107,12 @@ Widget create_main_work_area(
 				      HGUglwNrgba,	rgbModeFlag,
 				      NULL);
 
-  XtAddCallback(work_area, HGUglwNexposeCallback,	ThreeDDrawSceneCb,
+  XtAddCallback(work_area, HGUglwNexposeCallback,   ThreeDDrawSceneCb,
 		NULL);
-  XtAddCallback(work_area, HGUglwNresizeCallback,	ThreeDResizeCb, NULL);
-  XtAddCallback(work_area, HGUglwNinitCallback, 	MAOpenGLInitCb, NULL);
-  XtAddCallback(work_area, HGUglwNinputCallback, 	ThreeDInputCb, NULL);
-  XtAddCallback(work_area, HGUglwNtrackballCallback, 	ThreeDDrawSceneCb,
+  XtAddCallback(work_area, HGUglwNresizeCallback,   ThreeDResizeCb, NULL);
+  XtAddCallback(work_area, HGUglwNinitCallback,     MAOpenGLInitCb, NULL);
+  XtAddCallback(work_area, HGUglwNinputCallback,    ThreeDInputCb, NULL);
+  XtAddCallback(work_area, HGUglwNtrackballCallback, ThreeDDrawSceneCb,
 		NULL);
 
   globals.canvas = work_area;

@@ -100,10 +100,12 @@ void autosavetimeout_cb(
   XtPointer		client_data,
   XtIntervalId	*id)
 {
-  Widget		dialog;
-  XmString		xmstr1, xmstr2;
-  XEvent		event;
-  int			i, save_required = 0, finished;
+  Widget	dialog;
+  XmString	xmstr1, xmstr2;
+  XEvent	event;
+  int		i, save_required = 0, finished;
+  Visual	*visual;
+  Arg		arg[1];
 
   /* check object */
   if( (*id != globals.autosavetimeoutID) ){
@@ -118,9 +120,13 @@ void autosavetimeout_cb(
 
   if( save_required ){
 
+    /* get the visual explicitly */
+    visual = HGU_XmWidgetToVisual(globals.topl);
+    XtSetArg(arg[0], XmNvisual, visual);
+
     /* dump the current object */
     dialog = XmCreateWorkingDialog(globals.topl, "autosave_working_dialog",
-				   NULL, 0);
+				   arg, 1);
 
     XtUnmanageChild(XmMessageBoxGetChild(dialog,
 					 XmDIALOG_OK_BUTTON));
