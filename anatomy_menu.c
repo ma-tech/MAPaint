@@ -301,7 +301,7 @@ MenuItem *createAnatomyMenuItems(
 	}
 
 	/* copy the short name and strip underlines */
-	anatObjItems[numAnatObjItems].shortName = strdup(name);
+	anatObjItems[numAnatObjItems].shortName = AlcStrDup(name);
 	for(i=0; i < strlen(name); i++){
 	  if(name[i] == '_'){
 	    anatObjItems[numAnatObjItems].shortName[i] = ' ';
@@ -310,7 +310,7 @@ MenuItem *createAnatomyMenuItems(
 
 	/* find and copy the fullname */
 	anatObjItems[numAnatObjItems].fullName =
-	  strdup(strstr(dirStr, "anatomy") + 8);
+	  AlcStrDup(strstr(dirStr, "anatomy") + 8);
 	for(i=0; i < strlen(anatObjItems[numAnatObjItems].fullName); i++){
 	  if(anatObjItems[numAnatObjItems].fullName[i] == '_'){
 	    anatObjItems[numAnatObjItems].fullName[i] = ' ';
@@ -387,7 +387,7 @@ MenuItem *createAnatomyMenuItems(
 
   /* dividing line */
   if( dirIndex && numDirs){
-    items[dirIndex].name = strdup("");
+    items[dirIndex].name = AlcStrDup("");
     items[dirIndex].wclass = &xmSeparatorGadgetClass;
     items[dirIndex].mnemonic = '\0';
     items[dirIndex].accelerator = NULL;

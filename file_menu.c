@@ -271,7 +271,7 @@ void ReferenceFileListPush(
       refFileList[i] = refFileList[i-1];
       refImageTypeList[i] = refImageTypeList[i-1];
     }
-    refFileList[0] = strdup(fileStr);
+    refFileList[0] = AlcStrDup(fileStr);
     refImageTypeList[0] = image_type;
   }
 
@@ -1539,12 +1539,12 @@ void file_menu_init(
      we need to duplicate it to allow it to be freed
      possibly some memory leakage here */
   if( globals.base_theiler_dir ){
-    globals.base_theiler_dir = strdup( globals.base_theiler_dir );
+    globals.base_theiler_dir = AlcStrDup( globals.base_theiler_dir );
   }
   if( globals.theiler_stage ){
     char *tStr;
     if( tStr = theilerString(globals.theiler_stage) ){
-      globals.theiler_stage = strdup(tStr);
+      globals.theiler_stage = AlcStrDup(tStr);
     }
     else {
       globals.theiler_stage = NULL;
@@ -1713,7 +1713,7 @@ void file_menu_init(
 	while((fgets(&(inBuf[0]), 127, fp)) &&
 	      (strncmp(inBuf, "End file list", 13)) &&
 	      (i < 10)){
-	  refFileList[i] = strdup(inBuf);
+	  refFileList[i] = AlcStrDup(inBuf);
 	  for(j=0; j < strlen(refFileList[i]); j++){
 	    if((refFileList[i][j] == ',') ||
 	       (refFileList[i][j] == '\n')){

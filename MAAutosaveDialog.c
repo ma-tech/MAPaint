@@ -451,7 +451,7 @@ static void autosave_recover_cb(
 	}
       }
       if( nameStr ){
-	new_domain_names[index] = strdup(nameStr);
+	new_domain_names[index] = AlcStrDup(nameStr);
       }
     }
     else {

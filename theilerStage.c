@@ -219,7 +219,7 @@ void theiler_menu_init(
       menu_items[stage].accel_text = NULL;
       menu_items[stage].item_set = False;
       menu_items[stage].callback = set_theiler_stage_cb;
-      menu_items[stage].callback_data = strdup(dp->d_name);
+      menu_items[stage].callback_data = AlcStrDup(dp->d_name);
       menu_items[stage].help_callback = NULL;
       menu_items[stage].help_callback_data = NULL;
       menu_items[stage].tear_off_model = XmTEAR_OFF_DISABLED;
