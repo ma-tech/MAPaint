@@ -22,6 +22,7 @@
 PaintGlobals	globals;
 char		*initial_reference_file;
 char		*initial_domain_file;
+char		*release_str = "$Name$;
 
 static int set_MainWindow_XSizeHints	(Widget	main_w);
 static String translations_table =
