@@ -264,7 +264,7 @@ LIBDIRS			= . \
 			  $(OPENGL_LIB_DIR) \
 			  $(X11_LIB_DIR) \
 			  $(MOTIF_LIB_DIR) \
-			/Users/richard/Desktop/darwin-extras/langinfo
+			/Users/richard/downloads/darwin-extras/langinfo
 endif
 ifeq ($(UNIXTYPE), IRIX646)
 LIBDIRS			=  \
@@ -328,7 +328,7 @@ X11LIBS         	= Xt Xmu X11 Xext
 endif
 ifeq	 	($(UNIXTYPE), DARWIN)
 EXTRA_LIBS		= langinfo tiff m
-X11LIBS         	= Xt Xmu X11 Xp Xext
+X11LIBS         	= Xt X11 Xmu Xp
 endif
 
 OPENGLLIBS		= GLU GL
@@ -350,7 +350,6 @@ ifeq 		($(UNIXTYPE), SUNOS5)
 #COPTIMISE		= -xcg92
 endif
 
-LDFLAGS			= $(LIBDIRS:%=-L%)
 
 ifeq 		($(UNIXTYPE), SUNOS5)
 LDFLAGS			= $(LIBDIRS:%=-L%) -R$(SYSLIB):$(HGU_LIB_DIR):$(OPENGL_LIB_DIR):$(X11_LIB_DIR):$(MOTIF_LIB_DIR)
@@ -358,10 +357,6 @@ endif
 
 ifeq	 	($(UNIXTYPE), LINUX2)
 LDFLAGS			= $(LIBDIRS:%=-L%) -static
-endif
-
-ifeq	 	($(UNIXTYPE), DARWIN)
-LDFLAGS			= $(LIBDIRS:%=-L%)
 endif
 
 LDLIBS			= $(LOCALLIBS:%=-l%) $(OPENGLLIBS:%=-l%) \

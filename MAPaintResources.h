@@ -73,7 +73,7 @@ static String  fallback_resources[] = {
 
     /* top-level geometry MAPaint ok because it is
        also the application CLASS */
-    "MAPaint.geometry:		280x360",
+    "MAPaint.geometry:		320x360",
 
     /* autosave timeout time in seconds */
     "MAPaint.autosaveTime:	900",

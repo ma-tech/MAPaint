@@ -27,7 +27,7 @@
 
 #include <MAPaint.h>
 
-#include <Reconstruct.h>
+/* #include <Reconstruct.h>*/
 
 extern Widget create_view_window_dialog(Widget topl,
 					double theta,

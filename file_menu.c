@@ -353,9 +353,11 @@ void ReferenceFileListCb(
 	    obj = newObj;
 	  }
 	}
+	globals.origObjType = WLZ_2D_DOMAINOBJ;
 	break;
 
       case WLZ_3D_DOMAINOBJ:
+	globals.origObjType = WLZ_3D_DOMAINOBJ;
 	break;
 
       default:

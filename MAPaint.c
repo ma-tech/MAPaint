@@ -465,7 +465,7 @@ main(
     HGU_XmCreatePrivateColormap(dpy);
   }
   else {
-    globals.cmap = XCreateColormap(dpy, DefaultRootWindow(dpy),
+    globals.cmap = XCreateColormap(dpy, RootWindow(dpy, DefaultScreen(dpy)),
 				   globals.toplVisual, AllocNone);
   }
   XtSetArg(arg[0], XtNdepth, globals.toplDepth);

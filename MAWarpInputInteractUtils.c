@@ -371,7 +371,7 @@ void warpCanvasMagCb(
   XmPushButtonCallbackStruct
     *cbs = (XmPushButtonCallbackStruct *) call_data;
 
-  if( cbs->event->xbutton.state & Mod1Mask ){
+  if( cbs->event->xbutton.state & (Mod1Mask|Mod2Mask|ControlMask|ShiftMask) ){
     if( winStruct->mag > 0.25 ){
       winStruct->mag /= 2.0;
     }

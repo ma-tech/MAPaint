@@ -858,11 +858,11 @@ static void warpControlsCb(
   }
 
   /* re-manage everything and re-map the widget */
-  XtVaSetValues(shell, XmNheight, shellHeight, NULL);
   if( wasManaged == False ){
     XtManageChild(cntrlForm);
   }
   XtManageChild(cntrlFrame);
+  XtVaSetValues(shell, XmNheight, shellHeight, NULL);
 
   /* reset input callback and orientation controls sensitivity */
   XtSetSensitive(view_struct->controls, wasManaged);

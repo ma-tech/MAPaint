@@ -810,10 +810,10 @@ static void view_controls_cb(
   }
 
   /* re-manage everything and re-map the widget */
-  XtVaSetValues(shell, XmNheight, shellHeight, NULL);
   if( wasManaged == False ){
     XtManageChild(cntrlForm);
   }
+  XtVaSetValues(shell, XmNheight, shellHeight, NULL);
   XtManageChild(cntrlFrame);
 
   return;
