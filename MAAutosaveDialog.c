@@ -334,7 +334,7 @@ static Widget create_autosave_domains_dialog(
     {
       name = globals.domain_name[i];
     }
-    toggle = XtVaCreateManagedWidget(name, xmToggleButtonWidgetClass,
+    toggle = XtVaCreateManagedWidget(name, xmToggleButtonGadgetClass,
 				     control,
 				     XmNuserData, (XtPointer) domains[i],
 				     NULL);
@@ -355,12 +355,14 @@ static void autosave_recover_cb(
   WlzObject		*obj;
   WlzPlaneDomain	*new_pdom, *old_pdom;
   FILE			*fp;
-  int			i;
+  int			i, numDomains;
   WlzObject		*new_domains[33];
+  WlzObject		*allDomainsObj, *tmpObj;
   String		new_domain_names[33];
   int			domain;
   Widget		widget, dialog = (Widget) client_data;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
+  WlzPixelV		thresh;
 
 
   /* check if an autosave is in progress - to catch double clicks */
@@ -418,7 +420,6 @@ static void autosave_recover_cb(
     return;
   }
   (void) fclose( fp );
-
   /* check the object */
   if((obj->type != WLZ_3D_DOMAINOBJ) ||
      (obj->domain.core == NULL) ||
@@ -461,14 +462,48 @@ static void autosave_recover_cb(
   /* extract domains and add as required,
      this could be much more efficient - threshold incrementally
      and diff domain afterwards */
+  thresh.type = WLZ_GREY_INT;
+  thresh.v.inv = globals.cmapstruct->ovly_cols[DOMAIN_1];
+  tmpObj = WlzThreshold(obj, thresh, WLZ_THRESH_HIGH, NULL);
+  
+  if( tmpObj ){
+    if( WlzVolume(tmpObj, NULL) > 0 ){
+      WlzPixelV	min, max;
+
+      numDomains = globals.cmapstruct->num_overlays +
+	globals.cmapstruct->num_solid_overlays;
+
+      allDomainsObj = WlzAssignObject(tmpObj, NULL);
+      WlzGreyRange(allDomainsObj, &min, &max);
+      WlzValueConvertPixel(&max, max, WLZ_GREY_INT);
+      while((numDomains > 0) &&
+	    (globals.cmapstruct->ovly_cols[numDomains] > max.v.inv) ){
+	numDomains--;
+      }
+    }
+    else {
+      WlzFreeObj(tmpObj);
+      allDomainsObj = NULL;
+    }
+  }
+
   for(i=1; i < 33; i++)
   {
     domain = globals.priority_to_domain_lut[i];
-    new_domains[i] = get_domain_from_object(obj, domain);
-    if( WlzVolume(new_domains[i], NULL) <= 0 )
-    {
-      WlzFreeObj( new_domains[i] );
+    if( !allDomainsObj || (domain > numDomains) ){
       new_domains[i] = NULL;
+    }
+    else {
+      new_domains[i] = get_domain_from_object(allDomainsObj, domain);
+      if( WlzVolume(new_domains[i], NULL) <= 0 )
+      {
+	WlzFreeObj( new_domains[i] );
+	new_domains[i] = NULL;
+      }
+      else if( tmpObj = WlzDiffDomain(allDomainsObj, new_domains[i], NULL) ){
+	WlzFreeObj(allDomainsObj);
+	allDomainsObj = WlzAssignObject(tmpObj, NULL);
+      }
     }
   }
 

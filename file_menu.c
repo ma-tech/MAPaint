@@ -127,6 +127,49 @@ static MenuItem file_menu_itemsP[] = {		/* file_menu items */
   {"", &xmSeparatorGadgetClass, 0, NULL, NULL, False,
    NULL, NULL, NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"1", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   ReferenceFileListCb, (XtPointer) 1,
+   HGU_XmHelpStandardCb, NULL,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"2", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   ReferenceFileListCb, (XtPointer) 2,
+   HGU_XmHelpStandardCb, NULL,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"3", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   ReferenceFileListCb, (XtPointer) 3,
+   HGU_XmHelpStandardCb, NULL,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"4", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   ReferenceFileListCb, (XtPointer) 4,
+   HGU_XmHelpStandardCb, NULL,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"5", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   ReferenceFileListCb, (XtPointer) 5,
+   HGU_XmHelpStandardCb, NULL,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"6", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   ReferenceFileListCb, (XtPointer) 6,
+   HGU_XmHelpStandardCb, NULL,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"7", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   ReferenceFileListCb, (XtPointer) 7,
+   HGU_XmHelpStandardCb, NULL,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"8", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   ReferenceFileListCb, (XtPointer) 8,
+   HGU_XmHelpStandardCb, NULL,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"9", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   ReferenceFileListCb, (XtPointer) 9,
+   HGU_XmHelpStandardCb, NULL,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"10", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   ReferenceFileListCb, (XtPointer) 10,
+   HGU_XmHelpStandardCb, NULL,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"", &xmSeparatorGadgetClass, 0, NULL, NULL, False,
+   NULL, NULL, NULL, NULL,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
   {"Quit", &xmPushButtonGadgetClass, 'Q', "Ctrl<Key>Q", "Ctrl-Q", False,
    quit_cb, NULL,
    HGU_XmHelpStandardCb, SEC_FILE_MENU,
@@ -154,6 +197,115 @@ MenuItem	*HGU_XmMiscMenuItems = &(HGU_XmMiscMenuItemsP[0]);
 
 static Widget	new_obj_dialog, read_obj_dialog;
 static Widget	write_obj_dialog;
+static char 	*refFileList[]={NULL, NULL, NULL, NULL, NULL,
+				NULL, NULL, NULL, NULL, NULL};
+
+/* reference file list manipulation procedures */
+void ReferenceFileListPush(
+  char *fileStr)
+{
+  int	i;
+
+  if( fileStr ){
+    for(i=9; i > 0; i--){
+      refFileList[i] = refFileList[i-1];
+    }
+    refFileList[0] = strdup(fileStr);
+  }
+
+  return;
+}
+
+void ReferenceFileListWrite(
+  FILE	*fp)
+{
+  int	i;
+
+  fprintf(fp, "Reference file list:\n");
+  for(i=0; i < 10; i++){
+    if( refFileList[i] ){
+      fprintf(fp, "%s\n", refFileList[i]);
+    }
+    else {
+      break;
+    }
+  }
+  fprintf(fp, "End file list\n");
+
+  return;
+}
+
+void ReferenceFileListCb(
+Widget	w,
+XtPointer	client_data,
+XtPointer	call_data)
+{
+  int	fileIndex = ((int) client_data) - 1;
+  FILE	*fp;
+
+  if( refFileList[fileIndex] ){
+    WlzObject 	*obj;
+
+    /* open the reference object file and install */
+    if( (fp = fopen(refFileList[fileIndex], "r")) ){
+      HGU_XmSetHourGlassCursor(globals.topl);
+      if( obj = WlzReadObj( fp, NULL ) ){
+	switch( obj->type ){
+	  WlzDomain	domain;
+	  WlzValues	values;
+	  WlzObject	*newObj;
+
+	case WLZ_2D_DOMAINOBJ:
+	  domain.p = WlzMakePlaneDomain(WLZ_PLANEDOMAIN_DOMAIN, 0, 0,
+					obj->domain.i->line1,
+					obj->domain.i->lastln,
+					obj->domain.i->kol1,
+					obj->domain.i->lastkl,
+					NULL);
+	  domain.p->domains[0] = WlzAssignDomain(obj->domain, NULL);
+	  values.vox = WlzMakeVoxelValueTb(WLZ_VOXELVALUETABLE_GREY,
+					   0, 0, WlzGetBackground(obj, NULL),
+					   NULL, NULL);
+	  values.vox->values[0] = WlzAssignValues(obj->values, NULL);
+	  newObj = WlzMakeMain(WLZ_3D_DOMAINOBJ, domain, values,
+			       NULL, NULL, NULL);
+	  WlzFreeObj(obj);
+	  obj = newObj;
+	  break;
+
+	case WLZ_3D_DOMAINOBJ:
+	  break;
+
+	default:
+	  HGU_XmUserError(globals.topl,
+			  "Read Reference Object:\n"
+			  "    The reference object must be a 2- or 3-D\n"
+			  "    grey-level image. Please select an alternate\n"
+			  "    object",
+			  XmDIALOG_FULL_APPLICATION_MODAL);
+	  WlzFreeObj( obj );
+	  /* set hour glass cursor */
+	  HGU_XmUnsetHourGlassCursor(globals.topl);
+	  return;
+	}
+	if( fileIndex ){
+	  ReferenceFileListPush(refFileList[fileIndex]);
+	}
+	install_paint_reference_object( obj );
+      }
+      (void) fclose( fp );
+
+      /* set the title of the top-level window */
+      set_topl_title(refFileList[fileIndex]);
+      globals.file = refFileList[fileIndex];
+
+      HGU_XmUnsetHourGlassCursor(globals.topl);
+    }
+  }
+
+  return;
+}
+
 
 /* action and callback procedures */
 void new_obj_cb(
@@ -194,7 +346,7 @@ XtPointer	call_data)
 
   WlzPlaneDomain	*planedmn;
 
-  if( globals.obj == NULL || globals.obj->type != 2 ||
+  if( globals.obj == NULL || globals.obj->type != WLZ_3D_DOMAINOBJ ||
      globals.ref_display_list == 0){
     return;
   }
@@ -236,7 +388,7 @@ XtPointer	call_data)
   glVertex3i(planedmn->lastkl, planedmn->lastln, planedmn->lastpl);
   glEnd();
 
-  if( globals.fb_obj ){
+  if( globals.fb_obj && (globals.fb_obj->type == WLZ_3D_DOMAINOBJ) ){
     WlzObject		*obj1, *boundobj;
     WlzPlaneDomain	*planedmn;
     WlzValues		values;
@@ -415,9 +567,9 @@ XtPointer	call_data)
 	HGU_XmUserError(globals.topl,
 			"Read Reference Object:\n"
 			"    No reference object read - either the\n"
-			"    selected file is empty or it is not a\n"
-			"    woolz object file - please check the file\n"
-			"    or make a new selection",
+			"    selected file is empty or it is not the\n"
+			"    correct object type - please check the\n"
+			"    file or make a new selection",
 			XmDIALOG_FULL_APPLICATION_MODAL);
 	/* set hour glass cursor */
 	HGU_XmUnsetHourGlassCursor(globals.topl);
@@ -437,6 +589,50 @@ XtPointer	call_data)
     }
 
     /* install the new reference object */
+    switch( obj->type ){
+      WlzDomain	domain;
+      WlzValues	values;
+      WlzObject	*newObj;
+
+    case WLZ_2D_DOMAINOBJ:
+      domain.p = WlzMakePlaneDomain(WLZ_PLANEDOMAIN_DOMAIN, 0, 0,
+				    obj->domain.i->line1,
+				    obj->domain.i->lastln,
+				    obj->domain.i->kol1,
+				    obj->domain.i->lastkl,
+				    NULL);
+      domain.p->domains[0] = WlzAssignDomain(obj->domain, NULL);
+      values.vox = WlzMakeVoxelValueTb(WLZ_VOXELVALUETABLE_GREY,
+				       0, 0, WlzGetBackground(obj, NULL),
+				       NULL, NULL);
+      values.vox->values[0] = WlzAssignValues(obj->values, NULL);
+      newObj = WlzMakeMain(WLZ_3D_DOMAINOBJ, domain, values,
+			   NULL, NULL, NULL);
+      WlzFreeObj(obj);
+      obj = newObj;
+      break;
+
+    case WLZ_3D_DOMAINOBJ:
+      break;
+
+    default:
+      HGU_XmUserError(globals.topl,
+		      "Read Reference Object:\n"
+		      "    The reference object must be a 2- or 3-D\n"
+		      "    grey-level image. Please select an alternate\n"
+		      "    object",
+		      XmDIALOG_FULL_APPLICATION_MODAL);
+      WlzFreeObj( obj );
+      /* set hour glass cursor */
+      HGU_XmUnsetHourGlassCursor(globals.topl);
+      return;
+    }
+
+    if( icsfile = HGU_XmGetFileStr(globals.topl, cbs->value, cbs->dir) )
+    {
+      ReferenceFileListPush(icsfile);
+      AlcFree((void *) icsfile);
+    }
     install_paint_reference_object( obj );
 
     /* set the title of the top-level car */
@@ -513,6 +709,7 @@ XtPointer	call_data)
     int		i;
     char	str_buf[128];
     String	str;
+    FILE	*fp;
 
     /* make sure we are mapped and at the top */
     XtMapWidget( globals.topl );
@@ -534,6 +731,22 @@ XtPointer	call_data)
     HGU_XmHelpDestroyViewer();
 
     XtDestroyWidget( globals.topl );
+
+    /* write the mapaint config file */
+    sprintf(str_buf, "%s/%s", getenv("HOME"), ".mapaint");
+    if( fp = fopen(str_buf, "w") ){
+      fprintf(fp,
+	      "###################################################\n"
+	      "#                                                 #\n"
+	      "#   This file is written automatically by MAPaint #\n"
+	      "#   modifications may be lost and may cause the   #\n"
+	      "#   program to crash. Please do not change.       #\n"
+	      "#                                                 #\n"
+	      "###################################################\n\n");
+      ReferenceFileListWrite(fp);
+
+      fclose(fp);
+    }
     exit( 0 );
 }
 
@@ -663,6 +876,55 @@ static void write_image_type_cb(
   return;
 }
 
+void fileMenuPopupCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  Widget	menu=(Widget) client_data;
+  Widget	button;
+  int		i;
+
+  /* put in current reference file list */
+  for(i=1; i <= 10; i++){
+    char	strBuf[128];
+    XmString	xmStr;
+    int		len;
+
+    sprintf(strBuf, "*%d", i);
+    if( button = XtNameToWidget(menu, strBuf) ){
+      if( refFileList[i-1] != NULL){
+	/* reset the button label */
+	if( (len = strlen(refFileList[i-1])) < 36 ){
+	  sprintf(strBuf, "%d/ %s", i, refFileList[i-1]);
+	}
+	else {
+	  while( len && (refFileList[i-1][len-1] != '/') ){
+	    len--;
+	  }
+	  if( len ){
+	    sprintf(strBuf, "%d/ %.4s .../%s", i, refFileList[i-1],
+		    refFileList[i-1] + len);
+	  }
+	  else {
+	    sprintf(strBuf, "%d/ %s", i, refFileList[i-1]);
+	  }
+	}
+	xmStr = XmStringCreateSimple(strBuf);
+	XtVaSetValues(button, XmNlabelString, xmStr, NULL);
+	XmStringFree(xmStr);
+
+	XtManageChild(button);
+      }
+      else {
+	XtUnmanageChild(button);
+      }
+    }
+  }
+
+  return;
+}
+
 /* file_menu initialisation procedure */
 #define set_att_offset(field)   XtOffsetOf(PaintGlobals, field)
 
@@ -680,6 +942,8 @@ void file_menu_init(
   XmString	xmstr;
   Visual	*visual;
   Arg		arg[1];
+  char		fileStr[128];
+  FILE 		*fp;
 
   /* get the visual explicitly */
   visual = HGU_XmWidgetToVisual(topl);
@@ -776,13 +1040,51 @@ void file_menu_init(
 
   /* check for an initial reference file */
   if( initial_reference_file != NULL ){
-    FILE *fp;
     WlzObject 	*obj;
 
     /* open the reference object file and install */
     if( (fp = fopen(initial_reference_file, "r")) ){
       HGU_XmSetHourGlassCursor(topl);
       if( obj = WlzReadObj( fp, NULL ) ){
+	switch( obj->type ){
+	  WlzDomain	domain;
+	  WlzValues	values;
+	  WlzObject	*newObj;
+
+	case WLZ_2D_DOMAINOBJ:
+	  domain.p = WlzMakePlaneDomain(WLZ_PLANEDOMAIN_DOMAIN, 0, 0,
+					obj->domain.i->line1,
+					obj->domain.i->lastln,
+					obj->domain.i->kol1,
+					obj->domain.i->lastkl,
+					NULL);
+	  domain.p->domains[0] = WlzAssignDomain(obj->domain, NULL);
+	  values.vox = WlzMakeVoxelValueTb(WLZ_VOXELVALUETABLE_GREY,
+					   0, 0, WlzGetBackground(obj, NULL),
+					   NULL, NULL);
+	  values.vox->values[0] = WlzAssignValues(obj->values, NULL);
+	  newObj = WlzMakeMain(WLZ_3D_DOMAINOBJ, domain, values,
+			       NULL, NULL, NULL);
+	  WlzFreeObj(obj);
+	  obj = newObj;
+	  break;
+
+	case WLZ_3D_DOMAINOBJ:
+	  break;
+
+	default:
+	  HGU_XmUserError(globals.topl,
+			  "Read Reference Object:\n"
+			  "    The reference object must be a 2- or 3-D\n"
+			  "    grey-level image. Please select an alternate\n"
+			  "    object",
+			  XmDIALOG_FULL_APPLICATION_MODAL);
+	  WlzFreeObj( obj );
+	  /* set hour glass cursor */
+	  HGU_XmUnsetHourGlassCursor(globals.topl);
+	  return;
+	}
+	ReferenceFileListPush(initial_reference_file);
 	install_paint_reference_object( obj );
       }
       (void) fclose( fp );
@@ -797,7 +1099,6 @@ void file_menu_init(
 
   /* check for an initial domain file */
   if( initial_domain_file != NULL ){
-    FILE *fp;
     WlzObject 	*obj;
 
     /* open the domain object file and put it in as a 3D feedback option */
@@ -812,6 +1113,26 @@ void file_menu_init(
       }
       (void) fclose( fp );
       HGU_XmUnsetHourGlassCursor(topl);
+    }
+  }
+
+  /* initialise the reference file list */
+  sprintf(fileStr, "%s/%s", getenv("HOME"), ".mapaint");
+  if( fp = fopen(fileStr, "r") ){
+    char inBuf[128];
+    int i=0;
+
+    while( fgets(&(inBuf[0]), 127, fp) ){
+      if( strncmp(inBuf, "Reference file list:", 20) ){
+	continue;
+      }
+      while( fgets(&(inBuf[0]), 127, fp) &&
+	     strncmp(inBuf, "End file list", 13) ){
+	inBuf[strlen(inBuf)-1] = '\0';
+	refFileList[i] = strdup(inBuf);
+	i++;
+      }
+      break;
     }
   }
 

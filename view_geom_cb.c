@@ -83,40 +83,30 @@ void distance_cb(
 }
 
 void scale_cb(
-Widget		w,
-XtPointer	client_data,
-XtPointer	call_data)
+  Widget		w,
+  XtPointer	client_data,
+  XtPointer	call_data)
 {
-    ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
-    WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
-    Widget		slider = w;
-    float		new_scale;
-    Dimension		widthp, heightp;
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  double		new_scale;
 
-    if( !wlzViewStr->initialised )
-	if( init_view_struct( view_struct ) )
-	    return;
-
-    /* get the new scale */
-    if(sscanf(XtName(w), "%f", &new_scale) < 1){
+  if( !view_struct->wlzViewStr->initialised )
+    if( init_view_struct( view_struct ) )
       return;
-    }
-    wlzViewStr->scale = new_scale;
 
-    /* resize the canvas */
-    widthp  = wlzViewStr->maxvals.vtX - wlzViewStr->minvals.vtX + 1;
-    heightp = wlzViewStr->maxvals.vtY - wlzViewStr->minvals.vtY + 1;
-    widthp *= wlzViewStr->scale;
-    heightp *= wlzViewStr->scale;
-    XtVaSetValues(view_struct->canvas,
-		  XmNwidth, widthp,
-		  XmNheight, heightp,
-		  NULL);
-
-    /* redisplay the section */
-    redisplay_view_cb(w, (XtPointer) view_struct, call_data);
-
+  /* get the new scale */
+  if( strncmp(XtName(w), "0_25", 4) == 0 ){
+    new_scale = 0.25;
+  }
+  else if( strncmp(XtName(w), "0_5", 3) == 0 ){
+    new_scale = 0.5;
+  }
+  else if(sscanf(XtName(w), "%lf", &new_scale) < 1){
     return;
+  }
+  setViewScale(view_struct, new_scale, -1, -1);
+
+  return;
 }
 
 void view_mode_cb(

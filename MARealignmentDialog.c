@@ -62,7 +62,8 @@ void realignmentDestroyCb(
   XtPointer		client_data,
   XtPointer		call_data)
 {
-  Widget	widget;
+  Widget		widget;
+  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
 
   if( origRefObj ){
     WlzFreeObj(origRefObj);
@@ -93,6 +94,10 @@ void realignmentDestroyCb(
 
   if( widget = XtNameToWidget(globals.topl, "*options_menu*realignment") ){
     XtSetSensitive(widget, True);
+  }
+  
+  if( paint_key == view_struct ){
+    paint_key = NULL;
   }
   
   return;
@@ -1279,7 +1284,7 @@ Widget createRealignmentDialog(
 			  XmNchildType, XmFRAME_WORKAREA_CHILD,
 			  NULL);  
   title = XtVaCreateManagedWidget("realignment_frame_title",
-				  xmToggleButtonWidgetClass, frame,
+				  xmToggleButtonGadgetClass, frame,
 				  XmNchildType, XmFRAME_TITLE_CHILD,
 				  NULL);
   XtAddCallback(title, XmNvalueChangedCallback, realignment_controls_cb,
@@ -1310,14 +1315,14 @@ Widget createRealignmentDialog(
 		XmNpacking, XmPACK_TIGHT,
 		NULL);
   button = XtVaCreateManagedWidget("src_poly",
-				   xmToggleButtonWidgetClass, radio_box,
+				   xmToggleButtonGadgetClass, radio_box,
 				   XmNindicatorOn, False,
 				   XmNborderWidth, 1,
 				   XmNhighlightThickness, 0,
 				   XmNshadowThickness, 3,
 				   NULL);
   button = XtVaCreateManagedWidget("dst_poly",
-				   xmToggleButtonWidgetClass, radio_box,
+				   xmToggleButtonGadgetClass, radio_box,
 				   XmNindicatorOn, False,
 				   XmNborderWidth, 1,
 				   XmNhighlightThickness, 0,
@@ -1353,7 +1358,7 @@ Widget createRealignmentDialog(
 		XmNpacking, XmPACK_TIGHT,
 		NULL);
   button = XtVaCreateManagedWidget("polyline",
-				   xmToggleButtonWidgetClass, radio_box,
+				   xmToggleButtonGadgetClass, radio_box,
 				   XmNindicatorOn, False,
 				   XmNborderWidth, 1,
 				   XmNhighlightThickness, 0,
@@ -1362,7 +1367,7 @@ Widget createRealignmentDialog(
 				   NULL);
   XtVaSetValues(radio_box, XmNmenuHistory, button, NULL);
   button = XtVaCreateManagedWidget("straight_line",
-				   xmToggleButtonWidgetClass, radio_box,
+				   xmToggleButtonGadgetClass, radio_box,
 				   XmNindicatorOn, False,
 				   XmNborderWidth, 1,
 				   XmNhighlightThickness, 0,
@@ -1405,7 +1410,8 @@ Widget createRealignmentDialog(
      and add a callback to the destroy callback list */
   origRefObj = WlzAssignObject(globals.orig_obj, NULL);
   origObj = WlzAssignObject(globals.obj, NULL);
-  XtAddCallback(dialog, XmNdestroyCallback, realignmentDestroyCb, NULL);
+  XtAddCallback(dialog, XmNdestroyCallback, realignmentDestroyCb,
+		view_struct);
 
   return( dialog );
 }

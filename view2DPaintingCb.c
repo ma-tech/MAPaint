@@ -83,7 +83,7 @@ void setViewScale(
   int			xp;
   double		a, b;
   double		mag;
-  Dimension		width, height;
+  Dimension		width, height, widthp, heightp;
 
   /* check scale value and get the widget - should use the scale menu options */
   if((menu = XtNameToWidget(viewStruct->controls, "*view_scale"))
@@ -117,6 +117,14 @@ void setViewScale(
   else if( newScale > 1.0 ){
     newScale = 2.0;
     widget = XtNameToWidget(menu, "*2");
+  }
+  else if( newScale < 0.4 ){
+    newScale = 0.25;
+    widget = XtNameToWidget(menu, "*0_25");
+  }
+  else if( newScale < 0.9 ){
+    newScale = 0.5;
+    widget = XtNameToWidget(menu, "*0_5");
   }
   else {
     newScale = 1.0;
@@ -152,8 +160,26 @@ void setViewScale(
 		XmNheight, &height,
 		NULL);
 
+  /* test if the fixed point is to be set */
+  if( fixedX < 0 ){
+    fixedX = (oldXVal + oldXSize/2) * width / (oldXMax - oldXMin);
+  }
+  if( fixedY < 0 ){
+    fixedY = (oldYVal + oldYSize/2) * height / (oldYMax - oldYMin);
+  }
+
   /* reset the scale */
-  XtCallCallbacks(widget, XmNactivateCallback, NULL);
+/*  XtCallCallbacks(widget, XmNactivateCallback, NULL);*/
+  wlzViewStr->scale = newScale;
+  widthp  = wlzViewStr->maxvals.vtX - wlzViewStr->minvals.vtX + 1;
+  heightp = wlzViewStr->maxvals.vtY - wlzViewStr->minvals.vtY + 1;
+  widthp *= wlzViewStr->scale;
+  heightp *= wlzViewStr->scale;
+  XtVaSetValues(viewStruct->canvas,
+		XmNwidth, widthp,
+		XmNheight, heightp,
+		NULL);
+  
   XtVaSetValues(menu, XmNmenuHistory, widget, NULL);
 
   /* reset the new sliders */
@@ -173,8 +199,8 @@ void setViewScale(
   b = -a * newMin;
   newVal = (xp - mag * fixedX - b) / a;
 
+  newVal = WLZ_MIN(newVal, newMax - newSize);
   newVal = WLZ_MAX(newVal, newMin);
-  newVal = WLZ_MIN(newVal, newMax);
 
   XmScrollBarSetValues(xScrollBar, newVal, newSize, increment,
 		       pageIncrement, True);
@@ -195,11 +221,15 @@ void setViewScale(
   b = -a * newMin;
   newVal = (xp - mag * fixedY - b) / a;
 
+  newVal = WLZ_MIN(newVal, newMax - newSize);
   newVal = WLZ_MAX(newVal, newMin);
-  newVal = WLZ_MIN(newVal, newMax);
 
   XmScrollBarSetValues(yScrollBar, newVal, newSize, increment,
 		       pageIncrement, True);
+
+
+  /* redisplay the section */
+  redisplay_view_cb(viewStruct->canvas, (XtPointer) viewStruct, NULL);
 
   return;
 }
@@ -258,10 +288,7 @@ void canvasMagPlusCb(
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   int			x, y;
 
-  x = (wlzViewStr->maxvals.vtX + wlzViewStr->minvals.vtX) / 2.0;
-  y = (wlzViewStr->maxvals.vtY + wlzViewStr->minvals.vtY) / 2.0;
-
-  setViewScale(view_struct, wlzViewStr->scale * 2.0, x, y);
+  setViewScale(view_struct, wlzViewStr->scale * 2.0, -1, -1);
   return;
 }
   
@@ -274,10 +301,7 @@ void canvasMagMinusCb(
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   int			x, y;
 
-  x = (wlzViewStr->maxvals.vtX + wlzViewStr->minvals.vtX) / 2.0;
-  y = (wlzViewStr->maxvals.vtY + wlzViewStr->minvals.vtY) / 2.0;
-
-  setViewScale(view_struct, wlzViewStr->scale / 2.0, x, y);
+  setViewScale(view_struct, wlzViewStr->scale / 2.0, -1, -1);
   return;
 }
   
@@ -291,178 +315,183 @@ void canvas_2D_painting_cb(
   XmAnyCallbackStruct	*cbs = (XmAnyCallbackStruct *) call_data;
   int			x, y;
 
+  /* check for lock */
+  if( view_struct->viewLockedFlag ){
+    return;
+  }
+
   /* switch on event type */
   switch( cbs->event->type ){
 
-   case ButtonPress:
-   case TabletButtonPress:
-     switch( cbs->event->xbutton.button ){
+  case ButtonPress:
+  case TabletButtonPress:
+    switch( cbs->event->xbutton.button ){
 
-      case Button1:
-	/* if shift is pressed then increase the magnification
-	   the scrolled window must be set to keep the pointer
-	   position fixed */
-	switch( cbs->event->xbutton.state & (ShiftMask|ControlMask|Mod1Mask) ){
-	case ShiftMask: /* magnify */
-	  setViewScale(view_struct, wlzViewStr->scale * 2.0,
-		       cbs->event->xbutton.x, cbs->event->xbutton.y);
-	  break;
+    case Button1:
+      /* if shift is pressed then increase the magnification
+	 the scrolled window must be set to keep the pointer
+	 position fixed */
+      switch( cbs->event->xbutton.state & (ShiftMask|ControlMask|Mod1Mask) ){
+      case ShiftMask: /* magnify */
+	setViewScale(view_struct, wlzViewStr->scale * 2.0,
+		     cbs->event->xbutton.x, cbs->event->xbutton.y);
+	break;
 
-	case ShiftMask|Mod1Mask: /* reduce */
-	  setViewScale(view_struct, wlzViewStr->scale / 2.0,
-		       cbs->event->xbutton.x, cbs->event->xbutton.y);
-	  break;
+      case ShiftMask|Mod1Mask: /* reduce */
+	setViewScale(view_struct, wlzViewStr->scale / 2.0,
+		     cbs->event->xbutton.x, cbs->event->xbutton.y);
+	break;
 
-	case ControlMask: /* lift paint */
-	  if( paintLiftFlag ){
-	    break;
-	  }
-	  paintLiftFlag = 1;
-	  if( (paintLiftDomain =
-	       getSelectedDomainType(cbs->event->xbutton.x,
-				     cbs->event->xbutton.y,
-				     view_struct)) < 1 ){
-	    break;
-	  }
-	  paintLiftObj = getSelectedRegion(cbs->event->xbutton.x,
-					   cbs->event->xbutton.y,
-					   view_struct);
-	  paintLiftObj = WlzAssignObject(paintLiftObj, NULL);
-
-	  /* clear the selected paint object object and redisplay */
-	  if( paintLiftObj ){
-	    setDomainIncrement(paintLiftObj, view_struct, paintLiftDomain, 1);
-	  }
-	  break;
-
-	default:
+      case ControlMask: /* lift paint */
+	if( paintLiftFlag ){
 	  break;
 	}
+	paintLiftFlag = 1;
+	if( (paintLiftDomain =
+	     getSelectedDomainType(cbs->event->xbutton.x,
+				   cbs->event->xbutton.y,
+				   view_struct)) < 1 ){
+	  break;
+	}
+	paintLiftObj = getSelectedRegion(cbs->event->xbutton.x,
+					 cbs->event->xbutton.y,
+					 view_struct);
+	paintLiftObj = WlzAssignObject(paintLiftObj, NULL);
+
+	/* clear the selected paint object object and redisplay */
+	if( paintLiftObj ){
+	  setDomainIncrement(paintLiftObj, view_struct, paintLiftDomain, 1);
+	}
+	break;
+
+      default:
+	break;
+      }
 	
-	break;
+      break;
 
-      case Button2:		/* domain and coordinate feedback */
-	/* if shift is pressed then decrease the magnification
-	   the scrolled window must be set to keep the pointer
-	   position fixed */
-	if( cbs->event->xbutton.state & ShiftMask ){
-	  setViewScale(view_struct, wlzViewStr->scale / 2.0,
-		       cbs->event->xbutton.x, cbs->event->xbutton.y);
-	}
-	else {
-	  x = cbs->event->xbutton.x / wlzViewStr->scale;
-	  y = cbs->event->xbutton.y / wlzViewStr->scale;
-	  display_pointer_feedback_information(view_struct, x, y);
-	}
-	break;
-
-      case Button3:
-	quitPaintingTrigger = 1;
-	break;
-
-      default:
-	break;
-
-     }
-     break;
-
-   case ButtonRelease:
-   case TabletButtonRelease:
-     switch( cbs->event->xbutton.button ){
-
-     case Button1:
-       if( paintLiftFlag ){
-	 paintLiftFlag = 0;
-	 if( paintLiftObj ){
-	   setDomainIncrement(paintLiftObj, view_struct,
-			      paintLiftDomain, 0);
-	   WlzFreeObj(paintLiftObj);
-	   paintLiftObj = NULL;
-	 }
-       }
-
-      case Button2:		/* domain and coordinate feedback */
-	XtVaSetValues(view_struct->text, XmNvalue, "", NULL);
-	break;
-
-      case Button3: /* release paint selection - autoincrement
-		       if required */
-	/* check the trigger */
-	if( !quitPaintingTrigger ){
-	  break;
-	}
-	quitPaintingTrigger = 0;
-	removeCurrentPaintTool(w, view_struct);
-	paint_key = NULL;
-
-	/* clear the undo domains */
-	clearUndoDomains();
-
-	/* clear the section view image */
-	if( view_struct->view_object ){
-	  WlzFreeObj(view_struct->view_object);
-	  view_struct->view_object = NULL;
-	}
-
-	/* install new domains, update all views */
-	installViewDomains(view_struct);
-
-	/* check for autoincrement here - reclaim the paint key */
-	if( globals.auto_increment ){
-	  paint_key = view_struct;
-	  wlzViewStr->dist += 1.0;
-	  reset_view_struct( view_struct );
-	  display_view_cb(w, (XtPointer) view_struct, call_data);
-	  view_feedback_cb(w, (XtPointer) view_struct, NULL);
-	  getViewDomains(view_struct);
-	  installCurrentPaintTool(w, view_struct);
-	  break;
-	}
-
-	/* restart the 3D feedback display */
-	HGUglwCanvasTbAnimate( globals.canvas );
-	XtSetSensitive( globals.canvas, True );
-
-	/* make controls sensitive */
-	XtSetSensitive(view_struct->controls, True);
-	XtSetSensitive(view_struct->slider, True);
-	setControlButtonsSensitive(view_struct, True);
-
-	/* unhighlight this canvas */
-	view_canvas_highlight( view_struct, False );
-
-	/* swap the callbacks to standard input mode */
-	XtRemoveCallback(w, XmNinputCallback, canvas_2D_painting_cb,
-			 client_data);
-	XtAddCallback(w, XmNinputCallback, canvas_input_cb,
-		      client_data);
-
-	break;
-
-     case EnterNotify:
-       fprintf(stderr, "Got EnterNotify on view canvas\n");
-       break;
-
-     case LeaveNotify:
-       fprintf(stderr, "Got LeaveNotify on view canvas\n");
-       break;
-
-      default:
-	break;
-
-     }
-     break;
-
-   case MotionNotify:
-   case TabletMotionNotify:
-
-     if( cbs->event->xmotion.state & Button2Mask )
-     {
-	x = cbs->event->xmotion.x / wlzViewStr->scale;
-	y = cbs->event->xmotion.y / wlzViewStr->scale;
+    case Button2:		/* domain and coordinate feedback */
+      /* if shift is pressed then decrease the magnification
+	 the scrolled window must be set to keep the pointer
+	 position fixed */
+      if( cbs->event->xbutton.state & ShiftMask ){
+	setViewScale(view_struct, wlzViewStr->scale / 2.0,
+		     cbs->event->xbutton.x, cbs->event->xbutton.y);
+      }
+      else {
+	x = cbs->event->xbutton.x / wlzViewStr->scale;
+	y = cbs->event->xbutton.y / wlzViewStr->scale;
 	display_pointer_feedback_information(view_struct, x, y);
-     }
-     break;
+      }
+      break;
+
+    case Button3:
+      quitPaintingTrigger = 1;
+      break;
+
+    default:
+      break;
+
+    }
+    break;
+
+  case ButtonRelease:
+  case TabletButtonRelease:
+    switch( cbs->event->xbutton.button ){
+
+    case Button1:
+      if( paintLiftFlag ){
+	paintLiftFlag = 0;
+	if( paintLiftObj ){
+	  setDomainIncrement(paintLiftObj, view_struct,
+			     paintLiftDomain, 0);
+	  WlzFreeObj(paintLiftObj);
+	  paintLiftObj = NULL;
+	}
+      }
+
+    case Button2:		/* domain and coordinate feedback */
+      XtVaSetValues(view_struct->text, XmNvalue, "", NULL);
+      break;
+
+    case Button3: /* release paint selection - autoincrement
+		     if required */
+      /* check the trigger */
+      if( !quitPaintingTrigger ){
+	break;
+      }
+      quitPaintingTrigger = 0;
+      removeCurrentPaintTool(w, view_struct);
+      paint_key = NULL;
+
+      /* clear the undo domains */
+      clearUndoDomains();
+
+      /* clear the section view image */
+      if( view_struct->view_object ){
+	WlzFreeObj(view_struct->view_object);
+	view_struct->view_object = NULL;
+      }
+
+      /* install new domains, update all views */
+      installViewDomains(view_struct);
+
+      /* check for autoincrement here - reclaim the paint key */
+      if( globals.auto_increment ){
+	paint_key = view_struct;
+	wlzViewStr->dist += 1.0;
+	reset_view_struct( view_struct );
+	display_view_cb(w, (XtPointer) view_struct, call_data);
+	view_feedback_cb(w, (XtPointer) view_struct, NULL);
+	getViewDomains(view_struct);
+	installCurrentPaintTool(w, view_struct);
+	break;
+      }
+
+      /* restart the 3D feedback display */
+      HGUglwCanvasTbAnimate( globals.canvas );
+      XtSetSensitive( globals.canvas, True );
+
+      /* make controls sensitive */
+      XtSetSensitive(view_struct->controls, True);
+      XtSetSensitive(view_struct->slider, True);
+      setControlButtonsSensitive(view_struct, True);
+
+      /* unhighlight this canvas */
+      view_canvas_highlight( view_struct, False );
+
+      /* swap the callbacks to standard input mode */
+      XtRemoveCallback(w, XmNinputCallback, canvas_2D_painting_cb,
+		       client_data);
+      XtAddCallback(w, XmNinputCallback, canvas_input_cb,
+		    client_data);
+
+      break;
+
+    case EnterNotify:
+      fprintf(stderr, "Got EnterNotify on view canvas\n");
+      break;
+
+    case LeaveNotify:
+      fprintf(stderr, "Got LeaveNotify on view canvas\n");
+      break;
+
+    default:
+      break;
+
+    }
+    break;
+
+  case MotionNotify:
+  case TabletMotionNotify:
+
+    if( cbs->event->xmotion.state & Button2Mask )
+    {
+      x = cbs->event->xmotion.x / wlzViewStr->scale;
+      y = cbs->event->xmotion.y / wlzViewStr->scale;
+      display_pointer_feedback_information(view_struct, x, y);
+    }
+    break;
 
   case KeyPress:
     switch( XLookupKeysym(&(cbs->event->xkey), 0) ){

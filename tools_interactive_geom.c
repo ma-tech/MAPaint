@@ -195,9 +195,14 @@ void MAPaintGeom2DCb(
       obj = WlzAssignObject(WlzShiftObject(geomObj, delX, delY,
 					   0, NULL), NULL);
 					   
-      obj1 = WlzAssignObject(WlzIntRescaleObj(obj,
-					      wlzViewStr->scale,
-					      0, NULL), NULL);
+      if( wlzViewStr->scale > 0.95 ){
+	obj1 = WlzIntRescaleObj(obj, WLZ_NINT(wlzViewStr->scale), 0, NULL);
+      }
+      else {
+	float invScale = 1.0 / wlzViewStr->scale;
+	obj1 = WlzIntRescaleObj(obj, WLZ_NINT(invScale), 1, NULL);
+      }
+      obj1 = WlzAssignObject(obj1, NULL);
       WlzFreeObj(obj);
       delX =  wlzViewStr->minvals.vtX;
       delY =  wlzViewStr->minvals.vtY;

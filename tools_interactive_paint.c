@@ -88,6 +88,7 @@ NULL,
 static Widget	thresh_slider, draw_paint_controls, paint_blob_slider;
 static WlzConnectType   thresh_connectivity_type = WLZ_4_CONNECTED;
 static int		thresh_range_size = 5;
+static double		thresh_smooth_size = 3.0;
 static int		paint_blob_size = 6;
 static int		paint_blob_border = 0;
 static HGU_XBlobType	paint_blob_type = HGU_XBLOBTYPE_CIRCLE;
@@ -109,6 +110,22 @@ static void setThreshRangeCb(
       return;
   }
   thresh_range_size = (int) HGU_XmGetSliderValue( slider );
+
+  return;
+}
+
+static void setThreshSmoothWidthCb(
+  Widget		w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  Widget	slider=w;
+
+  while( strcmp(XtName(slider), "gaussian_width") ){
+    if( (slider = XtParent(slider)) == NULL )
+      return;
+  }
+  thresh_smooth_size = (double) HGU_XmGetSliderValue( slider );
 
   return;
 }
@@ -386,7 +403,13 @@ void MAPaintDraw2DCb(
 	/* rescale and shift the object here */
 	obj = WlzPolyToObj(poly, WLZ_SIMPLE_FILL, NULL);
 	WlzFreePolyDmn(poly);
-	obj1 = WlzIntRescaleObj(obj, wlzViewStr->scale, 0, NULL);
+	if( wlzViewStr->scale > 0.95 ){
+	  obj1 = WlzIntRescaleObj(obj, WLZ_NINT(wlzViewStr->scale), 0, NULL);
+	}
+	else {
+	  float invScale = 1.0 / wlzViewStr->scale;
+	  obj1 = WlzIntRescaleObj(obj, WLZ_NINT(invScale), 1, NULL);
+	}
 	WlzFreeObj(obj);
 	obj = WlzShiftObject(obj1,
 			     view_struct->painted_object->domain.i->kol1,
@@ -506,6 +529,9 @@ void MAPaintPaintBall2DQuit(
   XUndefineCursor(XtDisplay(view_struct->canvas),
 		  XtWindow(view_struct->canvas));
 
+  /* just in case */
+  view_struct->viewLockedFlag = 0;
+
   return;
 }
 
@@ -544,6 +570,7 @@ void MAPaintPaintBall2DCb(
       paintBallDelFlag = ((cbs->event->xbutton.state & Mod1Mask) ||
 			  (cbs->event->xbutton.button == Button2));
       paintBallTrigger = 1;
+      view_struct->viewLockedFlag = 1;
 
       /* push the domains for undo */
       pushUndoDomains(view_struct);
@@ -554,9 +581,14 @@ void MAPaintPaintBall2DCb(
       obj = WlzAssignObject(WlzShiftObject(cursorObj, delX, delY,
 					   0, NULL), NULL);
 					   
-      obj1 = WlzAssignObject(WlzIntRescaleObj(obj,
-					      wlzViewStr->scale,
-					      0, NULL), NULL);
+      if( wlzViewStr->scale > 0.95 ){
+	obj1 = WlzIntRescaleObj(obj, WLZ_NINT(wlzViewStr->scale), 0, NULL);
+      }
+      else {
+	float invScale = 1.0 / wlzViewStr->scale;
+	obj1 = WlzIntRescaleObj(obj, WLZ_NINT(invScale), 1, NULL);
+      }
+      obj1 = WlzAssignObject(obj1, NULL);
       WlzFreeObj(obj);
       delX =  wlzViewStr->minvals.vtX;
       delY =  wlzViewStr->minvals.vtY;
@@ -583,6 +615,7 @@ void MAPaintPaintBall2DCb(
     case Button1:
     case Button2:
       paintBallTrigger = 0;
+      view_struct->viewLockedFlag = 0;
       break;
 
     default:
@@ -600,9 +633,14 @@ void MAPaintPaintBall2DCb(
       obj = WlzAssignObject(WlzShiftObject(cursorObj, delX, delY,
 					   0, NULL), NULL);
 					   
-      obj1 = WlzAssignObject(WlzIntRescaleObj(obj,
-					      wlzViewStr->scale,
-					      0, NULL), NULL);
+      if( wlzViewStr->scale > 0.95 ){
+	obj1 = WlzIntRescaleObj(obj, WLZ_NINT(wlzViewStr->scale), 0, NULL);
+      }
+      else {
+	float invScale = 1.0 / wlzViewStr->scale;
+	obj1 = WlzIntRescaleObj(obj, WLZ_NINT(invScale), 1, NULL);
+      }
+      obj1 = WlzAssignObject(obj1, NULL);
       WlzFreeObj(obj);
       delX =  wlzViewStr->minvals.vtX;
       delY =  wlzViewStr->minvals.vtY;
@@ -808,6 +846,7 @@ void MAPaintThreshold2DQuit(
     threshold_gVWSp = NULL;
   }
 
+  view_struct->viewLockedFlag = 0;
   return;
 }
 
@@ -871,7 +910,7 @@ static WlzObject *get_thresh_obj(
     obj2 = WlzAssignObject(obj2, NULL);
 
     /* find the object at the test point */
-    if( WlzLabel(obj2, &num_obj, &obj_list, 2047, 0,
+    if( WlzLabel(obj2, &num_obj, &obj_list, 4096, 0,
 		 thresh_connectivity_type) == WLZ_ERR_NONE ){
       WlzFreeObj( obj2 );
       obj2 = NULL;
@@ -879,7 +918,7 @@ static WlzObject *get_thresh_obj(
       for(i=0; i < num_obj; i++){
 	if( WlzInsideDomain( obj_list[i], 0.0, 
 			    (double) y, (double) x, NULL ) ){
-	  obj2 = obj_list[i];
+	  obj2 = WlzAssignObject(obj_list[i], NULL);
 	}
 	else {
 	  WlzFreeObj( obj_list[i] );
@@ -887,6 +926,22 @@ static WlzObject *get_thresh_obj(
       }
       AlcFree((void *) obj_list);
     }
+    else {
+      WlzFreeObj( obj2 );
+      obj2 = NULL;
+      if( num_obj >= 4096 ){
+	for(i=0; i < num_obj; i++){
+	  if( WlzInsideDomain( obj_list[i], 0.0, 
+			      (double) y, (double) x, NULL ) ){
+	    obj2 = WlzAssignObject(obj_list[i], NULL);
+	  }
+	  else {
+	    WlzFreeObj( obj_list[i] );
+	  }
+	}
+	AlcFree((void *) obj_list);
+      }
+    }	
 
     return( obj2 );
 }
@@ -906,7 +961,7 @@ void MAPaintThreshold2DCb(
   WlzObject		*obj, *obj1;
   int			x, y;
   Widget		widget;
-  Boolean		constrainedFlg;
+  Boolean		constrainedFlg, smoothFlg;
 
   /*  */
   switch( cbs->event->type ){
@@ -927,6 +982,7 @@ void MAPaintThreshold2DCb(
       paintBallDelFlag = ((cbs->event->xbutton.state & Mod1Mask) ||
 			  (cbs->event->xbutton.button == Button2));
       paintBallTrigger = 1;
+      view_struct->viewLockedFlag = 1;
 
       /* push the domains for undo */
       pushUndoDomains(view_struct);
@@ -939,7 +995,7 @@ void MAPaintThreshold2DCb(
       /* get the threshold object */
       if( widget = XtNameToWidget
 	 (globals.topl,
-	  "*tool_control_dialog*threshold_form1.constrained threshold") ){
+	  "*tool_control_dialog*threshold_form1.constrained_threshold") ){
 	XtVaGetValues(widget, XmNset, &constrainedFlg, NULL);
       }
       else {
@@ -972,6 +1028,26 @@ void MAPaintThreshold2DCb(
       else {
 	threshObj = WlzAssignObject(view_struct->view_object, NULL);
       }
+      if( !threshObj ){
+	return;
+      }
+
+      /* check smoothing */
+      if( widget = XtNameToWidget
+	 (globals.topl,
+	  "*tool_control_dialog*threshold_form1.smoothed_threshold") ){
+	XtVaGetValues(widget, XmNset, &smoothFlg, NULL);
+      }
+      else {
+	smoothFlg = False;
+      }
+      if( smoothFlg ){
+	/* maybe use the recursive filter here */
+	obj1 = WlzGauss2(threshObj, thresh_smooth_size, thresh_smooth_size,
+			 0, 0, NULL);
+	WlzFreeObj(threshObj);
+	threshObj = WlzAssignObject(obj1, NULL);
+      }
 
       /* calculate the first domain and increment */
       x = (int) (thresholdInitialX / wlzViewStr->scale) +
@@ -1002,6 +1078,7 @@ void MAPaintThreshold2DCb(
     case Button1:
     case Button2:
       paintBallTrigger = 0;
+      view_struct->viewLockedFlag = 0;
       if( threshObj ){
 	WlzFreeObj(threshObj);
 	threshObj = NULL;
@@ -1264,16 +1341,6 @@ Widget	CreateThresholdControls(
   widget = option_menu;
   XtManageChild( option_menu );
 
-  /* create a toggle for constrained region */
-  toggle = XtVaCreateManagedWidget("constrained threshold",
-				   xmToggleButtonWidgetClass, form1,
-				   XmNtopAttachment,	XmATTACH_WIDGET,
-				   XmNtopWidget,		widget,
-				   XmNleftAttachment,	XmATTACH_FORM,
-				   XmNset, True,
-				   NULL);
-  widget = toggle;
-
   /* create slider for the initial threshold range */
   val = thresh_range_size;
   minval = 0.0;
@@ -1281,6 +1348,41 @@ Widget	CreateThresholdControls(
   thresh_slider = HGU_XmCreateHorizontalSlider("range", form1,
 					       val, minval, maxval, 0,
 					       setThreshRangeCb, NULL);
+  XtVaSetValues(thresh_slider,
+		XmNtopAttachment,	XmATTACH_WIDGET,
+		XmNtopWidget,		widget,
+		XmNleftAttachment,	XmATTACH_FORM,
+		XmNrightAttachment,	XmATTACH_FORM,
+		NULL);
+  widget = thresh_slider;
+
+  /* create a toggle for constrained region */
+  toggle = XtVaCreateManagedWidget("constrained_threshold",
+				   xmToggleButtonGadgetClass, form1,
+				   XmNtopAttachment,	XmATTACH_WIDGET,
+				   XmNtopWidget,		widget,
+				   XmNleftAttachment,	XmATTACH_FORM,
+				   XmNset, True,
+				   NULL);
+
+  /* create a toggle for smoothing */
+  toggle = XtVaCreateManagedWidget("smoothed_threshold",
+				   xmToggleButtonGadgetClass, form1,
+				   XmNtopAttachment,	XmATTACH_WIDGET,
+				   XmNtopWidget,	widget,
+				   XmNleftAttachment,	XmATTACH_WIDGET,
+				   XmNleftWidget,	toggle,
+				   XmNset, False,
+				   NULL);
+  widget = toggle;
+
+  /* create slider for the initial threshold range */
+  val = thresh_smooth_size;
+  minval = 0.5;
+  maxval = 32.0;
+  thresh_slider = HGU_XmCreateHorizontalSlider("gaussian_width", form1,
+					       val, minval, maxval, 1,
+					       setThreshSmoothWidthCb, NULL);
   XtVaSetValues(thresh_slider,
 		XmNtopAttachment,	XmATTACH_WIDGET,
 		XmNtopWidget,		widget,

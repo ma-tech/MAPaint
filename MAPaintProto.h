@@ -116,6 +116,14 @@ extern MenuItem		*file_menu_items;
 
 extern void	file_menu_init(Widget	topl);
 
+extern void ReferenceFileListCb(Widget	w,
+				XtPointer	client_data,
+				XtPointer	call_data);
+
+extern void fileMenuPopupCb(Widget	w,
+			    XtPointer	client_data,
+			    XtPointer	call_data);
+
 extern void	read_obj_cb	(Widget		w,
 				 XtPointer	client_data,
 				 XtPointer	call_data);
@@ -241,6 +249,7 @@ extern void MAPaintMorphological2DCb(Widget	w,
 extern Widget           CreateThresholdControls( Widget );
 
 /* tools_fill_domain.c */
+extern Widget           CreateFillControls( Widget );
 extern void MAPaintFill2DInit(ThreeDViewStruct	*view_struct);
 extern void MAPaintFill2DQuit(ThreeDViewStruct	*view_struct);
 extern void MAPaintFill2DCb(Widget	w,
@@ -286,6 +295,13 @@ extern void realignmentCb(Widget	w,
 			  XtPointer	call_data);
 
 extern Widget createRealignmentDialog(Widget	topl);
+
+/* MAWarpInput2DDialog.c */
+extern void warpInput2DCb(Widget	w,
+			  XtPointer	client_data,
+			  XtPointer	call_data);
+
+extern Widget createWarpInput2DDialog(Widget	topl);
 
 /* paint_utils.c, MAColormapUtils.c */
 extern int set_backingX(Display	*dpy,

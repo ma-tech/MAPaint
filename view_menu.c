@@ -75,11 +75,11 @@ static MenuItem scale_menu_itemsP[] = {		/* scale_menu items */
    NULL, NULL,
    HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"0.5", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+  {"0_5", &xmPushButtonWidgetClass, 0, NULL, NULL, False,
    NULL, NULL,
    HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"0.25", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+  {"0_25", &xmPushButtonWidgetClass, 0, NULL, NULL, False,
    NULL, NULL,
    HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
@@ -725,6 +725,7 @@ Widget create_view_window_dialog(
   view_struct->controls    = NULL;
   view_struct->ximage      = NULL;
   view_struct->tablet_initialised = 0;
+  view_struct->viewLockedFlag = 0;
   view_struct->display_list = (GLuint) 0;
   wlzViewStr = WlzMake3DViewStruct(WLZ_3D_VIEW_STRUCT, NULL);
   view_struct->wlzViewStr = wlzViewStr;
@@ -771,14 +772,14 @@ Widget create_view_window_dialog(
 				  XmNleftAttachment,	XmATTACH_FORM,
 				  NULL);
   widget = XtVaCreateManagedWidget("section_frame_FB_toggle",
-				   xmToggleButtonWidgetClass, title_form,
+				   xmToggleButtonGadgetClass, title_form,
 				   XmNleftAttachment,	XmATTACH_WIDGET,
 				   XmNleftWidget,	title,
 				   NULL);
   XtAddCallback(widget, XmNvalueChangedCallback, solid_FB_toggle_cb,
 		view_struct);
   widget = XtVaCreateManagedWidget("section_frame_direction_toggle",
-				   xmToggleButtonWidgetClass, title_form,
+				   xmToggleButtonGadgetClass, title_form,
 				   XmNleftAttachment,	XmATTACH_WIDGET,
 				   XmNleftWidget,	widget,
 				   NULL);
@@ -862,7 +863,6 @@ Widget create_view_window_dialog(
 				   scrolled_window,
 				   XmNwidth,  width,
 				   XmNheight, height,
-				   XmNchildType, XmFRAME_WORKAREA_CHILD,
 				   NULL);
   view_struct->canvas = canvas;
 
@@ -898,7 +898,7 @@ Widget create_view_window_dialog(
 				 NULL);
   view_struct->controls = form;
   title = XtVaCreateManagedWidget("controls_frame_title",
-				  xmToggleButtonWidgetClass, frame,
+				  xmToggleButtonGadgetClass, frame,
 				  XmNchildType, XmFRAME_TITLE_CHILD,
 				  NULL);
   XtAddCallback(title, XmNvalueChangedCallback, view_controls_cb,
@@ -1126,14 +1126,15 @@ int view_menu_init(
   gc_values.plane_mask = 255;
   XChangeGC(dpy, globals.gc_set, GCPlaneMask, &gc_values);
 
-#ifdef SUNOS5
+#ifdef SUNOS6
   hostName = (char *) AlcMalloc(sizeof(char)*256);
   if( gethostname(hostName, 256) ){
     AlcFree((void *) hostName);
     return 0;
   }
   if( !strncmp(hostName, (const char *) XDisplayName(NULL),
-	       strlen(hostName)) ){
+	       strlen(hostName)) ||
+     !strncmp(":0.0", (const char *) XDisplayName(NULL), 4) ){
     /* open XIL system */
     paintXILState = xil_open();
   }

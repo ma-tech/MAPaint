@@ -225,6 +225,7 @@ typedef struct {
   WlzObject		*painted_object;
   GLuint		display_list;
   int			noPaintingFlag;
+  int			viewLockedFlag;
   String		titleStr;
 } ThreeDViewStruct;
 
@@ -278,6 +279,7 @@ typedef struct _PaintGlobals{
   String		domain_name[33];
   String		domain_filename[33];
   GLuint		domain_display_list[33];
+  int			OpenGLDisplayDomainStep;
 
   /* view_menu globals */
   GC			gc_set;

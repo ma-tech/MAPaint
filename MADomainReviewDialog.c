@@ -174,8 +174,15 @@ static void set_review_region_flashing(void)
   dx -= reviewViewStr->painted_object->domain.i->kol1;
   dy -= reviewViewStr->painted_object->domain.i->line1;
   obj2 = WlzShiftObject(obj1, dx, dy, 0, NULL);
-  obj3 = WlzIntRescaleObj(obj2, (int) reviewViewStr->wlzViewStr->scale,
-			  1, NULL);
+
+  if( reviewViewStr->wlzViewStr->scale > 0.95 ){
+    obj3 = WlzIntRescaleObj(obj2, WLZ_NINT(reviewViewStr->wlzViewStr->scale),
+			    1, NULL);
+  }
+  else {
+    float invScale = 1.0 / reviewViewStr->wlzViewStr->scale;
+    obj3 = WlzIntRescaleObj(obj2, WLZ_NINT(invScale), 0, NULL);
+  }
 
   /* create the flashing boundary */
   flashing_region = WlzAssignObject(obj3, NULL);
@@ -314,7 +321,7 @@ XtPointer	call_data)
     int		nobjs, i;
 
     if( WlzLabel(obj1, &nobjs, &objs, 256, 0, WLZ_4_CONNECTED)
-       != WLZ_ERR_NONE ){
+       == WLZ_ERR_NONE ){
       if( nobjs ){
 	WlzFreeObj(obj1);
 	obj1 = objs[0];
@@ -509,10 +516,28 @@ XtPointer	call_data)
   return;
 }
 
-void domainReviewCb(
-  Widget			w,
+void domainReviewPopupCb(
+  Widget		w,
   XtPointer		client_data,
   XtPointer		call_data)
+{
+  Widget	menu, selection=NULL;
+
+  /* get the domain source selection and call its callbacks */
+  if( menu = XtNameToWidget(reviewDialog, "*domainSource") ){
+    XtVaGetValues(menu, XmNmenuHistory, &selection, NULL);
+    if( selection ){
+      XtCallCallbacks(selection, XmNactivateCallback, NULL);
+    }
+  }
+
+  return;
+}
+
+void domainReviewCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
 {
   /* put up the domain review dialog */
   PopupCallback(w, (XtPointer) XtParent(reviewDialog), NULL);
@@ -597,12 +622,18 @@ void reviewDestDomainCb(
   WlzValues		values;
   WlzPlaneDomain	*planedmn;
   int			p, plane1;
+  Widget		widget;
+  Boolean		overrideFlg;
 
   /* stop the flashing object */
   stop_review_region_flashing();
 
   /* assign current review region */
   /* if 3D then get the review region into painted image coords */
+  if( (reviewDomain == NULL) || (reviewViewStr == NULL) ){
+    return;
+  }
+
   if( reviewDomain->type == WLZ_3D_DOMAINOBJ ){
     WlzDVertex3	vtx;
     int		dx, dy;
@@ -628,7 +659,37 @@ void reviewDestDomainCb(
     break;
 
   default: /* the rest */
-    setDomainIncrement(obj1, reviewViewStr, destDomain, 0);
+    overrideFlg = False;
+    if( widget = XtNameToWidget(reviewDialog,
+				"*dominance_override_toggle") ){
+      XtVaGetValues(widget, XmNset, &overrideFlg, NULL);
+    }
+    if( overrideFlg == False ){
+      setDomainIncrement(obj1, reviewViewStr, destDomain, 0);
+    }
+    else {
+      int domIdx = (int) destDomain;
+      if( domIdx > globals.cmapstruct->num_overlays )
+      {
+	set_grey_values_from_domain(obj1,
+				    reviewViewStr->painted_object,
+				    globals.cmapstruct->ovly_cols[domIdx],
+				    255);
+      }
+      else
+      {
+	setGreysIncrement(obj1, reviewViewStr);
+	set_grey_values_from_domain(obj1,
+				    reviewViewStr->painted_object,
+				    globals.cmapstruct->ovly_cols[domIdx],
+				    globals.cmapstruct->ovly_planes);
+      }
+  
+      /* redisplay this view */
+      redisplay_view_cb(reviewViewStr->canvas, (XtPointer) reviewViewStr,
+			NULL);
+      
+    }
     break;
   }
 
@@ -906,13 +967,15 @@ static ActionAreaItem   review_dialog_actions[] = {
 Widget createDomainReviewDialog(
   Widget	topl)
 {
-  Widget	dialog, control, form, frame, title;
+  Widget	dialog, control, form, frame, title, title_form;
   Widget	rowcolumn, button, option, toggle, widget;
   int		i;
 
   dialog = HGU_XmCreateStdDialog(topl, "review_dialog",
 				 xmFormWidgetClass,
 				 review_dialog_actions, 4);
+  XtAddCallback(XtParent(dialog), XmNpopupCallback,
+		domainReviewPopupCb, NULL);
 
   if( (widget = XtNameToWidget(dialog, "*.Review")) != NULL ){
     XtAddCallback(widget, XmNactivateCallback, startReviewCb, NULL);
@@ -1027,11 +1090,11 @@ Widget createDomainReviewDialog(
 				      NULL);
 
   toggle = XtVaCreateManagedWidget("segment_domain",
-				   xmToggleButtonWidgetClass,
+				   xmToggleButtonGadgetClass,
 				   rowcolumn, NULL);
 
   toggle = XtVaCreateManagedWidget("segment_planes",
-				   xmToggleButtonWidgetClass,
+				   xmToggleButtonGadgetClass,
 				   rowcolumn, NULL);
 
   widget = HGU_XmBuildMenu(rowcolumn, XmMENU_OPTION, "review_scale", 0,
@@ -1046,11 +1109,21 @@ Widget createDomainReviewDialog(
 				  XmNleftAttachment, XmATTACH_FORM,
 				  XmNrightAttachment, XmATTACH_FORM,
 				  NULL);
+
+  title_form = XtVaCreateManagedWidget("dest_domain_title_form",
+				       xmFormWidgetClass, frame,
+				       XmNchildType, XmFRAME_TITLE_CHILD,
+				       NULL);
   title = XtVaCreateManagedWidget("dest_domain_title", xmLabelWidgetClass,
-				  frame,
-				  XmNchildType, XmFRAME_TITLE_CHILD,
+				  title_form,
+				  XmNleftAttachment,	XmATTACH_FORM,
 				  NULL);
-  
+  widget = XtVaCreateManagedWidget("dominance_override_toggle",
+				   xmToggleButtonGadgetClass, title_form,
+				   XmNleftAttachment,	XmATTACH_WIDGET,
+				   XmNleftWidget,	title,
+				   NULL);
+
   rowcolumn = XtVaCreateManagedWidget("dest_domain_rc",
 				      xmRowColumnWidgetClass,
 				      frame,

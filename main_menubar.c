@@ -49,6 +49,10 @@ Widget	main_w)
 			     0, XmTEAR_OFF_DISABLED, file_menu_items);
     HGU_XmPulldownAddHelp(widget, HGU_XmHelpStandardCb,
 			  "paint/paint.html#file_menu");
+    if( menu = XtNameToWidget(widget, "*_pulldown") ){
+      XtAddCallback(XtParent(menu), XmNpopupCallback,
+		    fileMenuPopupCb, menu);
+    }
 
     widget = HGU_XmBuildMenu(menubar, XmMENU_PULLDOWN, "anatomy_menu",
 			     0, XmTEAR_OFF_DISABLED, anatomy_menu_items);

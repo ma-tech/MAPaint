@@ -21,6 +21,8 @@
 
 #include <MAPaint.h>
 
+static Widget fill_delete_w, fill_flood_w;
+
 DomainSelection getSelectedDomainType(
   int			x, 
   int			y, 
@@ -138,6 +140,8 @@ void MAPaintFill2DCb(
   DomainSelection	currDomain;
   int			delFlag;
   WlzObject		*obj, *obj1;
+  Boolean		toggleFlg;
+  WlzErrorNum		errNum;
 
   switch( cbs->event->type ){
 
@@ -153,13 +157,22 @@ void MAPaintFill2DCb(
 
       /* save the current domain selection and meta button state */
       currDomain = globals.current_domain;
+      XtVaGetValues(fill_delete_w, XmNset, &toggleFlg, NULL);
       delFlag = ((cbs->event->xbutton.state & Mod1Mask) ||
-		 (cbs->event->xbutton.button == Button2));
+		 (cbs->event->xbutton.button == Button2) || toggleFlg);
 
       /* get the fill object */
-      obj = getSelectedRegion(cbs->event->xbutton.x, cbs->event->xbutton.y,
-			      view_struct);
-      obj = WlzAssignObject(obj, NULL);
+      if( obj = getSelectedRegion(cbs->event->xbutton.x, cbs->event->xbutton.y,
+				  view_struct)){
+	XtVaGetValues(fill_flood_w, XmNset, &toggleFlg, NULL);
+	if( toggleFlg ){
+	  obj = WlzAssignObject(obj, NULL);
+	  obj1 = WlzDomainFill(obj, &errNum);
+	  WlzFreeObj(obj);
+	  obj = obj1;
+	}
+	obj = WlzAssignObject(obj, NULL);
+      }
 
       /* push domains for undo reset the painted object and redisplay */
       if( obj ){
@@ -189,4 +202,66 @@ void MAPaintFill2DCb(
   }
 
   return;
+}
+
+Widget	CreateFillControls(
+  Widget	parent)
+{
+  Widget	form, form1, label, frame, widget;
+
+  /* create a parent form to hold all the tracking controls */
+  form = XtVaCreateWidget("fill_controls_form", xmFormWidgetClass,
+			  parent,
+			  XmNtopAttachment,     XmATTACH_FORM,
+			  XmNbottomAttachment,	XmATTACH_FORM,
+			  XmNleftAttachment,    XmATTACH_FORM,
+			  XmNrightAttachment,  	XmATTACH_FORM,
+			  NULL);
+
+  /* create frame, form and label for the tracking parameters */
+  frame = XtVaCreateManagedWidget("frame", xmFrameWidgetClass,
+				  form,
+				  XmNtopAttachment,     XmATTACH_FORM,
+				  XmNleftAttachment,    XmATTACH_FORM,
+				  XmNrightAttachment,  	XmATTACH_FORM,
+				  NULL);
+
+  form1 = XtVaCreateWidget("fill_rc", xmRowColumnWidgetClass,
+			   frame,
+			   XmNtopAttachment,    XmATTACH_FORM,
+			   XmNbottomAttachment,	XmATTACH_FORM,
+			   XmNleftAttachment,   XmATTACH_FORM,
+			   XmNrightAttachment,  XmATTACH_FORM,
+			   XmNpacking,		XmPACK_COLUMN,
+			   XmNnumColumns,	2,
+			   NULL);
+
+  label = XtVaCreateManagedWidget("fill_options", xmLabelWidgetClass,
+				  frame,
+				  XmNborderWidth,	0,
+				  XmNchildType,		XmFRAME_TITLE_CHILD,
+				  NULL);
+
+  /* create toggles for the allowed affine transformations */
+  fill_delete_w = XtVaCreateManagedWidget("delete", xmToggleButtonGadgetClass,
+					  form1,
+					  XmNindicatorOn,	True,
+					  XmNindicatorType,	XmN_OF_MANY,
+					  XmNvisibleWhenOff,	True,
+					  XmNset,		False,
+					  XmNsensitive,		True,
+					  NULL);
+
+  fill_flood_w = XtVaCreateManagedWidget("flood", xmToggleButtonGadgetClass,
+					 form1,
+					 XmNindicatorOn,	True,
+					 XmNindicatorType,	XmN_OF_MANY,
+					 XmNvisibleWhenOff,	True,
+					 XmNset,		False,
+					 XmNsensitive,		True,
+					 NULL);
+
+  XtManageChild( form1 );
+
+  return( form );
 }

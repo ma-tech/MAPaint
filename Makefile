@@ -47,6 +47,7 @@ CSOURCES		= \
 			MAPaintUndoDomain.c \
 			MARealignmentDialog.c \
 			MATrackDomain.c \
+			MAWarpInput2DDialog.c \
 			MAPMSnake.c \
 			NalgsDPSearch.c \
 			anatomy_menu.c \

@@ -385,6 +385,8 @@ static XtResource domain_res[] = {
      res_offset(domain_filename[31]), XtRString, "domain_31.wlz"},
 {"domain_filename_32", "DomainFileName", XtRString, sizeof(String),
      res_offset(domain_filename[32]), XtRString, "domain_32.wlz"},
+{"OpenGLDisplayDomainStep", "OpenGLDisplayDomainStep", XtRInt, sizeof(int),
+     res_offset(OpenGLDisplayDomainStep), XtRImmediate, (caddr_t) 2},
 };
 
 /* action and callback procedures */
@@ -1909,8 +1911,10 @@ Widget	topl)
 	{
 	  pixel = globals.cmapstruct->ovly_cols[data_index];
 	}
-	XtVaSetValues(widget, XmNlabelString, xmstr, NULL);
 	XmChangeColor(widget, pixel);
+	XtVaSetValues(widget,
+		      XmNlabelString, xmstr,
+		      NULL);
 	XmStringFree(xmstr);
 
 	/* add drag and drop translations */

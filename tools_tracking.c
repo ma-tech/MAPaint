@@ -62,7 +62,23 @@ void imageTrackCurrentDomain(
   }
 
   /* get the reference image and domain */
-  ref_obj = WlzAssignObject(view_struct->prev_view_obj, NULL);
+  if( view_struct->prev_view_obj ){
+    ref_obj = WlzAssignObject(view_struct->prev_view_obj, NULL);
+  }
+  else {
+    float	tmpDist, curr_dist;
+    WlzObject	*obj;
+
+    curr_dist = view_struct->wlzViewStr->dist;
+    tmpDist = view_struct->prev_dist;
+    Wlz3DSectionIncrementDistance(view_struct->wlzViewStr,
+				  (tmpDist - curr_dist));
+    obj = WlzGetSectionFromObject(globals.orig_obj, view_struct->wlzViewStr, NULL);
+    view_struct->prev_view_obj = WlzAssignObject(obj, NULL);
+    Wlz3DSectionIncrementDistance(view_struct->wlzViewStr,
+				  -(tmpDist - curr_dist));
+  }
+    
   ref_domain = WlzMakeMain(WLZ_2D_DOMAINOBJ,
 			   view_struct->prev_domain[domain]->domain,
 			   view_struct->prev_domain[domain]->values,

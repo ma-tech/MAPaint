@@ -180,7 +180,9 @@ void getViewDomains(
   WlzPixelV	thresh;
 
   /* clear any current domains */
-  for(i=0; i < 33; i++){
+  numOverlays = globals.cmapstruct->num_overlays +
+    globals.cmapstruct->num_solid_overlays;
+  for(i=0; i < numOverlays; i++){
     if( view_struct->curr_domain[i] ){
       WlzFreeObj(view_struct->curr_domain[i]);
       view_struct->curr_domain[i] = NULL;
@@ -202,10 +204,19 @@ void getViewDomains(
   }
 
   /* segment the painted section image to establish each domain object */
-  numOverlays = globals.cmapstruct->num_overlays +
-    globals.cmapstruct->num_solid_overlays;
   if( allDomainsObj ){
-    for(i=1; i <= numOverlays; i++){
+    WlzPixelV	min, max;
+    int		max_i=numOverlays;
+
+    /* get maximum number of domains */
+    WlzGreyRange(allDomainsObj, &min, &max);
+    WlzValueConvertPixel(&max, max, WLZ_GREY_INT);
+
+    while( (max_i > 0) && (globals.cmapstruct->ovly_cols[max_i] > max.v.inv) ){
+      max_i--;
+    }
+
+    for(i=1; i <= max_i; i++){
       tmpObj = get_domain_from_object(view_struct->painted_object, i);
       if( tmpObj ){
 	view_struct->curr_domain[i] = WlzAssignObject(tmpObj, NULL);
@@ -309,6 +320,7 @@ void installViewDomains(
   double		x, y, z;
   int			xp, yp;
   int			i;
+  ViewListEntry		*vl = global_view_list;
 
   /* all domains on this plane will already have been
      checked for consistency, dominance etc. therefore
@@ -327,6 +339,9 @@ void installViewDomains(
       x = wlzViewStr->xp_to_x[xp] + wlzViewStr->yp_to_x[yp];
       y = wlzViewStr->xp_to_y[xp] + wlzViewStr->yp_to_y[yp];
       z = wlzViewStr->xp_to_z[xp] + wlzViewStr->yp_to_z[yp];
+      x = WLZ_NINT(x);
+      y = WLZ_NINT(y);
+      z = WLZ_NINT(z);
       WlzGreyValueGet(gVWSp, z, y, x);
       *(gVWSp->gPtr[0].ubp) = *(gwsp.u_grintptr.ubp+i);
     }
@@ -345,7 +360,7 @@ void installViewDomains(
     }
   }
 
-  /* set the previous distance and view object */
+  /* set the previous distance and view object  - calculate when needed */
   view_struct->prev_dist = wlzViewStr->dist;
   if( view_struct->prev_view_obj ){
     WlzFreeObj(view_struct->prev_view_obj);
@@ -355,14 +370,23 @@ void installViewDomains(
 						 NULL);
   }
   else {
-    view_struct->prev_view_obj =
-      WlzAssignObject(WlzGetSectionFromObject(globals.orig_obj,
-					      wlzViewStr, NULL), NULL);
+    view_struct->prev_view_obj = NULL;
   }
   
   /* display all views to update the new domains */
-  /* this could be more efficient */
-  display_all_views_cb(view_struct->canvas, view_struct, NULL);
+  while( vl != NULL ){
+    if( vl->view_struct != paint_key ){
+      if( vl->view_struct == view_struct ){
+	redisplay_view_cb(view_struct->canvas,
+			  (XtPointer) vl->view_struct, NULL);
+      }
+      else {
+	display_view_cb(view_struct->canvas,
+			(XtPointer) vl->view_struct, NULL);
+      }
+    }
+    vl = vl->next;
+  }
 
   return;
 }

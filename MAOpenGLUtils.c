@@ -129,7 +129,8 @@ int		domain_index)
 				red, green, blue)); 
 
     planedmn = obj->domain.p;
-    for(z=planedmn->plane1; z <= planedmn->lastpl; z += 2)
+    for(z=planedmn->plane1; z <= planedmn->lastpl;
+	z += globals.OpenGLDisplayDomainStep)
     {
       values.core = NULL;
       obj1 = WlzMakeMain(WLZ_2D_DOMAINOBJ,

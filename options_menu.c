@@ -21,46 +21,46 @@
 /* menu item structures */
 
 static MenuItem interact_tool_itemsP[] = {	/* select menu items */
-  {"Draw", &xmToggleButtonWidgetClass, 0, NULL, NULL, True,
+  {"Draw", &xmToggleButtonGadgetClass, 0, NULL, NULL, True,
    select_interact_tool_cb, (XtPointer) MAPAINT_DRAW_2D,
    NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"Paint ball", &xmToggleButtonWidgetClass, 0, NULL, NULL, False,
+  {"Paint ball", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    select_interact_tool_cb, (XtPointer) MAPAINT_PAINT_BALL_2D,
    NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"Geometry object", &xmToggleButtonWidgetClass, 0, NULL, NULL, False,
+  {"Geometry object", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    select_interact_tool_cb, (XtPointer) MAPAINT_GEOMETRY_OBJ_2D,
    NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"Threshold", &xmToggleButtonWidgetClass, 0, NULL, NULL, False,
+  {"Threshold", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    select_interact_tool_cb, (XtPointer) MAPAINT_THRESHOLD_2D,
    NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"Fill", &xmToggleButtonWidgetClass, 0, NULL, NULL, False,
+  {"Fill", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    select_interact_tool_cb, (XtPointer) MAPAINT_FILL_2D,
    NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"Erode/Dilate", &xmToggleButtonWidgetClass, 0, NULL, NULL, False,
+  {"Erode/Dilate", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    select_interact_tool_cb, (XtPointer) MAPAINT_MORPHOLOGICAL_2D,
    NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"Affine", &xmToggleButtonWidgetClass, 0, NULL, NULL, False,
+  {"Affine", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    select_interact_tool_cb, (XtPointer) MAPAINT_AFFINE_2D,
    NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"Separator", &xmSeparatorGadgetClass, 0, NULL, NULL, False,
    NULL, (XtPointer) MAPAINT_NO_PAINT_ACTION, NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"Image Tracking", &xmToggleButtonWidgetClass, 0, NULL, NULL, False,
+  {"Image Tracking", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    select_interact_tool_cb, (XtPointer) MAPAINT_IMAGE_TRACKING_2D,
    NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"Edge Tracking", &xmToggleButtonWidgetClass, 0, NULL, NULL, False,
+  {"Edge Tracking", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    select_interact_tool_cb, (XtPointer) MAPAINT_EDGE_TRACKING_2D,
    NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"Tablet", &xmToggleButtonWidgetClass, 0, NULL, NULL, False,
+  {"Tablet", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    select_interact_tool_cb, (XtPointer) MAPAINT_TABLET_2D,
    NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
@@ -86,12 +86,18 @@ static MenuItem options_menu_itemsP[] = {	/* option_menu items */
   {"domain_surgery", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    domainSurgeryCb, NULL, NULL, NULL,
    XmTEAR_OFF_ENABLED, True, True, NULL},
-  {"realignment", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   realignmentCb, NULL, NULL, NULL,
-   XmTEAR_OFF_ENABLED, True, True, NULL},
   {"auto_segment", &xmPushButtonWidgetClass, 0, NULL, NULL, False,
    NULL, NULL, NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"", &xmSeparatorGadgetClass, 0, NULL, NULL, False,
+   NULL, NULL, NULL, NULL,
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"realignment", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   realignmentCb, NULL, NULL, NULL,
+   XmTEAR_OFF_ENABLED, True, True, NULL},
+  {"warp_input_2d", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   warpInput2DCb, NULL, NULL, NULL,
+   XmTEAR_OFF_ENABLED, True, True, NULL},
   {"", &xmSeparatorGadgetClass, 0, NULL, NULL, False,
    NULL, NULL, NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
@@ -233,7 +239,7 @@ XtPointer	client_data,
 XtPointer	call_data)
 {
   Widget	form[32], shell, newForm;
-  int		i, nforms=8;
+  int		i, nforms=9;
   XmToggleButtonCallbackStruct *cbs =
     (XmToggleButtonCallbackStruct *) call_data;
   Dimension	shellHeight, formHeight=0;
@@ -266,6 +272,8 @@ XtPointer	call_data)
 			     "*edge_tracking_controls_form");
     form[7] = XtNameToWidget(tool_controls_dialog,
 			     "*tablet_controls_form");
+    form[8] = XtNameToWidget(tool_controls_dialog,
+			     "*fill_controls_form");
     for(i=0; i < nforms; i++){
       if( form[i] ){
 	if( XtIsManaged(form[i]) ){
@@ -310,7 +318,7 @@ XtPointer	call_data)
       globals.currentPaintActionCbFunc = MAPaintFill2DCb;
       globals.currentPaintActionInitFunc = MAPaintFill2DInit;
       globals.currentPaintActionQuitFunc = MAPaintFill2DQuit;
-      newForm = form[0];
+      newForm = form[8];
       break;
     case MAPAINT_MORPHOLOGICAL_2D:
       globals.currentPaintActionCbFunc = MAPaintMorphological2DCb;
@@ -390,6 +398,7 @@ static Widget create_tool_controls_dialog(
     form = CreateDrawPaintBallControls( control );
     (void) CreateThresholdControls( control );
     (void) CreateGeometryObjectControls( control );
+    (void) CreateFillControls( control );
     (void) CreateMorphologicalControls( control );
     (void) CreateAffineControls( control );
     (void) CreateTracking2DControls( control );
