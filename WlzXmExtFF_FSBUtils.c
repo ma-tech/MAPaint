@@ -64,7 +64,7 @@ WlzErrorNum WlzXmWriteExtFFObject(
     dialog = XtParent(dialog);
   }
   if( dialog == NULL ){
-    return;
+    return WLZ_ERR_PARAM_DATA;
   }
 
   /* get the image type */
