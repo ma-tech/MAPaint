@@ -457,6 +457,7 @@ void MAOpenGLDisplaySection(
 	  WlzDVertex3	vtx;
 	  vtx.vtX = iwsp.lftpos;
 	  vtx.vtY = iwsp.linpos;
+	  vtx.vtZ = wlzViewStr->dist;
 	  Wlz3DSectionTransformInvVtx(&vtx, wlzViewStr);
 	  glBegin(GL_LINES);
 	  glVertex3d((GLdouble) vtx.vtX,
@@ -464,6 +465,7 @@ void MAOpenGLDisplaySection(
 		     (GLdouble) vtx.vtZ);
 	  vtx.vtX = iwsp.rgtpos;
 	  vtx.vtY = iwsp.linpos;
+	  vtx.vtZ = wlzViewStr->dist;
 	  Wlz3DSectionTransformInvVtx(&vtx, wlzViewStr);
 	  glVertex3d((GLdouble) vtx.vtX,
 		     (GLdouble) vtx.vtY,

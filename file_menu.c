@@ -466,6 +466,7 @@ WlzErrorNum Wlz3DSectionTransformXPoly(
   for(i=0; i < poly->nvertices; i++, vtxs++){
     vtx.vtX = vtxs->vtX;
     vtx.vtY = vtxs->vtY;
+    vtx.vtZ = viewStr->dist;
     Wlz3DSectionTransformInvVtx(&vtx, viewStr);
     vtxs->vtX = vtx.vtZ;
     vtxs->vtY = vtx.vtY;
@@ -505,6 +506,7 @@ WlzErrorNum Wlz3DSectionTransformYPoly(
   for(i=0; i < poly->nvertices; i++, vtxs++){
     vtx.vtX = vtxs->vtX;
     vtx.vtY = vtxs->vtY;
+    vtx.vtZ = viewStr->dist;
     Wlz3DSectionTransformInvVtx(&vtx, viewStr);
     vtxs->vtX = vtx.vtX;
     vtxs->vtY = vtx.vtZ;
