@@ -234,23 +234,25 @@ void theiler_menu_init(
   menu_items[stage].name = NULL;
 
   /* alphabetically sort the list then create the menu */
-  qsort(menu_items, stage, sizeof(MenuItem), cmpMenuItem);
-  menu = HGU_XmBuildPulldownMenu(menu_parent,
-				 XmTEAR_OFF_DISABLED, False, False,
-				 menu_items);
+  if( stage > 0 ){
+    qsort(menu_items, stage, sizeof(MenuItem), cmpMenuItem);
+    menu = HGU_XmBuildPulldownMenu(menu_parent,
+				   XmTEAR_OFF_DISABLED, False, False,
+				   menu_items);
 
-  /* if the theiler stage is set then call the required callbacks */
-  /*if( globals.theiler_stage ){
-    if( widget = XtNameToWidget(menu, globals.theiler_stage) ){
+    /* if the theiler stage is set then call the required callbacks */
+    /*if( globals.theiler_stage ){
+      if( widget = XtNameToWidget(menu, globals.theiler_stage) ){
       set_theiler_stage_cb(widget, NULL, NULL);
-    }
-    }*/
+      }
+      }*/
 
-  /* free space */
-  stage = 0;
-  while( menu_items[stage].name != NULL ){
-    AlcFree(menu_items[stage].name);
-    stage++;
+    /* free space */
+    stage = 0;
+    while( menu_items[stage].name != NULL ){
+      AlcFree(menu_items[stage].name);
+      stage++;
+    }
   }
   AlcFree(menu_items);
 
