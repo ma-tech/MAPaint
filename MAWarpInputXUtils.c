@@ -711,7 +711,8 @@ void warpDisplayTiePoints(void)
   }
 
   for(i=0; i < warpGlobals.num_vtxs; i++){
-    if((warpGlobals.tp_state == TP_SELECTED) && (i == warpGlobals.sel_vtx)){
+    if(((warpGlobals.tp_state == TP_SELECTED) && (i == warpGlobals.sel_vtx)) ||
+       (warpGlobals.sel_vtxs[i])){
       gc = warpGlobals.red_gc;
     }
     else {

@@ -78,6 +78,7 @@ typedef struct {
   WlzEffFormat		sgnlFileType;
   WlzObject		*sgnlObj;
   WlzObject		*sgnlProcObj;
+  String		warpBibFile;
 
   /* destination canvas and affine transform */
   MAPaintImageWinStruct	dst;
@@ -98,12 +99,14 @@ typedef struct {
   WlzDVertex2	src_vtxs[WARP_MAX_NUM_VTXS];
   int		num_vtxs;
   int		sel_vtx;
+  int		sel_vtxs[WARP_MAX_NUM_VTXS];
   int		tp_state;
   GC		green_gc;
   GC		red_gc;
   GC		blue_gc;
   GC		yellow_gc;
   WlzAffineTransform	*affine;
+  WlzTransformType	affineType;
   WlzBasisFnTransform	*basisTr;
   WlzBasisFnType	basisFnType;
   WlzMeshTransform	*meshTr;

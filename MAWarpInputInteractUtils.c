@@ -538,6 +538,9 @@ void warpDstCanvasInputCb(
     *cbs = (XmDrawingAreaCallbackStruct *) call_data;
   int		vtxIdx;
   WlzDVertex2	vtx;
+  Widget	toggle;
+  Boolean	autoUpdateFlg;
+  int		i;
 
   /* check there is and image */
   if( winStruct->ximage == NULL ){
@@ -549,88 +552,134 @@ void warpDstCanvasInputCb(
     vtx.vtX = cbs->event->xbutton.x;
     vtx.vtY = cbs->event->xbutton.y;
 
-    switch( cbs->event->xbutton.button ){
-    case Button1:
-      switch( warpGlobals.tp_state ){
-      case TP_INACTIVE:
-	/* set the dst vertex */
-	warpGlobals.dst_vtxs[warpGlobals.num_vtxs] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.dst));
-	warpGlobals.tp_state = TP_DST_DEFINED;
-	break;
+    /* check if a region is being defined */
+    if( cbs->event->xbutton.state & (Mod1Mask|Mod2Mask) ){
+      WlzFVertex2	start, *rect;
 
-      case TP_DST_DEFINED:
-	/* reset vertex */
-	warpUndisplayVtx(&(warpGlobals.dst),
-			 warpGlobals.dst_vtxs[warpGlobals.num_vtxs]);
-	warpGlobals.dst_vtxs[warpGlobals.num_vtxs] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.dst));
-	break;
-
-      case TP_SRC_DEFINED:
-	/* set vertex, increment number of tie-points */
-	warpGlobals.dst_vtxs[warpGlobals.num_vtxs] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.dst));
-	warpGlobals.tp_state = TP_SELECTED;
-	warpGlobals.sel_vtx = warpGlobals.num_vtxs;
-	warpGlobals.num_vtxs++;
-	resetOvlyFlg = 1;
-	break;
-
-      case TP_SELECTED:
-	/* reset vertex */
-	warpUndisplayVtx(&(warpGlobals.dst),
-			 warpGlobals.dst_vtxs[warpGlobals.sel_vtx]);
-	warpGlobals.dst_vtxs[warpGlobals.sel_vtx] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.dst));
-	resetOvlyFlg = 1;
-	break;
-      }
-      warpDisplayTiePoints();
-      break;
-
-    case Button2:
-      switch( warpGlobals.tp_state ){
-      case TP_INACTIVE:
-	break;
-
-      case TP_DST_DEFINED:
-	/* delete vertex */
-	warpUndisplayVtx(&(warpGlobals.dst),
-			 warpGlobals.dst_vtxs[warpGlobals.num_vtxs]);
-	warpGlobals.tp_state = TP_INACTIVE;
-	break;
-
-      case TP_SRC_DEFINED:
-	break;
-
-      case TP_SELECTED:
-	/* delete vertex */
-	warpUndisplayVtx(&(warpGlobals.dst),
-			 warpGlobals.dst_vtxs[warpGlobals.sel_vtx]);
-	warpUndisplayVtx(&(warpGlobals.src),
-			 warpGlobals.src_vtxs[warpGlobals.sel_vtx]);
-	warpGlobals.num_vtxs--;
-	while( warpGlobals.sel_vtx < warpGlobals.num_vtxs ){
-	  warpGlobals.dst_vtxs[warpGlobals.sel_vtx] = 
-	    warpGlobals.dst_vtxs[warpGlobals.sel_vtx + 1];
-	  warpGlobals.src_vtxs[warpGlobals.sel_vtx] = 
-	    warpGlobals.src_vtxs[warpGlobals.sel_vtx + 1];
-	  warpGlobals.sel_vtx++;
+      switch( cbs->event->xbutton.button ){
+      case Button1:
+	/* get a rectangle - this will capture the release
+	   event */
+	start.vtX = cbs->event->xbutton.x;
+	start.vtY = cbs->event->xbutton.y;
+	if( rect = HGU_XGetRect(XtDisplay(widget),
+				XtWindow(widget),
+				HGU_XNoConfirmMask,
+				NULL, &start) ){
+	  /* loop through source vertices to check for selection */
+	  rect[1].vtX += rect[0].vtX;
+	  rect[1].vtY += rect[0].vtY;
+	  for(i=0; i < warpGlobals.num_vtxs; i++){
+	    vtx = warpDisplayTransFore(warpGlobals.dst_vtxs[i],
+				       &(warpGlobals.dst));
+	    if((vtx.vtX >= rect[0].vtX) &&
+	       (vtx.vtX <= rect[1].vtX) &&
+	       (vtx.vtY >= rect[0].vtY) &&
+	       (vtx.vtY <= rect[1].vtY)){
+	      warpGlobals.sel_vtxs[i] = 1;
+	    }
+	    else {
+	      warpGlobals.sel_vtxs[i] = 0;
+	    }
+	  }
+	  AlcFree(rect);
 	}
-	warpGlobals.tp_state = TP_INACTIVE;
-	resetOvlyFlg = 1;
+	break;
+
+      default:
 	break;
       }
       warpDisplayTiePoints();
-      break;
-
-    case Button3:
-      if( warpGlobals.dst.popup ){
-	XmMenuPosition(warpGlobals.dst.popup, &(cbs->event->xbutton));
-	XtManageChild(warpGlobals.dst.popup);
+    }
+    else {
+      /* clear any selected vertices */
+      for(i=0; i < warpGlobals.num_vtxs; i++){
+	warpGlobals.sel_vtxs[i] = 0;
       }
-      break;
+
+      switch( cbs->event->xbutton.button ){
+      case Button1:
+	switch( warpGlobals.tp_state ){
+	case TP_INACTIVE:
+	  /* set the dst vertex */
+	  warpGlobals.dst_vtxs[warpGlobals.num_vtxs] =
+	    warpDisplayTransBack(vtx, &(warpGlobals.dst));
+	  warpGlobals.tp_state = TP_DST_DEFINED;
+	  break;
+
+	case TP_DST_DEFINED:
+	  /* reset vertex */
+	  warpUndisplayVtx(&(warpGlobals.dst),
+			   warpGlobals.dst_vtxs[warpGlobals.num_vtxs]);
+	  warpGlobals.dst_vtxs[warpGlobals.num_vtxs] =
+	    warpDisplayTransBack(vtx, &(warpGlobals.dst));
+	  break;
+
+	case TP_SRC_DEFINED:
+	  /* set vertex, increment number of tie-points */
+	  warpGlobals.dst_vtxs[warpGlobals.num_vtxs] =
+	    warpDisplayTransBack(vtx, &(warpGlobals.dst));
+	  warpGlobals.tp_state = TP_SELECTED;
+	  warpGlobals.sel_vtx = warpGlobals.num_vtxs;
+	  warpGlobals.num_vtxs++;
+	  resetOvlyFlg = 1;
+	  break;
+
+	case TP_SELECTED:
+	  /* reset vertex */
+	  warpUndisplayVtx(&(warpGlobals.dst),
+			   warpGlobals.dst_vtxs[warpGlobals.sel_vtx]);
+	  warpGlobals.dst_vtxs[warpGlobals.sel_vtx] =
+	    warpDisplayTransBack(vtx, &(warpGlobals.dst));
+	  resetOvlyFlg = 1;
+	  break;
+	}
+	warpDisplayTiePoints();
+	break;
+
+      case Button2:
+	switch( warpGlobals.tp_state ){
+	case TP_INACTIVE:
+	  break;
+
+	case TP_DST_DEFINED:
+	  /* delete vertex */
+	  warpUndisplayVtx(&(warpGlobals.dst),
+			   warpGlobals.dst_vtxs[warpGlobals.num_vtxs]);
+	  warpGlobals.tp_state = TP_INACTIVE;
+	  break;
+
+	case TP_SRC_DEFINED:
+	  break;
+
+	case TP_SELECTED:
+	  /* delete vertex */
+	  warpUndisplayVtx(&(warpGlobals.dst),
+			   warpGlobals.dst_vtxs[warpGlobals.sel_vtx]);
+	  warpUndisplayVtx(&(warpGlobals.src),
+			   warpGlobals.src_vtxs[warpGlobals.sel_vtx]);
+	  warpGlobals.num_vtxs--;
+	  while( warpGlobals.sel_vtx < warpGlobals.num_vtxs ){
+	    warpGlobals.dst_vtxs[warpGlobals.sel_vtx] = 
+	      warpGlobals.dst_vtxs[warpGlobals.sel_vtx + 1];
+	    warpGlobals.src_vtxs[warpGlobals.sel_vtx] = 
+	      warpGlobals.src_vtxs[warpGlobals.sel_vtx + 1];
+	    warpGlobals.sel_vtx++;
+	  }
+	  warpGlobals.tp_state = TP_INACTIVE;
+	  resetOvlyFlg = 1;
+	  break;
+	}
+	warpDisplayTiePoints();
+	break;
+
+      case Button3:
+	if( warpGlobals.dst.popup ){
+	  XmMenuPosition(warpGlobals.dst.popup, &(cbs->event->xbutton));
+	  XtManageChild(warpGlobals.dst.popup);
+	}
+	break;
+      }
     }
     break;
 
@@ -656,7 +705,14 @@ void warpDstCanvasInputCb(
     case Button3:
       break;
     }
-    if( resetOvlyFlg ){
+    if( toggle = XtNameToWidget(warpGlobals.warp2DInteractDialog,
+				"*.autoUpdate") ){
+      XtVaGetValues(toggle, XmNset, &autoUpdateFlg, NULL);
+    }
+    else {
+      autoUpdateFlg = True;
+    }
+    if( (autoUpdateFlg == True) && resetOvlyFlg ){
       /* update the overlay image and display */
       warpSetOvlyObject();
       warpSetOvlyXImages(&(warpGlobals.ovly), 1);
@@ -666,8 +722,8 @@ void warpDstCanvasInputCb(
 			 call_data);
       XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
 		      call_data);
-      resetOvlyFlg = 0;
     }
+    resetOvlyFlg = 0;
     break;
 
   case EnterNotify:
@@ -757,6 +813,9 @@ void warpSrcCanvasInputCb(
     *cbs = (XmDrawingAreaCallbackStruct *) call_data;
   int		vtxIdx;
   WlzDVertex2	vtx;
+  Widget	toggle;
+  Boolean	autoUpdateFlg;
+  int		i;
 
   /* check there is and image */
   if( winStruct->ximage == NULL ){
@@ -768,88 +827,134 @@ void warpSrcCanvasInputCb(
     vtx.vtX = cbs->event->xbutton.x;
     vtx.vtY = cbs->event->xbutton.y;
 
-    switch( cbs->event->xbutton.button ){
-    case Button1:
-      switch( warpGlobals.tp_state ){
-      case TP_INACTIVE:
-	/* set the src vertex */
-	warpGlobals.src_vtxs[warpGlobals.num_vtxs] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.src));
-	warpGlobals.tp_state = TP_SRC_DEFINED;
-	break;
+    /* check if a region is being defined */
+    if( cbs->event->xbutton.state & (Mod1Mask|Mod2Mask) ){
+      WlzFVertex2	start, *rect;
 
-      case TP_SRC_DEFINED:
-	/* reset vertex */
-	warpUndisplayVtx(&(warpGlobals.src),
-		      warpGlobals.src_vtxs[warpGlobals.num_vtxs]);
-	warpGlobals.src_vtxs[warpGlobals.num_vtxs] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.src));
-	break;
-
-      case TP_DST_DEFINED:
-	/* set vertex, increment number of tie-points */
-	warpGlobals.src_vtxs[warpGlobals.num_vtxs] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.src));
-	warpGlobals.tp_state = TP_SELECTED;
-	warpGlobals.sel_vtx = warpGlobals.num_vtxs;
-	warpGlobals.num_vtxs++;
-	resetOvlyFlg = 1;
-	break;
-
-      case TP_SELECTED:
-	/* reset vertex */
-	warpUndisplayVtx(&(warpGlobals.src),
-			 warpGlobals.src_vtxs[warpGlobals.sel_vtx]);
-	warpGlobals.src_vtxs[warpGlobals.sel_vtx] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.src));
-	resetOvlyFlg = 1;
-	break;
-      }
-      warpDisplayTiePoints();
-      break;
-
-    case Button2:
-      switch( warpGlobals.tp_state ){
-      case TP_INACTIVE:
-	break;
-
-      case TP_SRC_DEFINED:
-	/* delete vertex */
-	warpUndisplayVtx(&(warpGlobals.src),
-			 warpGlobals.src_vtxs[warpGlobals.num_vtxs]);
-	warpGlobals.tp_state = TP_INACTIVE;
-	break;
-
-      case TP_DST_DEFINED:
-	break;
-
-      case TP_SELECTED:
-	/* delete vertex */
-	warpUndisplayVtx(&(warpGlobals.dst),
-			 warpGlobals.dst_vtxs[warpGlobals.sel_vtx]);
-	warpUndisplayVtx(&(warpGlobals.src),
-			 warpGlobals.src_vtxs[warpGlobals.sel_vtx]);
-	warpGlobals.num_vtxs--;
-	while( warpGlobals.sel_vtx < warpGlobals.num_vtxs ){
-	  warpGlobals.dst_vtxs[warpGlobals.sel_vtx] = 
-	    warpGlobals.dst_vtxs[warpGlobals.sel_vtx + 1];
-	  warpGlobals.src_vtxs[warpGlobals.sel_vtx] = 
-	    warpGlobals.src_vtxs[warpGlobals.sel_vtx + 1];
-	  warpGlobals.sel_vtx++;
+      switch( cbs->event->xbutton.button ){
+      case Button1:
+	/* get a rectangle - this will capture the release
+	   event */
+	start.vtX = cbs->event->xbutton.x;
+	start.vtY = cbs->event->xbutton.y;
+	if( rect = HGU_XGetRect(XtDisplay(widget),
+				XtWindow(widget),
+				HGU_XNoConfirmMask,
+				NULL, &start) ){
+	  /* loop through source vertices to check for selection */
+	  rect[1].vtX += rect[0].vtX;
+	  rect[1].vtY += rect[0].vtY;
+	  for(i=0; i < warpGlobals.num_vtxs; i++){
+	    vtx = warpDisplayTransFore(warpGlobals.src_vtxs[i],
+				       &(warpGlobals.src));
+	    if((vtx.vtX >= rect[0].vtX) &&
+	       (vtx.vtX <= rect[1].vtX) &&
+	       (vtx.vtY >= rect[0].vtY) &&
+	       (vtx.vtY <= rect[1].vtY)){
+	      warpGlobals.sel_vtxs[i] = 1;
+	    }
+	    else {
+	      warpGlobals.sel_vtxs[i] = 0;
+	    }
+	  }
+	  AlcFree(rect);
 	}
-	warpGlobals.tp_state = TP_INACTIVE;
-	resetOvlyFlg = 1;
+	break;
+
+      default:
 	break;
       }
       warpDisplayTiePoints();
-      break;
-
-    case Button3:
-      if( warpGlobals.src.popup ){
-	XmMenuPosition(warpGlobals.src.popup, &(cbs->event->xbutton));
-	XtManageChild(warpGlobals.src.popup);
+    }
+    else {
+      /* clear any selected vertices */
+      for(i=0; i < warpGlobals.num_vtxs; i++){
+	warpGlobals.sel_vtxs[i] = 0;
       }
-      break;
+
+      switch( cbs->event->xbutton.button ){
+      case Button1:
+	switch( warpGlobals.tp_state ){
+	case TP_INACTIVE:
+	  /* set the src vertex */
+	  warpGlobals.src_vtxs[warpGlobals.num_vtxs] =
+	    warpDisplayTransBack(vtx, &(warpGlobals.src));
+	  warpGlobals.tp_state = TP_SRC_DEFINED;
+	  break;
+
+	case TP_SRC_DEFINED:
+	  /* reset vertex */
+	  warpUndisplayVtx(&(warpGlobals.src),
+			   warpGlobals.src_vtxs[warpGlobals.num_vtxs]);
+	  warpGlobals.src_vtxs[warpGlobals.num_vtxs] =
+	    warpDisplayTransBack(vtx, &(warpGlobals.src));
+	  break;
+
+	case TP_DST_DEFINED:
+	  /* set vertex, increment number of tie-points */
+	  warpGlobals.src_vtxs[warpGlobals.num_vtxs] =
+	    warpDisplayTransBack(vtx, &(warpGlobals.src));
+	  warpGlobals.tp_state = TP_SELECTED;
+	  warpGlobals.sel_vtx = warpGlobals.num_vtxs;
+	  warpGlobals.num_vtxs++;
+	  resetOvlyFlg = 1;
+	  break;
+
+	case TP_SELECTED:
+	  /* reset vertex */
+	  warpUndisplayVtx(&(warpGlobals.src),
+			   warpGlobals.src_vtxs[warpGlobals.sel_vtx]);
+	  warpGlobals.src_vtxs[warpGlobals.sel_vtx] =
+	    warpDisplayTransBack(vtx, &(warpGlobals.src));
+	  resetOvlyFlg = 1;
+	  break;
+	}
+	warpDisplayTiePoints();
+	break;
+
+      case Button2:
+	switch( warpGlobals.tp_state ){
+	case TP_INACTIVE:
+	  break;
+
+	case TP_SRC_DEFINED:
+	  /* delete vertex */
+	  warpUndisplayVtx(&(warpGlobals.src),
+			   warpGlobals.src_vtxs[warpGlobals.num_vtxs]);
+	  warpGlobals.tp_state = TP_INACTIVE;
+	  break;
+
+	case TP_DST_DEFINED:
+	  break;
+
+	case TP_SELECTED:
+	  /* delete vertex */
+	  warpUndisplayVtx(&(warpGlobals.dst),
+			   warpGlobals.dst_vtxs[warpGlobals.sel_vtx]);
+	  warpUndisplayVtx(&(warpGlobals.src),
+			   warpGlobals.src_vtxs[warpGlobals.sel_vtx]);
+	  warpGlobals.num_vtxs--;
+	  while( warpGlobals.sel_vtx < warpGlobals.num_vtxs ){
+	    warpGlobals.dst_vtxs[warpGlobals.sel_vtx] = 
+	      warpGlobals.dst_vtxs[warpGlobals.sel_vtx + 1];
+	    warpGlobals.src_vtxs[warpGlobals.sel_vtx] = 
+	      warpGlobals.src_vtxs[warpGlobals.sel_vtx + 1];
+	    warpGlobals.sel_vtx++;
+	  }
+	  warpGlobals.tp_state = TP_INACTIVE;
+	  resetOvlyFlg = 1;
+	  break;
+	}
+	warpDisplayTiePoints();
+	break;
+
+      case Button3:
+	if( warpGlobals.src.popup ){
+	  XmMenuPosition(warpGlobals.src.popup, &(cbs->event->xbutton));
+	  XtManageChild(warpGlobals.src.popup);
+	}
+	break;
+      }
     }
     break;
 
@@ -873,7 +978,14 @@ void warpSrcCanvasInputCb(
     case Button3:
       break;
     }
-    if( resetOvlyFlg ){
+    if( toggle = XtNameToWidget(warpGlobals.warp2DInteractDialog,
+				"*.autoUpdate") ){
+      XtVaGetValues(toggle, XmNset, &autoUpdateFlg, NULL);
+    }
+    else {
+      autoUpdateFlg = True;
+    }
+    if( (autoUpdateFlg == True) && resetOvlyFlg ){
       /* update the overlay image and display */
       warpSetOvlyObject();
       warpSetOvlyXImages(&(warpGlobals.ovly), 1);
@@ -883,8 +995,8 @@ void warpSrcCanvasInputCb(
 			 call_data);
       XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
 		      call_data);
-      resetOvlyFlg = 0;
     }
+    resetOvlyFlg = 0;
     break;
 
   case EnterNotify:

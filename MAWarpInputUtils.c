@@ -94,6 +94,7 @@ void warpSetOvlyObject(void)
   WlzValues		values;
   WlzDVertex2		*transVtxs, tmpVtx;
   double		delta;
+  int			invertFlg;
 
   /* define the affine transform from the tie points */
   if( warpGlobals.num_vtxs < 1 ){
@@ -122,7 +123,7 @@ void warpSetOvlyObject(void)
   }
   if( (trans = WlzAffineTransformLSq2D(warpGlobals.num_vtxs, srcVtxs,
 				       warpGlobals.num_vtxs, dstVtxs,
-				       WLZ_TRANSFORM_2D_NOSHEAR,
+				       warpGlobals.affineType,
 				       &errNum)) == NULL ){
     (void) WlzStringFromErrorNum(errNum, &warpErrStr);
     sprintf(warpErrBuf,
@@ -263,7 +264,18 @@ void warpSetOvlyObject(void)
     WlzFreeObj(transObj);
   }
   WlzFreeObj(tmpPoly);*/
-  WlzSetMeshAffineProduct(warpGlobals.meshTr, warpGlobals.affine);
+  /* test for inversion */
+  delta = (warpGlobals.affine->mat[0][0] * warpGlobals.affine->mat[1][1])
+    - (warpGlobals.affine->mat[0][1] * warpGlobals.affine->mat[1][0]);
+  if( delta < 0.0 ){
+    invertFlg = 1;
+  }
+  else {
+    invertFlg = 0;
+  }
+  if( !invertFlg ){
+    WlzSetMeshAffineProduct(warpGlobals.meshTr, warpGlobals.affine);
+  }
 
   /* verify the mesh */
   if((errNum = WlzMeshTransformVerify(warpGlobals.meshTr, 1,
@@ -341,6 +353,17 @@ void warpSetOvlyObject(void)
 				     warpGlobals.meshTr,
 				     WLZ_INTERPOLATION_NEAREST,
 				     &errNum) ){
+    /* if inverted then need to do the affine transform here
+       and transform the mesh so it will display properly */
+    if( invertFlg ){
+      WlzObject	*tmpObj;
+      transObj = WlzAssignObject(transObj, &errNum);
+      tmpObj = WlzAffineTransformObj(transObj, warpGlobals.affine, WLZ_INTERPOLATION_NEAREST, &errNum);
+      WlzSetMeshAffineProduct(warpGlobals.meshTr, warpGlobals.affine);
+      WlzFreeObj(transObj);
+      transObj = tmpObj;
+    }
+
     if( warpGlobals.ovly.obj ){
       cobj = (WlzCompoundArray *) warpGlobals.ovly.obj;
       if( cobj->n > 1 ){
@@ -443,9 +466,16 @@ void warpIOWrite(
 				      "point parameters to be saved\n"
 				      "as plain text",
 				      "OK", "cancel",
-				      "MAPaintWarpParams.bib",
+				      warpGlobals.warpBibFile? 
+				      warpGlobals.warpBibFile:"MAPaintWarpParams.bib",
 				      NULL, "*.bib") ){
     if( fp = fopen(fileStr, "w") ){
+
+      if( warpGlobals.warpBibFile ){
+	AlcFree( warpGlobals.warpBibFile );
+      }
+      warpGlobals.warpBibFile = AlcStrDup(fileStr);
+
       /* write some sort of identifier */
       bibfileRecord = 
 	BibFileRecordMake("Ident", "0",
@@ -529,10 +559,11 @@ void warpIOWrite(
 
       /* write the warp transform parameters */
       if( WlzEffBibWriteWarpTransformParamsRecord(fp, "WlzWarpTransformParams",
-					      warpGlobals.basisFnType,
-					      warpGlobals.meshMthd,
-					      warpGlobals.meshMinDst,
-					      warpGlobals.meshMaxDst)
+						  warpGlobals.basisFnType,
+						  warpGlobals.affineType,
+						  warpGlobals.meshMthd,
+						  warpGlobals.meshMinDst,
+						  warpGlobals.meshMaxDst)
 	 != WLZ_ERR_NONE ){
 	HGU_XmUserError(globals.topl,
 			"Save Warp Parameters:\n"
@@ -580,26 +611,37 @@ void warpIOWrite(
 		 	XmDIALOG_FULL_APPLICATION_MODAL);
       }
 
-      /* write the tie points */
-      for(i=0; i < warpGlobals.num_vtxs; i++){
-	WlzDVertex3	vtx1, vtx2;
-	vtx1.vtX = warpGlobals.dst_vtxs[i].vtX;
-	vtx1.vtY = warpGlobals.dst_vtxs[i].vtY;
-	vtx1.vtZ = 0.0;
-	vtx2.vtX = warpGlobals.src_vtxs[i].vtX;
-	vtx2.vtY = warpGlobals.src_vtxs[i].vtY;
-	vtx2.vtZ = 0.0;
-	if( WlzEffBibWriteTiePointVtxsRecord(fp, "WlzTiePointVtxs", i, vtx1, vtx2)
-	   != WLZ_ERR_NONE ){
-	  HGU_XmUserError(globals.topl,
-			  "Save Warp Parameters:\n"
-			  "    Error in writing the bibfile\n"
-			  "    Please check disk space or quotas\n"
-			  "    Section parameters not saved",
-			  XmDIALOG_FULL_APPLICATION_MODAL);
-	  break;
+      /* write the tie points only if there is a src image */
+      if( warpGlobals.src.obj ){
+	for(i=0; i < warpGlobals.num_vtxs; i++){
+	  WlzDVertex3	vtx1, vtx2;
+	  vtx1.vtX = warpGlobals.dst_vtxs[i].vtX;
+	  vtx1.vtY = warpGlobals.dst_vtxs[i].vtY;
+	  vtx1.vtZ = 0.0;
+	  if(warpGlobals.dst.obj != NULL){
+	    vtx1.vtX += warpGlobals.dst.obj->domain.i->kol1;
+	    vtx1.vtY += warpGlobals.dst.obj->domain.i->line1;
+	  }
+	  vtx2.vtX = warpGlobals.src_vtxs[i].vtX;
+	  vtx2.vtY = warpGlobals.src_vtxs[i].vtY;
+	  vtx2.vtZ = 0.0;
+	  if(warpGlobals.src.obj != NULL){
+	    vtx2.vtX -= warpGlobals.srcXOffset;
+	    vtx2.vtY -= warpGlobals.srcYOffset;
+	  }
+	  if( WlzEffBibWriteTiePointVtxsRecord(fp, "WlzTiePointVtxs", i,
+					       vtx1, vtx2, 0)
+	     != WLZ_ERR_NONE ){
+	    HGU_XmUserError(globals.topl,
+			    "Save Warp Parameters:\n"
+			    "    Error in writing the bibfile\n"
+			    "    Please check disk space or quotas\n"
+			    "    Section parameters not saved",
+			    XmDIALOG_FULL_APPLICATION_MODAL);
+	    break;
+	  }
 	}
-      }	
+      }
 
       /* close the file */
       if( fclose(fp) == EOF ){
@@ -651,7 +693,8 @@ void warpIORead(
 				      "WARNING: this will delete all\n"
 				      "current tie-points",
 				      "OK", "cancel",
-				      "MAPaintWarpParams.bib",
+				      warpGlobals.warpBibFile? 
+				      warpGlobals.warpBibFile:"MAPaintWarpParams.bib",
 				      NULL, "*.bib") ){
     warp2DInteractDeleteAllCb(w, client_data, call_data);
 
@@ -659,6 +702,11 @@ void warpIORead(
       BibFileRecord	*bibfileRecord;
       BibFileError	bibFileErr;
       char		*errMsg;
+
+      if( warpGlobals.warpBibFile ){
+	AlcFree( warpGlobals.warpBibFile );
+      }
+      warpGlobals.warpBibFile = AlcStrDup(fileStr);
 
       /* read the bibfile */
       bibFileErr = BibFileRecordRead(&bibfileRecord, &errMsg, fp);
@@ -720,12 +768,73 @@ void warpIORead(
 	  WlzMeshGenMethod	meshMthd;
 	  int			meshMinDst;
 	  int	 		meshMaxDst;
+	  WlzTransformType	affineType;
 
 	  WlzEffBibParseWarpTransformParamsRecord(bibfileRecord,
-					      &basisFnType, &meshMthd,
-					      &meshMinDst, &meshMaxDst);
-	  /* set the parameters, note in this version the basisFnType
-	     is not set */
+						  &basisFnType,
+						  &affineType,
+						  &meshMthd,
+						  &meshMinDst, &meshMaxDst);
+	  /* set the parameters, note in this version the basisFnType 
+	     is not set  - now it is */
+	  if( option_menu = XtNameToWidget(view_struct->dialog,
+					   "*.mesh_function") ){
+	    switch( basisFnType ){
+	    default:
+	    case WLZ_BASISFN_MQ:
+	      if( widget = XtNameToWidget(option_menu, "*.multiquadric") ){
+		XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
+		XtCallCallbacks(widget, XmNactivateCallback, NULL);
+	      }
+	      break;
+
+	    case WLZ_BASISFN_TPS:
+	      if( widget = XtNameToWidget(option_menu, "*.thin-plate spline") ){
+		XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
+		XtCallCallbacks(widget, XmNactivateCallback, NULL);
+	      }
+	      break;
+
+	    case WLZ_BASISFN_POLY:
+	      if( widget = XtNameToWidget(option_menu, "*.polynomial") ){
+		XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
+		XtCallCallbacks(widget, XmNactivateCallback, NULL);
+	      }
+	      break;
+
+	    }
+	  }
+	
+	  /* set the affine transform type */
+	  if( option_menu = XtNameToWidget(view_struct->dialog,
+					   "*.affine_type") ){
+	    switch( affineType ){
+	    default:
+	    case WLZ_TRANSFORM_2D_NOSHEAR:
+	      if( widget = XtNameToWidget(option_menu, "*.noshear") ){
+		XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
+		XtCallCallbacks(widget, XmNactivateCallback, NULL);
+	      }
+	      break;
+
+	    case WLZ_TRANSFORM_2D_REG:
+	      if( widget = XtNameToWidget(option_menu, "*.rigid") ){
+		XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
+		XtCallCallbacks(widget, XmNactivateCallback, NULL);
+	      }
+	      break;
+
+	    case WLZ_TRANSFORM_2D_AFFINE:
+	      if( widget = XtNameToWidget(option_menu, "*.affine") ){
+		XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
+		XtCallCallbacks(widget, XmNactivateCallback, NULL);
+	      }
+	      break;
+
+	    }
+	  }
+		
+	  /* set the mesh generation method */
 	  if( option_menu = XtNameToWidget(view_struct->dialog,
 					   "*.mesh_method") ){
 	    switch( meshMthd ){
@@ -761,11 +870,18 @@ void warpIORead(
 	  int		index;
 	  WlzDVertex3	dstVtx;
 	  WlzDVertex3	srcVtx;
+	  int		relFlg;
 
 	  WlzEffBibParseTiePointVtxsRecord(bibfileRecord, &index,
-				       &dstVtx, &srcVtx);
+				       &dstVtx, &srcVtx, &relFlg);
 	  /* only add if there is a source image */
 	  if( warpGlobals.src.obj ){
+	    if( !relFlg ){
+	      dstVtx.vtX -= warpGlobals.dst.obj->domain.i->kol1;
+	      dstVtx.vtY -= warpGlobals.dst.obj->domain.i->line1;
+	      srcVtx.vtX += warpGlobals.srcXOffset;
+	      srcVtx.vtY += warpGlobals.srcYOffset;
+	    }
 	    warpGlobals.dst_vtxs[warpGlobals.num_vtxs].vtX = dstVtx.vtX;
 	    warpGlobals.dst_vtxs[warpGlobals.num_vtxs].vtY = dstVtx.vtY;
 	    warpGlobals.src_vtxs[warpGlobals.num_vtxs].vtX = srcVtx.vtX;
@@ -846,6 +962,11 @@ void warpIORead(
 					 warpGlobals.srcYOffset,
 					 0, &errNum), NULL);
 	      WlzFreeObj(obj);
+
+	      warpSetXImage(&(warpGlobals.src));
+	      warpCanvasExposeCb(warpGlobals.src.canvas,
+				 (XtPointer) &(warpGlobals.src),
+				 call_data);
 	    }
 	  }
 	}
@@ -948,6 +1069,51 @@ void warpIORead(
   return;
 }
 
+void warpIOWriteAffine(
+  Widget		w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  String		fileStr;
+  FILE			*fp;
+
+  /* check for source object */
+  if((warpGlobals.src.obj == NULL)){
+    return;
+  }
+
+  /* get a filename for the affine transform */
+  if( fileStr = HGU_XmUserGetFilename(globals.topl,
+				      "Please type in a filename\n"
+				      "for the affine transform\n",
+				      "OK", "cancel",
+				      "MAPaintWarpAffine.wlz",
+				      NULL, "*.wlz") ){
+
+    if( fp = fopen(fileStr, "w") ){
+      if( warpGlobals.affine ){
+	WlzObject *obj;
+	WlzDomain	domain;
+	WlzValues	values;
+	WlzAffineTransform	*t;
+
+	domain.t = warpGlobals.affine;
+	values.core = NULL;
+	if( obj = WlzMakeMain(WLZ_AFFINE_TRANS, domain, values,
+			      NULL, NULL, NULL) ){
+	  WlzWriteObj(fp, obj);
+	  domain.core = NULL;
+	  WlzFreeObj(obj);
+	}
+      }
+
+      (void) fclose(fp);
+    }
+  }
+
+  return;
+}
+
 void warpIOWriteImage(
   Widget		w,
   XtPointer	client_data,
@@ -1009,6 +1175,11 @@ static MenuItem warpIOMenuItemsP[] = {  /* controls values io menu */
   {"warped_image_write_nn", &xmPushButtonGadgetClass,
    0, NULL, NULL, False,
    warpIOWriteImage, (XtPointer) 0,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"write_affine", &xmPushButtonGadgetClass,
+   0, NULL, NULL, False,
+   warpIOWriteAffine, (XtPointer) 0,
    HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   NULL,

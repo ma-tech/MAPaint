@@ -84,6 +84,19 @@ void warpMeshFunctionCb(
   return;
 }
 
+void warpAffineTypeCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  WlzTransformType	type=(WlzTransformType) client_data;
+  WlzErrorNum		errNum;
+
+  warpGlobals.affineType = type;
+
+  return;
+}
+
 void warpMeshMinDistCb(
   Widget		w,
   XtPointer		client_data,
@@ -113,6 +126,39 @@ void warpMeshMinDistCb(
   XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback, call_data);
   XtCallCallbacks(warpGlobals.src.canvas, XmNexposeCallback, call_data);
   XtCallCallbacks(warpGlobals.ovly.canvas, XmNexposeCallback, call_data);
+
+  return;
+}
+
+void warpRemeshCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  /* only if there is a source object */
+  if( warpGlobals.src.obj == NULL ){
+    return;
+  }
+
+  /* reset the source mesh */
+  if( warpGlobals.meshTr ){
+    WlzMeshFreeTransform(warpGlobals.meshTr);
+  }
+  warpGlobals.meshTr = WlzMeshFromObj(warpGlobals.src.obj,
+				      warpGlobals.meshMthd,
+				      warpGlobals.meshMinDst,
+				      warpGlobals.meshMaxDst,
+				      NULL);
+  warpSetOvlyObject();
+  warpSetOvlyXImages(&(warpGlobals.ovly), 1);
+  warpSetOvlyXImage(&(warpGlobals.ovly));
+  warpCanvasExposeCb(warpGlobals.ovly.canvas,
+		     (XtPointer) &(warpGlobals.ovly),
+		     call_data);
+  XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
+		  call_data);
+  XtCallCallbacks(warpGlobals.src.canvas, XmNexposeCallback,
+		  call_data);
 
   return;
 }
@@ -1170,6 +1216,77 @@ static Widget createWarpDisplayFrame(
   return frame;
 }
 
+void warp2DInteractDeleteSelectedCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  XmPushButtonCallbackStruct
+    *cbs = (XmPushButtonCallbackStruct *) call_data;
+  int		resetOvlyFlg=0;
+  int		i, j;
+
+  /* delete any partially selected tie-point pair
+     since these will appear "selected" on the display */
+  switch( warpGlobals.tp_state ){
+  case TP_INACTIVE:
+    break;
+
+  case TP_DST_DEFINED:
+    /* delete selected destination vertex */
+    warpUndisplayVtx(&(warpGlobals.dst),
+		     warpGlobals.dst_vtxs[warpGlobals.num_vtxs]);
+    warpGlobals.tp_state = TP_INACTIVE;
+    break;
+
+  case TP_SRC_DEFINED:
+    /* delete selected source vertex */
+    warpUndisplayVtx(&(warpGlobals.src),
+		     warpGlobals.src_vtxs[warpGlobals.num_vtxs]);
+    warpGlobals.tp_state = TP_INACTIVE;
+    break;
+
+  case TP_SELECTED:
+    break;
+  }
+
+  /* now delete the multi-selected tie-points */
+  for(i = warpGlobals.num_vtxs-1; i >= 0; i--){
+    if( warpGlobals.sel_vtxs[i] ){
+      warpGlobals.sel_vtxs[i] = 0;
+      warpUndisplayVtx(&(warpGlobals.dst),
+		       warpGlobals.dst_vtxs[i]);
+      warpUndisplayVtx(&(warpGlobals.src),
+		       warpGlobals.src_vtxs[i]);
+      warpGlobals.num_vtxs--;
+      j = i;	
+      while( j < warpGlobals.num_vtxs ){
+	warpGlobals.dst_vtxs[j] = warpGlobals.dst_vtxs[j+1];
+	warpGlobals.src_vtxs[j] = warpGlobals.src_vtxs[j+1];
+	j++;
+      }
+      resetOvlyFlg = 1;
+    }
+  }
+      
+  warpDisplayTiePoints();
+
+
+  if( resetOvlyFlg ){
+    /* update the overlay image and display */
+    warpSetOvlyObject();
+    warpSetOvlyXImages(&(warpGlobals.ovly), 1);
+    warpSetOvlyXImage(&(warpGlobals.ovly));
+    warpCanvasExposeCb(warpGlobals.ovly.canvas,
+		       (XtPointer) &(warpGlobals.ovly),
+		       call_data);
+    XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
+		    call_data);
+  }
+
+  return;
+}
+
 void warp2DInteractDeleteLastCb(
   Widget		w,
   XtPointer		client_data,
@@ -1298,11 +1415,33 @@ void warp2DInteractDeleteAllCb(
   return;
 }
 
+void warpUpdateCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+
+  /* display the tie-points */
+  warpDisplayTiePoints();
+
+  /* update the overlay image and display */
+  warpSetOvlyObject();
+  warpSetOvlyXImages(&(warpGlobals.ovly), 1);
+  warpSetOvlyXImage(&(warpGlobals.ovly));
+  warpCanvasExposeCb(warpGlobals.ovly.canvas,
+		     (XtPointer) &(warpGlobals.ovly),
+		     call_data);
+  XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
+		  call_data);
+
+  return;
+}
+
 static ActionAreaItem   warp_interact_actions[] = {
 {"delete_last",	warp2DInteractDeleteLastCb,		NULL},
+{"delete_selected",	warp2DInteractDeleteSelectedCb,		NULL},
 {"delete_all",	warp2DInteractDeleteAllCb,		NULL},
 {"dismiss",	warp2DInteractDismissCb,           NULL},
-{"blink_comp",	NULL,		NULL},
 {"help",	NULL,           NULL},
 };
 
@@ -1406,7 +1545,7 @@ static Widget create2DWarpDialog(
   Widget parent,
   ThreeDViewStruct *view_struct)
 {
-  Widget	dialog, control, child, button;
+  Widget	dialog, control, child, button, toggle;
   Visual	*visual;
 
   /* create a dialog widget and get control form and 24-bit visual */
@@ -1419,10 +1558,43 @@ static Widget create2DWarpDialog(
     visual = HGU_XmWidgetToVisual(globals.topl);
   }
 
+  /* add some control buttons */
+  toggle = XtVaCreateManagedWidget("autoUpdate",
+				   xmToggleButtonGadgetClass, control,
+				   XmNtopAttachment,	XmATTACH_FORM,
+				   XmNleftAttachment,	XmATTACH_FORM,
+				   XmNset,	True,
+				   NULL);
+
+  button = XtVaCreateManagedWidget("update", xmPushButtonGadgetClass,
+				   control,
+				   XmNtopAttachment,	XmATTACH_FORM,
+				   XmNleftAttachment,	XmATTACH_WIDGET,
+				   XmNleftWidget,	toggle,
+				   NULL);
+  XtAddCallback(button, XmNactivateCallback, warpUpdateCb, NULL);
+
+  button = XtVaCreateManagedWidget("remesh", xmPushButtonGadgetClass,
+				   control,
+				   XmNtopAttachment,	XmATTACH_FORM,
+				   XmNleftAttachment,	XmATTACH_WIDGET,
+				   XmNleftWidget,	button,
+				   NULL);
+  XtAddCallback(button, XmNactivateCallback, warpRemeshCb, NULL);
+
+  button = XtVaCreateManagedWidget("blink_comp", xmToggleButtonGadgetClass,
+				   control,
+				   XmNtopAttachment,	XmATTACH_FORM,
+				   XmNleftAttachment,	XmATTACH_WIDGET,
+				   XmNleftWidget,	button,
+				   XmNset,	False,
+				   NULL);
+
   /* add children */
   child = createWarpDisplayFrame(control, "warp_dst_frame", visual, 24);
   XtVaSetValues(child,
-		XmNtopAttachment,	XmATTACH_FORM,
+		XmNtopAttachment,	XmATTACH_WIDGET,
+		XmNtopWidget,		toggle,
 		XmNbottomAttachment,	XmATTACH_FORM,
 		XmNleftAttachment,	XmATTACH_POSITION,
 		XmNleftPosition,	0,
@@ -1477,7 +1649,8 @@ static Widget create2DWarpDialog(
 
   child = createWarpDisplayFrame(control, "warp_src_frame", visual, 24);
   XtVaSetValues(child,
-		XmNtopAttachment,	XmATTACH_FORM,
+		XmNtopAttachment,	XmATTACH_WIDGET,
+		XmNtopWidget,		toggle,
 		XmNbottomAttachment,	XmATTACH_FORM,
 		XmNleftAttachment,	XmATTACH_POSITION,
 		XmNleftPosition,	33,
@@ -1531,7 +1704,8 @@ static Widget create2DWarpDialog(
 
   child = createWarpDisplayFrame(control, "warp_ovly_frame", visual, 24);
   XtVaSetValues(child,
-		XmNtopAttachment,	XmATTACH_FORM,
+		XmNtopAttachment,	XmATTACH_WIDGET,
+		XmNtopWidget,		toggle,
 		XmNbottomAttachment,	XmATTACH_FORM,
 		XmNleftAttachment,	XmATTACH_POSITION,
 		XmNleftPosition,	67,
@@ -1597,6 +1771,7 @@ static Widget create2DWarpDialog(
 static ActionAreaItem   warp_controls_actions[] = {
 {"src_read",	NULL,		NULL},
 {"sgnl_read",	NULL,		NULL},
+{"re_mesh",	NULL,		NULL},
 {"i_o",		NULL,           NULL},
 {"import",	NULL,           NULL},
 };
@@ -1633,6 +1808,22 @@ static MenuItem interpFunctionItemsP[] = { /* interp_function_menu items */
   NULL,
 };
 
+static MenuItem affineTypeItemsP[] = { /* interp_function_menu items */
+  {"noshear", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   warpAffineTypeCb, (XtPointer) WLZ_TRANSFORM_2D_NOSHEAR,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"rigid", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   warpAffineTypeCb, (XtPointer) WLZ_TRANSFORM_2D_REG,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"affine", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   warpAffineTypeCb, (XtPointer) WLZ_TRANSFORM_2D_AFFINE,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  NULL,
+};
+
 
 Widget createWarpInput2DDialog(
   Widget	topl)
@@ -1645,6 +1836,7 @@ Widget createWarpInput2DDialog(
   Widget	toggle, slider, scale, sgnl_controls;
   float		fval, fmin, fmax;
   Visual	*visual;
+  int		i;
 
   /* check for reference object */
   if( !globals.obj ){
@@ -1714,6 +1906,16 @@ Widget createWarpInput2DDialog(
 		XmNleftWidget,		widget,
 		NULL);
   XtManageChild(option_menu);
+  widget = option_menu;
+
+  option_menu = HGU_XmBuildMenu(form, XmMENU_OPTION, "affine_type", 0,
+				XmTEAR_OFF_DISABLED, affineTypeItemsP);
+  XtVaSetValues(option_menu,
+		XmNtopAttachment,	XmATTACH_FORM,
+		XmNleftAttachment,	XmATTACH_WIDGET,
+		XmNleftWidget,		widget,
+		NULL);
+  XtManageChild(option_menu);
 
   /* defaults for the mesh distances */
   warpGlobals.meshMinDst = 20.0;
@@ -1772,6 +1974,14 @@ Widget createWarpInput2DDialog(
 		XmNalignment, XmALIGNMENT_CENTER,
 		NULL); 
   XtAddCallback(widget, XmNactivateCallback, warpReadSignalPopupCb,
+		view_struct);
+
+  widget = XtNameToWidget(buttons, "*.re_mesh");
+  XtVaSetValues(widget,
+		XmNpushButtonEnabled, True,
+		XmNalignment, XmALIGNMENT_CENTER,
+		NULL); 
+  XtAddCallback(widget, XmNactivateCallback, warpRemeshCb,
 		view_struct);
 
   widget = XtNameToWidget(buttons, "*.i_o");
@@ -1986,6 +2196,7 @@ Widget createWarpInput2DDialog(
   warpGlobals.sgnlObj = NULL;
   warpGlobals.sgnlFileType = WLZEFF_FORMAT_NONE;
   warpGlobals.sgnlProcObj = NULL;
+  warpGlobals.warpBibFile = NULL;
   warpGlobals.dst.obj = NULL;
   warpGlobals.src.obj = NULL;
   warpGlobals.ovly.obj = NULL;
@@ -2013,6 +2224,9 @@ Widget createWarpInput2DDialog(
 
   warpGlobals.num_vtxs = 0;
   warpGlobals.sel_vtx = 0;
+  for(i=0; i < WARP_MAX_NUM_VTXS; i++){
+    warpGlobals.sel_vtxs[i] = 0;
+  }
   warpGlobals.tp_state = TP_INACTIVE;
   warpGlobals.green_gc = (GC) -1;
   warpGlobals.red_gc = (GC) -1;
@@ -2020,6 +2234,7 @@ Widget createWarpInput2DDialog(
   warpGlobals.yellow_gc = (GC) -1;
 
   warpGlobals.affine = NULL;
+  warpGlobals.affineType = WLZ_TRANSFORM_2D_NOSHEAR;
   warpGlobals.basisTr = NULL;
   warpGlobals.basisFnType = WLZ_BASISFN_MQ;
   warpGlobals.meshTr = NULL;
