@@ -357,6 +357,19 @@ void fixed_2_cancel_cb(
   /* normal viewing sliders active and unset fixed-line mode */
   setViewSliderSensitivities(view_struct, True);
   view_struct->controlFlag &= ~MAPAINT_FIXED_LINE_SET;
+  reset_view_struct( view_struct );
+
+  /* set the zeta slider */
+  if( widget = XtNameToWidget(view_struct->dialog, "*.zeta_slider") ){
+    if( wlzViewStr->view_mode == WLZ_ZETA_MODE ){
+      XtSetSensitive(widget, True);
+    }
+    else {
+      XtSetSensitive(widget, False);
+      HGU_XmSetSliderValue(widget,
+			   wlzViewStr->zeta * 180.0 / WLZ_M_PI);
+    }
+  }
 
   /* redisplay the section */
   XClearWindow(XtDisplay(view_struct->canvas),

@@ -328,6 +328,9 @@ main(
   
   /* create the top level shell */
   XtToolkitInitialize();
+  if( XtToolkitThreadInitialize() ){
+    fprintf(stderr, "MAPaint: threadsafe\n");
+  }
   app_con = XtCreateApplicationContext();
   XtAppSetFallbackResources(app_con, fallback_resources);
   dpy = XtOpenDisplay(app_con, NULL, nameStr, "MAPaint", mapaint_options, 10,

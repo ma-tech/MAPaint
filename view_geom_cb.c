@@ -160,8 +160,9 @@ void distance_cb(
   }
 
   /* cancel fixed line mode if set */
-  setViewSliderSensitivities(view_struct, True);
-  view_struct->controlFlag &= ~MAPAINT_FIXED_LINE_SET;
+  if( wlzViewStr->view_mode == WLZ_FIXED_LINE_MODE ){
+    fixed_2_cancel_cb(w, client_data, call_data);
+  }
 
   /* tablet needs re-initialising if in use */
   view_struct->tablet_initialised = 0;

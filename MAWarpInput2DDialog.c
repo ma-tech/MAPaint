@@ -772,6 +772,8 @@ static void warpSetupCb(
 
   if( cbs->set == True ){
     if( paint_key == view_struct ){
+      XSync(XtDisplay(view_struct->canvas), False);
+/*      XtUngrabPointer(widget, CurrentTime);*/
       if( !warpGlobals.warp2DInteractDialog ){
 	warpGlobals.warp2DInteractDialog =
 	  create2DWarpDialog(dialog, view_struct);
