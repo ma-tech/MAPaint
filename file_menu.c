@@ -1090,6 +1090,7 @@ void file_menu_init(
 					       NULL);
   HGU_XmExtFFObjectFSBSetType(write_obj_dialog, WLZEFF_FORMAT_WLZ);
 
+
   /* initialise the reference file list pulldown */
   if( !globals.sectViewFlg ){
     Widget	cascade;
