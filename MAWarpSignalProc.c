@@ -13,7 +13,7 @@
 *   Author Name :  richard						*
 *   Author Login:  richard@hgu.mrc.ac.uk				*
 *   Date        :  Fri May  2 17:55:41 2003				*
-*   $Revision$								*
+*   $Revision$					       		*
 *   $Name$								*
 *   Synopsis    : 							*
 *************************************************************************
@@ -30,26 +30,6 @@
 #include <MAPaint.h>
 #include <MAWarp.h>
 
-extern Widget createWarpDisplayFrame(
-  Widget	parent,
-  String	name,
-  Visual	*visual,
-  int		depth);
-
-extern WlzObject *mapaintWarpObj(
-  WlzObject	*obj,
-  WlzInterpolationType	interpType);
-
-extern void view_canvas_highlight(
-  ThreeDViewStruct	*view_struct,
-  Boolean		highlight);
-
-extern MAPaintWarp2DStruct warpGlobals;
-extern Widget warp_read_src_dialog;
-extern Widget warp_read_sgnl_dialog;
-
-extern void warpSetSignalDomain(void);
-
 void warpSgnlDomainCanvasExposeCb(
   Widget		w,
   XtPointer		client_data,
@@ -62,483 +42,22 @@ void warpSgnlDomainCanvasExposeCb(
   return;
 }
 
-static void sgnlResetSgnlDomain(
-  Widget	w)
+void warpSwitchIncrementDomain(
+  int	incrFlg)
 {
+  Widget	toggle;
 
-  /* set the signal domain */
-  if( warpGlobals.sgnlObj ){
-    warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
-  }
-  warpSetSignalDomain();
-  if( warpGlobals.sgnlObj ){
-    warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
-  }
-  XFlush(XtDisplayOfObject(w));
-
-  return;
-}
-
-static void sgnlInteractSetHighLowControls(
-  WlzPixelV	pix1,
-  WlzPixelV	pix2)
-{
-  float		val1, val2;
-  UINT		r, g, b;
-  WlzErrorNum	errNum=WLZ_ERR_NONE;
-  Widget	slider, text;
-  char		buf[64];
-
-  /* switch on threshold type - determines the page */
-  switch( warpGlobals.thresholdType ){
-
-  case WLZ_RGBA_THRESH_SINGLE:
-    val1 = WlzRGBAPixelValue(pix1, warpGlobals.threshColorChannel, &errNum);
-    val2 = WlzRGBAPixelValue(pix2, warpGlobals.threshColorChannel, &errNum);
-    warpGlobals.threshRangeLow = WLZ_MIN(val1, val2);
-    warpGlobals.threshRangeHigh = WLZ_MAX(val1, val2);
-
-    /* set the sliders */
-    if( slider = XtNameToWidget(warpGlobals.sgnlControls,
-				"*.thresh_range_low") ){
-      HGU_XmSetSliderValue(slider, warpGlobals.threshRangeLow);
-    }
-    if( slider = XtNameToWidget(warpGlobals.sgnlControls,
-				"*.thresh_range_high") ){
-      HGU_XmSetSliderValue(slider, warpGlobals.threshRangeHigh);
-    } 
-    break;
-
-  case WLZ_RGBA_THRESH_MULTI:
-    /* use grey or rgb value to set max and min sliders */
-    /* set red */
-    val1 = WlzRGBAPixelValue(pix1, WLZ_RGBA_CHANNEL_RED, &errNum);
-    val2 = WlzRGBAPixelValue(pix2, WLZ_RGBA_CHANNEL_RED, &errNum);
-    warpGlobals.threshRangeRGBLow[0] = WLZ_MIN(val1, val2);
-    warpGlobals.threshRangeRGBHigh[0] = WLZ_MAX(val1, val2);
-
-    /* set the sliders */
-    if( slider = XtNameToWidget(warpGlobals.sgnlControls,
-				"*.thresh_range_red_low") ){
-      HGU_XmSetSliderValue(slider, warpGlobals.threshRangeRGBLow[0]);
-    }
-    if( slider = XtNameToWidget(warpGlobals.sgnlControls,
-				"*.thresh_range_red_high") ){
-      HGU_XmSetSliderValue(slider, warpGlobals.threshRangeRGBHigh[0]);
-    } 
-
-    /* set green */
-    val1 = WlzRGBAPixelValue(pix1, WLZ_RGBA_CHANNEL_GREEN, &errNum);
-    val2 = WlzRGBAPixelValue(pix2, WLZ_RGBA_CHANNEL_GREEN, &errNum);
-    warpGlobals.threshRangeRGBLow[1] = WLZ_MIN(val1, val2);
-    warpGlobals.threshRangeRGBHigh[1] = WLZ_MAX(val1, val2);
-
-    /* set the sliders */
-    if( slider = XtNameToWidget(warpGlobals.sgnlControls,
-				"*.thresh_range_green_low") ){
-      HGU_XmSetSliderValue(slider, warpGlobals.threshRangeRGBLow[1]);
-    } 
-    if( slider = XtNameToWidget(warpGlobals.sgnlControls,
-				"*.thresh_range_green_high") ){
-      HGU_XmSetSliderValue(slider, warpGlobals.threshRangeRGBHigh[1]);
-    } 
-
-    /* set blue */
-    val1 = WlzRGBAPixelValue(pix1, WLZ_RGBA_CHANNEL_BLUE, &errNum);
-    val2 = WlzRGBAPixelValue(pix2, WLZ_RGBA_CHANNEL_BLUE, &errNum);
-    warpGlobals.threshRangeRGBLow[2] = WLZ_MIN(val1, val2);
-    warpGlobals.threshRangeRGBHigh[2] = WLZ_MAX(val1, val2);
-
-    /* set the sliders */
-    if( slider = XtNameToWidget(warpGlobals.sgnlControls,
-				"*.thresh_range_blue_low") ){
-      HGU_XmSetSliderValue(slider, warpGlobals.threshRangeRGBLow[2]);
-    } 
-    if( slider = XtNameToWidget(warpGlobals.sgnlControls,
-				"*.thresh_range_blue_high") ){
-      HGU_XmSetSliderValue(slider, warpGlobals.threshRangeRGBHigh[2]);
-    } 
-    break;
-
-  case WLZ_RGBA_THRESH_SLICE:
-  case WLZ_RGBA_THRESH_BOX:
-  case WLZ_RGBA_THRESH_SPHERE:
-    /* use grey or rgb value to set threshold end-points */
-    r = WlzRGBAPixelValue(pix1, WLZ_RGBA_CHANNEL_RED, &errNum);
-    g = WlzRGBAPixelValue(pix1, WLZ_RGBA_CHANNEL_GREEN, &errNum);
-    b = WlzRGBAPixelValue(pix1, WLZ_RGBA_CHANNEL_BLUE, &errNum);
-    WLZ_RGBA_RGBA_SET(warpGlobals.lowRGBPoint.v.rgbv, r, g, b, 255);
-    if( text = XtNameToWidget(warpGlobals.sgnlControls,
-			      "*textRGBStart") ){
-      sprintf(buf, "%d,%d,%d", r, g, b);
-      XtVaSetValues(text, XmNvalue, buf, NULL);
-    }
-    r = WlzRGBAPixelValue(pix2, WLZ_RGBA_CHANNEL_RED, &errNum);
-    g = WlzRGBAPixelValue(pix2, WLZ_RGBA_CHANNEL_GREEN, &errNum);
-    b = WlzRGBAPixelValue(pix2, WLZ_RGBA_CHANNEL_BLUE, &errNum);
-    WLZ_RGBA_RGBA_SET(warpGlobals.highRGBPoint.v.rgbv, r, g, b, 255);
-    if( text = XtNameToWidget(warpGlobals.sgnlControls,
-			      "*textRGBFinish") ){
-      sprintf(buf, "%d,%d,%d", r, g, b);
-      XtVaSetValues(text, XmNvalue, buf, NULL);
-    }
-    break;
-  }
-
-  return;
-}
-
-static void warpSetSignalProcObj(void)
-{
-  WlzObject	*obj1, *obj2;
-  Widget	toggle, slider;
-  Boolean	setFlg;
-  WlzErrorNum	errNum=WLZ_ERR_NONE;
-
-  if( warpGlobals.sgnlProcObj ){
-    WlzFreeObj(warpGlobals.sgnlProcObj);
-    warpGlobals.sgnlProcObj = NULL;
-  }
-
-  if( warpGlobals.sgnl.obj ){
-    if( obj1 = WlzCopyObject(warpGlobals.sgnl.obj, &errNum) ){
-      obj1 = WlzAssignObject(obj1, NULL);
-    }
-  }
-  else {
-    return;
-  }
-
-  /* normalise the data */
-  if( errNum == WLZ_ERR_NONE ){
-    if( toggle = XtNameToWidget(globals.topl,
-				"*warp_sgnl_controls_form*normalise") ){
-      XtVaGetValues(toggle, XmNset, &setFlg, NULL);
-      if( setFlg ){
-	errNum = WlzGreyNormalise(obj1);
+  if( toggle = XtNameToWidget(warpGlobals.sgnlControls,
+			      "*incremental_thresh") ){
+    XtVaSetValues(toggle,
+		  XmNset, (incrFlg?True:False),
+		  NULL);
+    if( !incrFlg ){
+      if( toggle = XtNameToWidget(warpGlobals.sgnlControls,
+				  "*global_thresh") ){
+	XtVaSetValues(toggle, XmNset, True, NULL);
       }
     }
-  }
-
-  /* Histo equalise */
-  if( errNum == WLZ_ERR_NONE ){
-    if( toggle = XtNameToWidget(globals.topl,
-				"*warp_sgnl_controls_form*histo_equalise") ){
-      XtVaGetValues(toggle, XmNset, &setFlg, NULL);
-      if( setFlg ){
-	errNum = WlzHistogramEqualiseObj(obj1, 1, 1);
-      }
-    }
-  }
-
-  /* Shade correction */
-  if( errNum == WLZ_ERR_NONE ){
-    if( toggle = XtNameToWidget(globals.topl,
-				"*warp_sgnl_controls_form*shade_correction") ){
-      XtVaGetValues(toggle, XmNset, &setFlg, NULL);
-      if( setFlg ){
-	errNum = WlzHistogramEqualiseObj(obj1, 1, 1);
-      }
-    }
-  }
-
-  /* Gauss smoothing */
-  if( errNum == WLZ_ERR_NONE ){
-    if( toggle = XtNameToWidget(globals.topl,
-				"*warp_sgnl_controls_form*gauss_smooth") ){
-      XtVaGetValues(toggle, XmNset, &setFlg, NULL);
-      if( setFlg ){
-	double	width;
-	if( slider = XtNameToWidget(globals.topl,
-				    "*warp_sgnl_controls_form*gauss_width") ){
-	  width = HGU_XmGetSliderValue(slider);
-	}
-	else {
-	  width = 3;
-	}
-	if( obj2 = WlzGauss2(obj1, width, width, 0, 0, &errNum) ){
-	  WlzFreeObj(obj1);
-	  obj1 = WlzAssignObject(obj2, NULL);
-	}
-      }
-    }
-  }
-
-  /* if anything left set the processed object */
-  if( errNum == WLZ_ERR_NONE ){
-    if( obj1 ){
-      warpGlobals.sgnlProcObj = obj1;
-    }
-  }
-  else {
-    if( obj1 ){
-      WlzFreeObj(obj1);
-    }
-    MAPaintReportWlzError(globals.topl, "warpSetSignalProcObj", errNum);
-  }
-
-  return;
-}
-
-static void warpSetSignalThreshObj(void)
-{
-  WlzErrorNum	errNum=WLZ_ERR_NONE;
-  WlzObject	*obj, *obj1;
-  WlzCompoundArray	*cobj;
-
-  /* image processing sequence */
-  if( warpGlobals.sgnlProcObj == NULL ){
-    warpSetSignalProcObj();
-  }
-  if( warpGlobals.sgnlThreshObj ){
-    WlzFreeObj(warpGlobals.sgnlThreshObj);
-    warpGlobals.sgnlThreshObj = NULL;
-  }
-
-  /* extract object for thresholding */
-  if( warpGlobals.sgnlProcObj ){
-    /* detect if RGBA or multi-modal */
-    switch( warpGlobals.sgnlProcObj->type ){
-    case WLZ_COMPOUND_ARR_1:
-      /* something, maybe do nothing? */
-      break;
-
-    case WLZ_2D_DOMAINOBJ:
-    case WLZ_3D_DOMAINOBJ:
-      /* switch on grey type - grey do nothing */
-      if(WlzGreyTypeFromObj(warpGlobals.sgnlProcObj, &errNum) ==
-	 WLZ_GREY_RGBA){
-	switch( warpGlobals.thresholdType ){
-	case WLZ_RGBA_THRESH_SINGLE:
-	  switch( warpGlobals.threshColorChannel ){
-	  case WLZ_RGBA_CHANNEL_GREY:
-	    obj = WlzRGBAToModulus(warpGlobals.sgnlProcObj, &errNum);
-	    warpGlobals.sgnlThreshObj = WlzAssignObject(obj, &errNum);
-	    break;
-
-	  case WLZ_RGBA_CHANNEL_RED:
-	    if( cobj = WlzRGBAToCompound(warpGlobals.sgnlProcObj, &errNum) ){
-	      warpGlobals.sgnlThreshObj = WlzAssignObject(cobj->o[0], &errNum);
-	      WlzFreeObj((WlzObject *) cobj);
-	    }
-	    break;
-	  case WLZ_RGBA_CHANNEL_GREEN:
-	    if( cobj = WlzRGBAToCompound(warpGlobals.sgnlProcObj, &errNum) ){
-	      warpGlobals.sgnlThreshObj = WlzAssignObject(cobj->o[1], &errNum);
-	      WlzFreeObj((WlzObject *) cobj);
-	    }
-	    break;
-	  case WLZ_RGBA_CHANNEL_BLUE:
-	    if( cobj = WlzRGBAToCompound(warpGlobals.sgnlProcObj, &errNum) ){
-	      warpGlobals.sgnlThreshObj = WlzAssignObject(cobj->o[2], &errNum);
-	      WlzFreeObj((WlzObject *) cobj);
-	    }
-	    break;
-	  case WLZ_RGBA_CHANNEL_HUE:
-	    break;
-	  case WLZ_RGBA_CHANNEL_SATURATION:
-	    break;
-	  case WLZ_RGBA_CHANNEL_BRIGHTNESS:
-	    break;
-	  }
-	  break;
-
-	case WLZ_RGBA_THRESH_MULTI:
-	  if( cobj = WlzRGBAToCompound(warpGlobals.sgnlProcObj, &errNum) ){
-	    warpGlobals.sgnlThreshObj =
-	      WlzAssignObject((WlzObject *) cobj, &errNum);
-	  }
-	  break;
-
-	case WLZ_RGBA_THRESH_SLICE:
-	case WLZ_RGBA_THRESH_BOX:
-	case WLZ_RGBA_THRESH_SPHERE:
-	  warpGlobals.sgnlThreshObj = 
-	    WlzAssignObject(warpGlobals.sgnlProcObj, &errNum);
-	  break;
-
-	default:
-	  break;
-	}
-      }
-      else {
-	warpGlobals.sgnlThreshObj = 
-	  WlzAssignObject(warpGlobals.sgnlProcObj, &errNum);
-      }
-      break;
-
-    case WLZ_TRANS_OBJ: /* to be done */
-      break;
-
-    case WLZ_EMPTY_OBJ:
-      warpGlobals.sgnlThreshObj = 
-	WlzAssignObject(warpGlobals.sgnlProcObj, &errNum);
-      break;
-
-    default:
-      errNum = WLZ_ERR_OBJECT_TYPE;
-      break;
-    }
-  }
-  return;
-}
-
-void warpSetSignalDomain(void)
-{
-  WlzErrorNum	errNum=WLZ_ERR_NONE;
-  WlzPixelV	threshV, threshV1;
-  WlzObject	*obj, *obj1;
-  WlzCompoundArray	*cobj;
-  UINT		combineMode;
-
-  /* image processing sequence */
-  if( warpGlobals.sgnlThreshObj == NULL ){
-    warpSetSignalThreshObj();
-  }
-  if( warpGlobals.sgnlThreshObj ){
-    obj1 = WlzAssignObject(warpGlobals.sgnlThreshObj, &errNum);
-  }
-  else {
-    return;
-  }
-
-  /* threshold the resultant image */
-  if( errNum == WLZ_ERR_NONE ){
-    switch( warpGlobals.thresholdType ){
-    case WLZ_RGBA_THRESH_SINGLE:
-      threshV.type = WLZ_GREY_INT;
-      threshV.v.inv = warpGlobals.threshRangeLow;
-      if( obj1 ){
-	/* clear signal object */
-	if( warpGlobals.sgnlObj ){
-	  WlzFreeObj(warpGlobals.sgnlObj);
-	}
-	  
-	if( obj = WlzThreshold(obj1, threshV, WLZ_THRESH_HIGH, &errNum) ){
-	  WlzFreeObj(obj1);
-	  obj = WlzAssignObject(obj, &errNum);
-	  threshV.v.inv = warpGlobals.threshRangeHigh + 1;
-	  if( obj1 = WlzThreshold(obj, threshV, WLZ_THRESH_LOW, &errNum) ){
-	    warpGlobals.sgnlObj = WlzAssignObject(obj1, &errNum);
-	  }
-	  else {
-	    warpGlobals.sgnlObj = NULL;
-	  }
-	  WlzFreeObj(obj);
-	}
-	else {
-	  WlzFreeObj(obj1);
-	  warpGlobals.sgnlObj = NULL;
-	}
-      }
-      break;
-
-    case WLZ_RGBA_THRESH_MULTI:
-      /* clear signal object */
-      if( warpGlobals.sgnlObj ){
-	WlzFreeObj(warpGlobals.sgnlObj);
-      }
-
-      /* set the thresholds and combine mode */
-      threshV.type = WLZ_GREY_RGBA;
-      WLZ_RGBA_RGBA_SET(threshV.v.rgbv,
-			warpGlobals.threshRangeRGBLow[0],
-			warpGlobals.threshRangeRGBLow[1],
-			warpGlobals.threshRangeRGBLow[2],
-			255);
-      threshV1.type = WLZ_GREY_RGBA;
-      WLZ_RGBA_RGBA_SET(threshV1.v.rgbv,
-			warpGlobals.threshRangeRGBHigh[0],
-			warpGlobals.threshRangeRGBHigh[1],
-			warpGlobals.threshRangeRGBHigh[2],
-			255);
-      WLZ_RGBA_RGBA_SET(combineMode,
-			WLZ_BO_AND, WLZ_BO_AND, WLZ_BO_AND, 255);
-
-      /* use multi-threshold */
-      if( obj = WlzRGBAMultiThreshold(obj1, threshV, threshV1,
-				      combineMode, &errNum) ){
-	warpGlobals.sgnlObj = WlzAssignObject(obj, &errNum);
-      }
-      else {
-	warpGlobals.sgnlObj = NULL;
-      }
-      WlzFreeObj(obj1);
-      break;
-
-    case WLZ_RGBA_THRESH_BOX:
-      /* clear signal object */
-      if( warpGlobals.sgnlObj ){
-	WlzFreeObj(warpGlobals.sgnlObj);
-      }
-
-      /* use box-threshold */
-      if( obj = WlzRGBABoxThreshold(obj1,
-				    warpGlobals.lowRGBPoint,
-				    warpGlobals.highRGBPoint,
-				    &errNum) ){
-	warpGlobals.sgnlObj = WlzAssignObject(obj, &errNum);
-      }
-      else {
-	warpGlobals.sgnlObj = NULL;
-      }
-      WlzFreeObj(obj1);	  
-      break;
-
-    case WLZ_RGBA_THRESH_SLICE:
-      /* clear signal object */
-      if( warpGlobals.sgnlObj ){
-	WlzFreeObj(warpGlobals.sgnlObj);
-      }
-
-      /* use slice-threshold */
-      if( obj = WlzRGBASliceThreshold(obj1,
-				      warpGlobals.lowRGBPoint,
-				      warpGlobals.highRGBPoint,
-				      &errNum) ){
-	warpGlobals.sgnlObj = WlzAssignObject(obj, &errNum);
-      }
-      else {
-	warpGlobals.sgnlObj = NULL;
-      }
-      WlzFreeObj(obj1);	  
-      break;
-
-    case WLZ_RGBA_THRESH_SPHERE:
-      /* clear signal object */
-      if( warpGlobals.sgnlObj ){
-	WlzFreeObj(warpGlobals.sgnlObj);
-      }
-
-      /* use Ellipsoid-threshold */
-      if( obj = WlzRGBAEllipsoidThreshold(obj1,
-					  warpGlobals.lowRGBPoint,
-					  warpGlobals.highRGBPoint,
-					  warpGlobals.colorEllipseEcc,
-					  &errNum) ){
-	warpGlobals.sgnlObj = WlzAssignObject(obj, &errNum);
-      }
-      else {
-	warpGlobals.sgnlObj = NULL;
-      }
-      WlzFreeObj(obj1);	  
-      break;
-
-    default:
-      errNum = WLZ_ERR_PARAM_DATA;
-      if( obj1 ){
-	WlzFreeObj(obj1);
-      }
-      if( warpGlobals.sgnlObj ){
-	WlzFreeObj(warpGlobals.sgnlObj);
-	warpGlobals.sgnlObj = NULL;
-      }
-      break;
-    }
-  }
-
-  if( errNum != WLZ_ERR_NONE ){
-    MAPaintReportWlzError(globals.topl, "warpSetSignalDomain", errNum);
   }
   return;
 }
@@ -562,7 +81,7 @@ void warpThreshLowCb(
   }
 
   /* set the signal domain */
-  sgnlResetSgnlDomain(w);
+  sgnlResetSgnlDomain(w, NULL);
 
   return;
 }
@@ -586,7 +105,7 @@ void warpThreshHighCb(
   }
 
   /* set the signal domain */
-  sgnlResetSgnlDomain(w);
+  sgnlResetSgnlDomain(w, NULL);
 
   return;
 }
@@ -626,6 +145,8 @@ void warpThreshLowRGBCb(
     break;
 
   case WLZ_RGBA_CHANNEL_RED:
+  case WLZ_RGBA_CHANNEL_HUE:
+  case WLZ_RGBA_CHANNEL_CYAN:
     if( warpGlobals.threshRangeRGBHigh[0] < (int) val ){
       val = warpGlobals.threshRangeRGBHigh[0];
       HGU_XmSetSliderValue(slider, val);
@@ -634,6 +155,8 @@ void warpThreshLowRGBCb(
     break;
 
   case WLZ_RGBA_CHANNEL_GREEN:
+  case WLZ_RGBA_CHANNEL_SATURATION:
+  case WLZ_RGBA_CHANNEL_MAGENTA:
     if( warpGlobals.threshRangeRGBHigh[1] < (int) val ){
       val = warpGlobals.threshRangeRGBHigh[1];
       HGU_XmSetSliderValue(slider, val);
@@ -642,21 +165,18 @@ void warpThreshLowRGBCb(
     break;
 
   case WLZ_RGBA_CHANNEL_BLUE:
+  case WLZ_RGBA_CHANNEL_BRIGHTNESS:
+  case WLZ_RGBA_CHANNEL_YELLOW:
     if( warpGlobals.threshRangeRGBHigh[2] < (int) val ){
       val = warpGlobals.threshRangeRGBHigh[2];
       HGU_XmSetSliderValue(slider, val);
     }
     warpGlobals.threshRangeRGBLow[2] = val;
     break;
-
-  case WLZ_RGBA_CHANNEL_HUE:
-  case WLZ_RGBA_CHANNEL_SATURATION:
-  case WLZ_RGBA_CHANNEL_BRIGHTNESS:
-    return;
   }
 
   /* set the signal domain */
-  sgnlResetSgnlDomain(w);
+  sgnlResetSgnlDomain(w, NULL);
 
   return;
 }
@@ -696,6 +216,8 @@ void warpThreshHighRGBCb(
     break;
 
   case WLZ_RGBA_CHANNEL_RED:
+  case WLZ_RGBA_CHANNEL_HUE:
+  case WLZ_RGBA_CHANNEL_CYAN:
     if( warpGlobals.threshRangeRGBLow[0] > (int) val ){
       val = warpGlobals.threshRangeRGBLow[0];
       HGU_XmSetSliderValue(slider, val);
@@ -704,6 +226,8 @@ void warpThreshHighRGBCb(
     break;
 
   case WLZ_RGBA_CHANNEL_GREEN:
+  case WLZ_RGBA_CHANNEL_SATURATION:
+  case WLZ_RGBA_CHANNEL_MAGENTA:
     if( warpGlobals.threshRangeRGBLow[1] > (int) val ){
       val = warpGlobals.threshRangeRGBLow[1];
       HGU_XmSetSliderValue(slider, val);
@@ -712,42 +236,18 @@ void warpThreshHighRGBCb(
     break;
 
   case WLZ_RGBA_CHANNEL_BLUE:
+  case WLZ_RGBA_CHANNEL_BRIGHTNESS:
+  case WLZ_RGBA_CHANNEL_YELLOW:
     if( warpGlobals.threshRangeRGBLow[2] > (int) val ){
       val = warpGlobals.threshRangeRGBLow[2];
       HGU_XmSetSliderValue(slider, val);
     }
     warpGlobals.threshRangeRGBHigh[2] = val;
     break;
-
-  case WLZ_RGBA_CHANNEL_HUE:
-  case WLZ_RGBA_CHANNEL_SATURATION:
-  case WLZ_RGBA_CHANNEL_BRIGHTNESS:
-    return;
   }
 
   /* set the signal domain */
-  sgnlResetSgnlDomain(w);
-
-  return;
-}
-
-void warpSetThreshColorTypeSensitive(
-  Boolean	sensitive)
-{
-  Widget	toggle;
-
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_notebook*threshold_single_page*red") ){
-    XtSetSensitive(toggle, sensitive);
-  }
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_notebook*threshold_single_page*green") ){
-    XtSetSensitive(toggle, sensitive);
-  }
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_notebook*threshold_single_page*blue") ){
-    XtSetSensitive(toggle, sensitive);
-  }
+  sgnlResetSgnlDomain(w, NULL);
 
   return;
 }
@@ -848,7 +348,15 @@ void warpReadSignalCb(
 	if( warpGlobals.sgnlObj ){
 	  warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
 	}
-	warpSetSignalDomain();
+
+	/* note need to cancel any local thresholding */
+	warpGlobals.globalThreshVtx.vtX = -10000;
+	warpGlobals.globalThreshVtx.vtY = -10000;
+
+	/* increment if requested? - new object switch off and clear */
+	warpSwitchIncrementDomain(0);
+	sgnlIncrClear();
+	warpSetSignalDomain(NULL);
 	if( warpGlobals.sgnlObj ){
 	  warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
 	}
@@ -989,6 +497,45 @@ void mapWarpDataCb(
   return;
 }
 
+void setThreshModesCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  int		modeFlg = (int) client_data;
+  XmToggleButtonCallbackStruct *cbs = (XmToggleButtonCallbackStruct *) call_data;
+
+  switch( modeFlg ){
+  case 0:
+    warpGlobals.globalThreshFlg = cbs->set;
+    if( cbs->set ){
+      warpGlobals.globalThreshVtx.vtX = -10000;
+      warpGlobals.globalThreshVtx.vtY = -10000;
+    }
+    break;
+
+  case 1:
+    warpGlobals.incrThreshFlg = cbs->set;
+    if( cbs->set ){
+      sgnlIncrPush(warpGlobals.sgnlObj);
+    }
+    else {
+      sgnlIncrClear();
+    }
+    break;
+
+  case 2:
+    warpGlobals.pickThreshFlg = cbs->set;
+    break;
+
+  case 3:
+    warpGlobals.distanceThreshFlg = cbs->set;
+    break;
+  }
+
+  return;
+}
+
 void undoMappedWarpDataCb(
   Widget	w,
   XtPointer	client_data,
@@ -1008,6 +555,154 @@ void installMappedWarpDataCb(
   ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
 
   installViewDomains(view_struct);
+  return;
+}
+
+void resetSignalDefaultsCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
+  Widget		toggle, slider, radio_box;
+  int			i;
+  XmToggleButtonCallbackStruct cbs;
+
+  /* reset the signal default values */
+  /* pre-processing toggles and controls
+     not the paint mode selection since this is determined by
+     the selected page */
+  if( toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*normalise") ){
+    XtVaSetValues(toggle, XmNset, False, NULL);
+  }
+  if( toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*histo_equalise") ){
+    XtVaSetValues(toggle, XmNset, False, NULL);
+  }
+  if( toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*shade_correction") ){
+    XtVaSetValues(toggle, XmNset, False, NULL);
+  }
+  if( toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*gauss_smooth") ){
+    XtVaSetValues(toggle, XmNset, False, NULL);
+  }
+  if( slider = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*gauss_width") ){
+    HGU_XmSetSliderValue(slider, (float) 5.0);
+  }
+
+  /* do modes before threshold controls */
+  if( toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*global_thresh") ){
+    XtVaSetValues(toggle, XmNset, True, NULL);
+    cbs.set = True;
+    XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
+  }
+  if( toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*incremental_thresh") ){
+    XtVaSetValues(toggle, XmNset, False, NULL);
+    cbs.set = False;
+    XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
+  }
+  if( toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*pick_mode_thresh") ){
+    XtVaSetValues(toggle, XmNset, False, NULL);
+    cbs.set = False;
+    XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
+  }
+  if( toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*distance_mode_thresh") ){
+    XtVaSetValues(toggle, XmNset, False, NULL);
+    cbs.set = False;
+    XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
+  }
+  
+  /* reset the threshold and interact controls */
+  /* single colour mode */
+  if( slider = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*thresh_range_low") ){
+    HGU_XmSetSliderValue(slider, (float) 256.0);
+    warpGlobals.threshRangeLow = 256;
+  }
+  if( slider = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*thresh_range_high") ){
+    HGU_XmSetSliderValue(slider, (float) 256.0);
+    warpGlobals.threshRangeHigh = 256;
+  }
+  if( radio_box = 
+     XtNameToWidget(globals.topl,
+		    "*warp_sgnl_controls_form*color_space") ){
+    if( toggle = XtNameToWidget(radio_box, "*RGB") ){
+      XtVaSetValues(radio_box, XmNmenuHistory, toggle, NULL);
+      XtCallCallbacks(toggle, XmNactivateCallback, NULL);
+    }
+  }
+  if( radio_box = 
+     XtNameToWidget(globals.topl,
+		    "*warp_sgnl_controls_form*threshold_channel_rc") ){
+    if( toggle = XtNameToWidget(radio_box, "*grey") ){
+      XtVaSetValues(radio_box, XmNmenuHistory, toggle, NULL);
+      XtCallCallbacks(toggle, XmNvalueChangedCallback, NULL);
+    }
+  }
+
+  /* multi-colour mode */
+  if( slider =
+     XtNameToWidget(globals.topl,
+		    "*warp_sgnl_controls_form*thresh_range_red_low") ){
+    HGU_XmSetSliderValue(slider, (float) 255.0);
+  }
+  if( slider =
+     XtNameToWidget(globals.topl,
+		    "*warp_sgnl_controls_form*thresh_range_red_high") ){
+    HGU_XmSetSliderValue(slider, (float) 255.0);
+  }
+  if( slider =
+     XtNameToWidget(globals.topl,
+		    "*warp_sgnl_controls_form*thresh_range_green_low") ){
+    HGU_XmSetSliderValue(slider, (float) 255.0);
+  }
+  if( slider =
+     XtNameToWidget(globals.topl,
+		    "*warp_sgnl_controls_form*thresh_range_green_high") ){
+    HGU_XmSetSliderValue(slider, (float) 255.0);
+  }
+  if( slider =
+     XtNameToWidget(globals.topl,
+		    "*warp_sgnl_controls_form*thresh_range_blue_low") ){
+    HGU_XmSetSliderValue(slider, (float) 255.0);
+  }
+  if( slider =
+     XtNameToWidget(globals.topl,
+		    "*warp_sgnl_controls_form*thresh_range_blue_high") ){
+    HGU_XmSetSliderValue(slider, (float) 255.0);
+  }
+  for(i=0; i < 3; i++){
+    warpGlobals.threshRangeRGBLow[i] = 255;
+    warpGlobals.threshRangeRGBHigh[i] = 255;
+  }
+
+  /* interactive mode */
+  if( slider = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*thresh_eccentricity") ){
+    HGU_XmSetSliderValue(slider, (float) 1.0);
+    warpGlobals.colorEllipseEcc = 1.0;
+  }
+  if( slider = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*thresh_radius") ){
+    HGU_XmSetSliderValue(slider, (float) 10.0);
+  }
+  if( radio_box = 
+     XtNameToWidget(globals.topl,
+		    "*warp_sgnl_controls_form*threshold_interact_rc") ){
+    if( toggle = XtNameToWidget(radio_box, "*box") ){
+      XtVaSetValues(radio_box, XmNmenuHistory, toggle, NULL);
+      XtCallCallbacks(toggle, XmNvalueChangedCallback, NULL);
+    }
+  }
+
   return;
 }
 
@@ -1044,7 +739,7 @@ void thresholdMinorPageSelectCb(
   if( warpGlobals.sgnlObj ){
     warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
   }
-  warpSetSignalDomain();
+  warpSetSignalDomain(NULL);
   if( warpGlobals.sgnlObj ){
     warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
   }
@@ -1052,156 +747,54 @@ void thresholdMinorPageSelectCb(
   return;
 }
 
-static int sgnlTrigger=0;
-static WlzPixelV sgnlStart, sgnlFinish;
-static WlzGreyValueWSpace	*sgnl_gVWSp = NULL;
-
-void sgnlCanvasInputCb(
-  Widget          w,
+void thresholdInteractToggleSelectCb(
+  Widget	w,
   XtPointer	client_data,
   XtPointer	call_data)
 {
-  XmDrawingAreaCallbackStruct	*cbs=(XmDrawingAreaCallbackStruct *) call_data;
-  int		x, y;
-  double	line, kol;
-  unsigned int	modMask=(ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|
-			 Mod4Mask|Mod5Mask);
-  WlzErrorNum	errNum;
+  warpGlobals.thresholdType = (WlzRGBAThresholdType) client_data;
 
-  /* check for signal processed object - else do nothing */
-  if( !warpGlobals.sgnlProcObj ){
-    return;
+  /* reset the threshold object */
+  if( warpGlobals.sgnlThreshObj ){
+    WlzFreeObj(warpGlobals.sgnlThreshObj);
+    warpGlobals.sgnlThreshObj = NULL;
+  }
+  if( warpGlobals.sgnlObj ){
+    warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
+  }
+  warpSetSignalDomain(NULL);
+  if( warpGlobals.sgnlObj ){
+    warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
   }
 
-  /* switch on event type */
-  switch( cbs->event->type ){
+  return;
+}
 
-  case ButtonPress:
-    switch( cbs->event->xbutton.button ){
+void warpRGBTextValueCb(
+  Widget	w,
+  XtPointer 	client_data,
+  XtPointer	call_data)
+{
+  int		startFinishFlg = (int) client_data;
+  int		r, g, b;
+  String	textVal;
 
-    case Button1:
-      /* set initial point and initiate drag response */
-      /* only if no modifiers pressed */
-      if( !(cbs->event->xbutton.state&modMask) ){
-	if( sgnl_gVWSp = WlzGreyValueMakeWSp(warpGlobals.sgnlProcObj,
-					     &errNum) ){
-	  sgnlTrigger = 1;
-	  line = cbs->event->xbutton.y / warpGlobals.sgnl.mag;
-	  kol = cbs->event->xbutton.x / warpGlobals.sgnl.mag;
-
-	  /* get the value */
-	  WlzGreyValueGet(sgnl_gVWSp, 0.0, line, kol);
-	  sgnlStart.type = sgnl_gVWSp->gType;
-	  sgnlFinish.type = sgnl_gVWSp->gType;
-	  sgnlStart.v = sgnl_gVWSp->gVal[0];
-	  sgnlFinish.v = sgnl_gVWSp->gVal[0];
-
-	  /* set sliders or text areas */
-	  sgnlInteractSetHighLowControls(sgnlStart, sgnlFinish);
-
-	  /* reset the threshold domain */
-	  sgnlResetSgnlDomain(w);
-	}
-	else {
-	  /* report an error */
-	  MAPaintReportWlzError(globals.topl,
-			  "sgnlCanvasInputCb", errNum);
-	}
+  /* get the text value */
+  XtVaGetValues(w, XmNvalue, &textVal, NULL);
+  if( textVal ){
+    if( sscanf(textVal, "%d,%d,%d", &r, &g, &b) >= 3 ){
+      if( startFinishFlg == 0 ){
+	/* set the start value */
+	WLZ_RGBA_RGBA_SET(warpGlobals.lowRGBPoint.v.rgbv, r, g, b, 255);
       }
-      break;
-
-    case Button2:		/* domain and coordinate feedback */
-      break;
-
-    case Button3:		/* unused */
-    default:
-      break;
-
-    }
-    break;
-
-  case ButtonRelease:
-    switch( cbs->event->xbutton.button ){
-
-    case Button1:
-      /* set endpoint - note could be max or min */
-      if( sgnlTrigger ){
-	sgnlTrigger = 0;
-	line = cbs->event->xbutton.y / warpGlobals.sgnl.mag;
-	kol = cbs->event->xbutton.x / warpGlobals.sgnl.mag;
-
-	/* get the value */
-	WlzGreyValueGet(sgnl_gVWSp, 0.0, line, kol);
-	sgnlFinish.v = sgnl_gVWSp->gVal[0];
-	
-	/* set sliders or text areas */
-	sgnlInteractSetHighLowControls(sgnlStart, sgnlFinish);
-	
-	/* reset the threshold domain */
-	sgnlResetSgnlDomain(w);
-
-	/* clean up */
-	WlzGreyValueFreeWSp(sgnl_gVWSp);
-	sgnl_gVWSp = NULL;
+      else {
+	/* set the finish value */
+	WLZ_RGBA_RGBA_SET(warpGlobals.highRGBPoint.v.rgbv, r, g, b, 255);
       }
-      break;
 
-    case Button2:		/* domain and coordinate feedback */
-      break;
-
-    default:
-      break;
-
+      /* reset the threshold domain */
+      sgnlResetSgnlDomain(w, NULL);
     }
-    break;
-
-  case MotionNotify:
-    /* if drag then reset threshold levels and threshold domain */
-      if( sgnlTrigger ){
-	line = cbs->event->xmotion.y / warpGlobals.sgnl.mag;
-	kol = cbs->event->xmotion.x / warpGlobals.sgnl.mag;
-
-	/* get the value */
-	WlzGreyValueGet(sgnl_gVWSp, 0.0, line, kol);
-	sgnlFinish.v = sgnl_gVWSp->gVal[0];
-	
-	/* set sliders or text areas */
-	sgnlInteractSetHighLowControls(sgnlStart, sgnlFinish);
-	
-	/* reset the threshold domain */
-	sgnlResetSgnlDomain(w);
-      }
-      break;
-
-    break;
-
-  case KeyPress:
-    switch( XLookupKeysym(&(cbs->event->xkey), 0) ){
-	
-    case XK_Right:
-    case XK_f:
-      break;
-
-    case XK_Up:
-    case XK_p:
-      break;
-
-    case XK_Left:
-    case XK_b:
-      break;
-
-    case XK_Down:
-    case XK_n:
-      break;
-
-    case XK_w:
-      break;
-
-    }
-    break;
-
-  default:
-    break;
   }
 
   return;
@@ -1272,7 +865,8 @@ void thresholdChannelSelectCb(
   if( warpGlobals.sgnlObj ){
     warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
   }
-  warpSetSignalDomain();
+/*  warpSwitchIncrementDomain(0);*/ /* why switch increment ? */
+  warpSetSignalDomain(NULL);
   if( warpGlobals.sgnlObj ){
     warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
   }
@@ -1339,13 +933,199 @@ void warpThreshEccentricityCb(
   if( warpGlobals.sgnlObj ){
     warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
   }
-  warpSetSignalDomain();
+  warpSetSignalDomain(NULL);
   if( warpGlobals.sgnlObj ){
     warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
   }
 
   return;
 }
+
+void warpThreshRadiusSet(
+  WlzDVertex2	dist)
+{
+  Widget	slider;
+  float		radius;
+
+  if( slider = XtNameToWidget(warpGlobals.sgnlControls,
+			      "*.thresh_radius") ){
+    radius = WLZ_NINT(fabs(dist.vtX));
+    HGU_XmSetSliderValue(slider, radius);
+  }
+
+  return;
+}
+
+void warpThreshRadiusCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  Widget	slider = w;
+  float		val;
+  WlzPixelV	centreCol, sgnlStart, sgnlFinish;
+  WlzDVertex2	dist;
+    
+  /* get the parent slider  - use special knowledge of slider type
+     should put this as a function in the library */
+  if( XtIsSubclass(slider, xmFormWidgetClass) != True ){
+    if( XtIsSubclass(slider, xmScaleWidgetClass) == True ){
+      slider = XtParent(slider);
+    }
+    else {
+      return;
+    }
+  }
+  if( XtNameToWidget(slider, "scale") == NULL ){
+    return;
+  }
+
+  /* get value and set distance */
+  val = HGU_XmGetSliderValue( slider );
+  dist.vtX = dist.vtY = val;
+
+  /* get existing start and finish */
+  sgnlInteractGetHighLowControls(&sgnlStart, &sgnlFinish);
+
+  /* get centre value, set limits and reset signal domain */
+  centreCol = warpThreshCentre(sgnlStart, sgnlFinish);
+  warpThreshSetLimitsFromDist(centreCol, dist, &sgnlStart,
+			      &sgnlFinish);
+  sgnlInteractSetHighLowControls(&sgnlStart, &sgnlFinish);
+  sgnlResetSgnlDomain(w, NULL);
+
+  return;
+}
+
+void sgnlBackgroundRemoveCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  WlzObject	*obj1, *obj2;
+  WlzErrorNum	errNum=WLZ_ERR_NONE;
+
+  /* check for signal input object and signal domain */
+  if( warpGlobals.sgnl.obj && warpGlobals.sgnlObj ){
+    if( obj1 = WlzDiffDomain(warpGlobals.sgnl.obj,
+			     warpGlobals.sgnlObj, &errNum) ){
+      if( obj2 = WlzMakeMain(warpGlobals.sgnl.obj->type,
+			     obj1->domain,
+			     warpGlobals.sgnl.obj->values,
+			     NULL, NULL, &errNum) ){
+	(void) WlzFreeObj(warpGlobals.sgnl.obj);
+	WlzStandardIntervalDomain(obj2->domain.i);
+	warpGlobals.sgnl.obj = WlzAssignObject(obj2, &errNum);
+	warpSetXImage(&(warpGlobals.sgnl));
+	warpCanvasExposeCb(warpGlobals.sgnl.canvas,
+			   (XtPointer) &(warpGlobals.sgnl),
+			   call_data);
+
+	/* note need to cancel any local thresholding */
+	warpGlobals.globalThreshVtx.vtX = -10000;
+	warpGlobals.globalThreshVtx.vtY = -10000;
+
+	/* clear increment stack */
+	sgnlIncrClear();
+
+	/* reset all pre-processing and signal domain */
+ 	if( warpGlobals.sgnlProcObj ){
+	  WlzFreeObj( warpGlobals.sgnlProcObj );
+	  warpGlobals.sgnlProcObj = NULL;
+	}
+	if( warpGlobals.sgnlThreshObj ){
+	  WlzFreeObj(warpGlobals.sgnlThreshObj);
+	  warpGlobals.sgnlThreshObj = NULL;
+	}
+	warpSetSignalDomain(NULL);
+	warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
+     }
+      errNum = WlzFreeObj(obj1);
+    }
+  }
+  else {
+    /* warn no objects found */
+    HGU_XmUserMessage(globals.topl,
+		      "Background removal requires an input\n"
+		      "signal image and a defined domain.\n"
+		      "Please use the thresholding controls\n"
+		      "to define the background region first.",
+		      XmDIALOG_FULL_APPLICATION_MODAL);
+  }
+
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "sgnlBackgroundRemoveCb", errNum);
+  }
+  return;
+}
+
+void sgnlBackgroundSaveCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  String	fileStr;
+  FILE		*fp;
+  WlzErrorNum	errNum=WLZ_ERR_NONE;
+
+  /* check if there is a signal object */
+  if( warpGlobals.sgnl.obj ){
+    /* get a filename for the section object */
+    if( fileStr = HGU_XmUserGetFilename(globals.topl,
+					"Please type in a filename\n"
+					"for the signal image which\n"
+					"be saved as a woolz object",
+					"OK", "cancel", "MAPaintSignalObj.wlz",
+					NULL, "*.wlz") ){
+      if( fp = fopen(fileStr, "wb") ){
+	if( WlzWriteObj(fp, warpGlobals.sgnl.obj) != WLZ_ERR_NONE ){
+	  HGU_XmUserError(globals.topl,
+			  "Save Signal Image:\n"
+			  "    Incomplete write, please\n"
+			  "    check disk space or quotas.\n"
+			  "    Signal image not saved",
+			  XmDIALOG_FULL_APPLICATION_MODAL);
+	}
+	if( fclose(fp) == EOF ){
+	  HGU_XmUserError(globals.topl,
+			  "Save Signal Image:\n"
+			  "    File close error, please\n"
+			  "    check disk space or quotas.\n"
+			  "    Signal image not saved",
+			  XmDIALOG_FULL_APPLICATION_MODAL);
+	}
+      }
+      else {
+	HGU_XmUserError(globals.topl,
+			"Save Signal Image:\n"
+			"    Couldn't open the file for\n"
+			"    writing, please check\n"
+			"    permissions.\n"
+			"    Signal image not saved",
+			XmDIALOG_FULL_APPLICATION_MODAL);
+      }
+      AlcFree(fileStr);
+    }
+  }
+
+  return;
+}
+
+static MenuItem color_space_itemsP[] = {   /* colour space menu items */
+  {"RGB", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   warpColorSpaceCb, (XtPointer) WLZ_RGBA_SPACE_RGB,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"HSB", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   warpColorSpaceCb, (XtPointer) WLZ_RGBA_SPACE_HSB,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"CMY", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+   warpColorSpaceCb, (XtPointer) WLZ_RGBA_SPACE_CMY,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
+  NULL,
+};
 
 Widget createWarpSgnlControlsFrame(
   Widget	parent,
@@ -1359,6 +1139,7 @@ Widget createWarpSgnlControlsFrame(
   float		fval, fmin, fmax;
   Visual	*visual;
   int		i;
+  XmString	xmstr;
 
  /* create the signal controls frame */
   sgnl_controls = XtVaCreateWidget("warp_sgnl_controls_frame",
@@ -1402,6 +1183,11 @@ Widget createWarpSgnlControlsFrame(
   XtAddCallback(button, XmNactivateCallback, thresholdMajorPageSelectCb,
 		(XtPointer) WLZ_RGBA_THRESH_NONE);
 
+  button = XtVaCreateManagedWidget("pre_process_minor_tab",
+				   xmPushButtonWidgetClass, notebook,
+				   XmNnotebookChildType, XmMINOR_TAB,
+				   NULL);
+
   /* toggles for the image processing sequence */
   toggle = XtVaCreateManagedWidget("normalise",
 				   xmToggleButtonGadgetClass, page,
@@ -1424,6 +1210,50 @@ Widget createWarpSgnlControlsFrame(
 				   XmNleftAttachment,	XmATTACH_FORM,
 				   NULL);
   XtAddCallback(toggle, XmNvalueChangedCallback, recalcWarpProcObjCb, NULL);
+
+  /* make a new minor page for background removal */
+  page = XtVaCreateManagedWidget("background_page",
+				 xmFormWidgetClass, 	notebook,
+				 XmNnotebookChildType, XmPAGE,
+				 NULL);
+  button = XtVaCreateManagedWidget("background_minor_tab",
+				   xmPushButtonWidgetClass, notebook,
+				   XmNnotebookChildType, XmMINOR_TAB,
+				   NULL);
+
+   /* label to provide instructions for background removal */
+  label = XtVaCreateManagedWidget("background_label",
+				  xmLabelWidgetClass, page,
+				  XmNtopAttachment,	XmATTACH_FORM,
+				  XmNleftAttachment,	XmATTACH_FORM,
+				  XmNborderWidth,	1,
+				  XmNshadowThickness,	2,
+				  XmNalignment,		XmALIGNMENT_BEGINNING,
+				  NULL);
+  xmstr = XmStringCreateLtoR(
+    "To remove the background, use the\nthreshold controls to define\n"
+    "the background then press Remove.\nTo save the result press Save. ",
+    XmSTRING_DEFAULT_CHARSET);
+  XtVaSetValues(label, XmNlabelString, xmstr, NULL);
+  XmStringFree(xmstr);
+
+  /* now the buttons */
+  button = XtVaCreateManagedWidget("background_remove",
+				   xmPushButtonWidgetClass, page,
+				   XmNtopAttachment,	XmATTACH_WIDGET,
+				   XmNtopWidget,	label,
+				   XmNleftAttachment,	XmATTACH_FORM,
+				   NULL);
+  XtAddCallback(button, XmNactivateCallback, sgnlBackgroundRemoveCb, NULL);
+
+  button = XtVaCreateManagedWidget("background_save",
+				   xmPushButtonWidgetClass, page,
+				   XmNtopAttachment,	XmATTACH_WIDGET,
+				   XmNtopWidget,	label,
+				   XmNleftAttachment,	XmATTACH_WIDGET,
+				   XmNleftWidget,	button,
+				   NULL);
+  XtAddCallback(button, XmNactivateCallback, sgnlBackgroundSaveCb, NULL);
 
   /* page 2 - filtering */
   page = XtVaCreateManagedWidget("filter_page",
@@ -1481,6 +1311,7 @@ Widget createWarpSgnlControlsFrame(
 		XmNleftAttachment,	XmATTACH_FORM,
 		XmNtopAttachment,	XmATTACH_FORM,
 		XmNorientation,		XmHORIZONTAL,
+		XmNresizeWidth,		True,
 		NULL);
   widget = radio_box;
 		
@@ -1509,6 +1340,20 @@ Widget createWarpSgnlControlsFrame(
   XtAddCallback(toggle, XmNvalueChangedCallback, thresholdChannelSelectCb,
 		(XtPointer) WLZ_RGBA_CHANNEL_BLUE);
   XtManageChild(radio_box);
+
+  /* option menu for the colour space */
+  option_menu = HGU_XmBuildMenu(page, XmMENU_OPTION, "color_space", 0,
+				XmTEAR_OFF_DISABLED, color_space_itemsP);
+  XtVaSetValues(option_menu,
+		XmNtopAttachment,	XmATTACH_FORM,
+		XmNrightAttachment,	XmATTACH_FORM,
+		NULL);
+  XtManageChild(option_menu);
+  widget = option_menu;
+  XtVaSetValues(radio_box,
+		XmNbottomAttachment, XmATTACH_OPPOSITE_WIDGET,
+		XmNbottomWidget,	option_menu,
+		NULL);
 
   /* defaults for the threshold range */
   warpGlobals.threshRangeLow = 256;
@@ -1686,17 +1531,20 @@ Widget createWarpSgnlControlsFrame(
 				   xmToggleButtonGadgetClass, radio_box,
 				   XmNset, True,
 				   NULL);
-  XtAddCallback(toggle, XmNvalueChangedCallback, thresholdMinorPageSelectCb,
+  XtAddCallback(toggle, XmNvalueChangedCallback,
+		thresholdInteractToggleSelectCb,
 		(XtPointer) WLZ_RGBA_THRESH_BOX);
   toggle = XtVaCreateManagedWidget("slice",
 				   xmToggleButtonGadgetClass, radio_box,
 				   NULL);
-  XtAddCallback(toggle, XmNvalueChangedCallback, thresholdMinorPageSelectCb,
+  XtAddCallback(toggle, XmNvalueChangedCallback,
+		thresholdInteractToggleSelectCb,
 		(XtPointer) WLZ_RGBA_THRESH_SLICE);
   toggle = XtVaCreateManagedWidget("sphere",
 				   xmToggleButtonGadgetClass, radio_box,
 				   NULL);
-  XtAddCallback(toggle, XmNvalueChangedCallback,thresholdMinorPageSelectCb ,
+  XtAddCallback(toggle, XmNvalueChangedCallback,
+		thresholdInteractToggleSelectCb,
 		(XtPointer) WLZ_RGBA_THRESH_SPHERE);
   XtManageChild(radio_box);
 
@@ -1712,9 +1560,24 @@ Widget createWarpSgnlControlsFrame(
 		XmNtopWidget,		widget,
 		XmNleftAttachment,	XmATTACH_FORM,
 		NULL);
-  widget = slider;
   scale = XtNameToWidget(slider, "*scale");
   XtAddCallback(scale, XmNdragCallback, warpThreshEccentricityCb, NULL);
+
+  /* Distance slider - use scale variable for convenience */
+  fval = 10.0;
+  scale = HGU_XmCreateHorizontalSlider("thresh_radius", page,
+				       fval, 0, 256, 0,
+				       warpThreshRadiusCb,
+				       NULL);
+  XtVaSetValues(scale,
+		XmNtopAttachment,	XmATTACH_WIDGET,
+		XmNtopWidget,		widget,
+		XmNleftAttachment,	XmATTACH_WIDGET,
+		XmNleftWidget,		slider,
+		NULL);
+  scale = XtNameToWidget(scale, "*scale");
+  XtAddCallback(scale, XmNdragCallback, warpThreshRadiusCb, NULL);
+  widget = slider; /* top widget of next line */
 
   /* text display of high and low rgb values */
   rc = XtVaCreateManagedWidget("threshold_interact_rc2",
@@ -1737,6 +1600,8 @@ Widget createWarpSgnlControlsFrame(
 				 XmNautoShowCursorPosition,	True,
 				 XmNvalue,	"-,-,-",
 				 NULL);
+  XtAddCallback(text, XmNactivateCallback, warpRGBTextValueCb,
+		(XtPointer) 0);
   label = XtVaCreateManagedWidget("RGB high:",
 				  xmLabelWidgetClass, rc,
 				  NULL);
@@ -1749,6 +1614,86 @@ Widget createWarpSgnlControlsFrame(
 				 XmNautoShowCursorPosition,	True,
 				 XmNvalue,	"-,-,-",
 				 NULL);
+  XtAddCallback(text, XmNactivateCallback, warpRGBTextValueCb,
+		(XtPointer) 1);
+
+  /* page 6 - thresholding behaviour controls */
+  page = XtVaCreateManagedWidget("threshold_controls_page",
+				 xmRowColumnWidgetClass, 	notebook,
+				 XmNnotebookChildType, XmPAGE,
+				 XmNpacking,	XmPACK_COLUMN,
+				 XmNorientation,	XmVERTICAL,
+				 XmNnumColumns,	2,
+				 NULL);
+  button = XtVaCreateManagedWidget("threshold_controls_tab",
+				   xmPushButtonWidgetClass, notebook,
+				   XmNnotebookChildType, XmMINOR_TAB,
+				   NULL);
+  XtAddCallback(button, XmNactivateCallback, warpThreshInteractPageCb,
+		NULL);
+
+  /* global thresholding toggle - default True */
+  toggle = XtVaCreateManagedWidget("global_thresh",
+				   xmToggleButtonGadgetClass, page,
+				   XmNset,		True,
+				   NULL);
+  XtAddCallback(toggle, XmNvalueChangedCallback, setThreshModesCb,
+		(XtPointer) 0);
+  warpGlobals.globalThreshFlg = 1;
+  warpGlobals.globalThreshVtx.vtX = -10000;
+  warpGlobals.globalThreshVtx.vtY = -10000;
+
+  /* Incremental thresholding toggle - default False */
+  toggle = XtVaCreateManagedWidget("incremental_thresh",
+				   xmToggleButtonGadgetClass, page,
+				   XmNset,		False,
+				   NULL);
+  XtAddCallback(toggle, XmNvalueChangedCallback, setThreshModesCb,
+		(XtPointer) 1);
+  warpGlobals.incrThreshFlg = 0;
+  warpGlobals.incrThreshObj = NULL;
+
+  /* threshold "pick-mode" toggle for defining threshold endpoints
+     default False */
+  toggle = XtVaCreateManagedWidget("pick_mode_thresh",
+				   xmToggleButtonGadgetClass, page,
+				   XmNset,		False,
+				   NULL);
+  XtAddCallback(toggle, XmNvalueChangedCallback, setThreshModesCb,
+		(XtPointer) 2);
+  warpGlobals.pickThreshFlg = 0;
+
+  /* threshold "distance-mode" toggle for defining threshold endpoints
+     default False */
+  toggle = XtVaCreateManagedWidget("distance_mode_thresh",
+				   xmToggleButtonGadgetClass, page,
+				   XmNset,		False,
+				   NULL);
+  XtAddCallback(toggle, XmNvalueChangedCallback, setThreshModesCb,
+		(XtPointer) 3);
+  warpGlobals.distanceThreshFlg = 0;
+
+  /* page for automatic segmentation, apply fixed algorithms,
+     classifier training, parameter settings, macros */
+  page = XtVaCreateManagedWidget("auto_process_page",
+				 xmFormWidgetClass, 	notebook,
+				 XmNnotebookChildType, XmPAGE,
+				 NULL);
+  button = XtVaCreateManagedWidget("auto_process_tab",
+				   xmPushButtonWidgetClass, notebook,
+				   XmNnotebookChildType, XmMAJOR_TAB,
+				   NULL);
+
+  /* page for domain post-procesing - morphological, smoothing
+     tracking, cleaning, review */
+  page = XtVaCreateManagedWidget("post_process_page",
+				 xmFormWidgetClass, 	notebook,
+				 XmNnotebookChildType, XmPAGE,
+				 NULL);
+  button = XtVaCreateManagedWidget("post_process_tab",
+				   xmPushButtonWidgetClass, notebook,
+				   XmNnotebookChildType, XmMAJOR_TAB,
+				   NULL);
 
   /* End of notebook pages */
   /* common buttons to map the data */
@@ -1776,7 +1721,8 @@ Widget createWarpSgnlControlsFrame(
   XtAddCallback(button, XmNactivateCallback,
 		undoMappedWarpDataCb, (XtPointer) view_struct);
  
-  /*button = XtVaCreateManagedWidget("install_data",
+  /* reset IP controls defaults button */
+  button = XtVaCreateManagedWidget("reset_defaults",
 				   xmPushButtonGadgetClass, form,
 				   XmNtopAttachment,	XmATTACH_WIDGET,
 				   XmNtopWidget,	notebook,
@@ -1784,10 +1730,9 @@ Widget createWarpSgnlControlsFrame(
 				   XmNleftPosition,	69,
 				   XmNrightAttachment,	XmATTACH_POSITION,
 				   XmNrightPosition,	97,
-				   XmNsensitive,	False,
 				   NULL);
   XtAddCallback(button, XmNactivateCallback,
-  installMappedWarpDataCb, (XtPointer) view_struct);*/
+		resetSignalDefaultsCb, (XtPointer) view_struct);
 
   warpGlobals.sgnlControls = sgnl_controls;
 
@@ -1840,15 +1785,20 @@ Widget createWarpSgnlDisplayFrame(
 		warpCanvasExposeCb, (XtPointer) &(warpGlobals.sgnl));
   XtAddCallback(warpGlobals.sgnl.canvas, XmNexposeCallback,
 		warpSgnlDomainCanvasExposeCb, (XtPointer) &(warpGlobals.sgnl));
+  XtAddCallback(warpGlobals.sgnl.canvas, XmNinputCallback,
+		sgnlCanvasMotionInputCb, NULL);
   XtAddEventHandler(warpGlobals.sgnl.canvas,
+		    PointerMotionMask|
 		    ButtonMotionMask|EnterWindowMask|
 		    LeaveWindowMask|ButtonPressMask,
 		    False, sgnlCanvasEventHandler, NULL);
 
-  /* button callbacks */
+  /* button callbacks - read */
   button = XtNameToWidget(widget, "*b_1");
   XtAddCallback(button, XmNactivateCallback, warpReadSignalPopupCb,
 		view_struct);
+
+  /* now mag plus and mag minus */
   button = XtNameToWidget(widget, "*b_2");
   XtAddCallback(button, XmNactivateCallback, warpCanvasMagPlusCb,
 		(XtPointer) &(warpGlobals.sgnl));
@@ -1856,13 +1806,17 @@ Widget createWarpSgnlDisplayFrame(
   XtManageChild(button);
   XtAddCallback(button, XmNactivateCallback, warpCanvasMagMinusCb,
 		(XtPointer) &(warpGlobals.sgnl));
+
+  /* Grey invert */
   button = XtNameToWidget(widget, "*b_3");
   XtAddCallback(button, XmNactivateCallback, warpInvertGreyCb,
 		(XtPointer) &(warpGlobals.sgnl));
   button = XtNameToWidget(widget, "*b_4");
   XtUnmanageChild(button);
-  button = XtNameToWidget(widget, "*b_5");
-  XtUnmanageChild(button);
+  /*button = XtNameToWidget(widget, "*b_5"); - now removed
+    XtUnmanageChild(button);*/
+
+  /* the gamma arrows */
   button = XtNameToWidget(widget, "*b_6");
   XtAddCallback(button, XmNactivateCallback, warpIncrGammaCb,
 		(XtPointer) &(warpGlobals.sgnl));
@@ -1870,6 +1824,10 @@ Widget createWarpSgnlDisplayFrame(
   XtAddCallback(button, XmNactivateCallback, warpDecrGammaCb,
 		(XtPointer) &(warpGlobals.sgnl));
 
+  /* the grey/color text feedback widget */
+  button = XtNameToWidget(widget, "*b_9");
+  XtManageChild(button);
+  warpGlobals.sgnl.text = button;
 
   return( widget );
 }

@@ -259,6 +259,7 @@ typedef struct _PaintGlobals{
   XtAppContext		app_con;
   char			*app_name;
   int			sectViewFlg;
+  Boolean		emageFlg;
 
   /* file_menu globals */
   char			*file;

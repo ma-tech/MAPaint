@@ -457,7 +457,7 @@ void warpIOWrite(
   Widget		toggle, slider;
   Boolean		normFlg=0, histoFlg=0, shadeFlg=0, gaussFlg=0;
   double		width=1.0;
-
+  WlzEffBibWarpInputThresholdParamsStruct	threshParamStr;
 
   /* get a filename for the warp parameters */
   if( fileStr = HGU_XmUserGetFilename(globals.topl,
@@ -573,7 +573,7 @@ void warpIOWrite(
 			XmDIALOG_FULL_APPLICATION_MODAL);
       }
 
-      /* write the processing transform parameters */
+      /* write the signal pre-processing and filter transform parameters */
       if( toggle = XtNameToWidget(globals.topl,
 				  "*warp_sgnl_controls_form*normalise") ){
 	XtVaGetValues(toggle, XmNset, &normFlg, NULL);
@@ -600,16 +600,46 @@ void warpIOWrite(
 	  histoFlg==True?1:0,
 	  shadeFlg==True?1:0,
 	  gaussFlg==True?1:0,
-	  width,
-	  warpGlobals.threshRangeLow,
-	  warpGlobals.threshRangeHigh) != WLZ_ERR_NONE ){
+	  width) != WLZ_ERR_NONE ){
 	HGU_XmUserError(globals.topl,
-	 		"Save Processing Parameters:\n"
+	 		"Save Pre-Processing Parameters:\n"
 		 	"    Error in writing the bibfile\n"
 		 	"    Please check disk space or quotas\n"
 		 	"    Section parameters not saved",
 		 	XmDIALOG_FULL_APPLICATION_MODAL);
       }
+
+      /* write the signal thresholding parameters */
+      threshParamStr.thresholdType = warpGlobals.thresholdType;
+      threshParamStr.threshRGBSpace = warpGlobals.threshRGBSpace;
+      threshParamStr.threshColorChannel = warpGlobals.threshColorChannel;
+      threshParamStr.threshRangeLow = warpGlobals.threshRangeLow;
+      threshParamStr.threshRangeHigh = warpGlobals.threshRangeHigh;
+      for(i=0; i < 3; i++){
+	threshParamStr.threshRangeRGBLow[i] = warpGlobals.threshRangeRGBLow[i];
+	threshParamStr.threshRangeRGBHigh[i] = warpGlobals.threshRangeRGBHigh[i];
+      }
+      threshParamStr.threshRGBCombination = warpGlobals.threshRGBCombination;
+      threshParamStr.lowRGBPoint = warpGlobals.lowRGBPoint;
+      threshParamStr.highRGBPoint = warpGlobals.highRGBPoint;
+      threshParamStr.colorEllipseEcc = warpGlobals.colorEllipseEcc;
+      threshParamStr.globalThreshFlg = warpGlobals.globalThreshFlg;
+      threshParamStr.globalThreshVtx = warpGlobals.globalThreshVtx;
+      threshParamStr.incrThreshFlg = warpGlobals.incrThreshFlg;
+      threshParamStr.pickThreshFlg = warpGlobals.pickThreshFlg;
+      threshParamStr.distanceThreshFlg = warpGlobals.distanceThreshFlg;
+      if( WlzEffBibWriteWarpInputThresholdParamsRecord
+	 (fp, "MAPaintWarpInputThresholdParams",
+	  &threshParamStr) != WLZ_ERR_NONE ){
+	HGU_XmUserError(globals.topl,
+	 		"Save Threshold Parameters:\n"
+		 	"    Error in writing the bibfile\n"
+		 	"    Please check disk space or quotas\n"
+		 	"    Section parameters not saved",
+		 	XmDIALOG_FULL_APPLICATION_MODAL);
+      }
+
+      /* write the signal post-processing parameters */
 
       /* write the tie points only if there is a src image */
       if( warpGlobals.src.obj ){
@@ -684,6 +714,7 @@ void warpIORead(
   WlzCompoundArray	*cobj;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
   WlzObject		*obj;
+  WlzEffBibWarpInputThresholdParamsStruct	threshParamStr;
 
   /* get a filename for the warp parameters */
   if( fileStr = HGU_XmUserGetFilename(globals.topl,
@@ -993,14 +1024,20 @@ void warpIORead(
 	  }
 	}
 	  
-	/* check for segmentation transform parameters */
+	/* check for segmentation pre-processing transform parameters.
+	   Note redundantly get threshLow and threshHigh for
+	   backward compatibility, likewise old name for the record */
 	if( !strncmp(bibfileRecord->name,
 		     "MAPaintWarpInputSegmentationParams", 34) ){
-	  int 		normFlg, histoFlg, shadeFlg, gaussFlg;
-	  int		threshLow, threshHigh;
-	  double	width;
+	  /* basic input parameters with defaults set */
+	  int 		normFlg=0, histoFlg=0, shadeFlg=0, gaussFlg=0;
+	  int		threshLow=256, threshHigh=256;
+	  double	width=5.0;
 	  Widget	toggle, slider;
 
+	  /* do not check number of fields read. Note threshLow and threshHigh,
+	     can be set but may be overriden by the following threshold
+	     parameters */
 	  WlzEffBibParseWarpInputSegmentationParamsRecord(bibfileRecord,
 							  &normFlg,
 							  &histoFlg,
@@ -1017,8 +1054,9 @@ void warpIORead(
 				      "*warp_sgnl_controls_form*histo_equalise") ){
 	    XtVaSetValues(toggle, XmNset, histoFlg, NULL);
 	  }
-	  if( toggle = XtNameToWidget(globals.topl,
-				      "*warp_sgnl_controls_form*shade_correction") ){
+	  if( toggle =
+	     XtNameToWidget(globals.topl,
+			    "*warp_sgnl_controls_form*shade_correction") ){
 	    XtVaSetValues(toggle, XmNset, shadeFlg, NULL);
 	  }
 	  if( toggle = XtNameToWidget(globals.topl,
@@ -1029,17 +1067,277 @@ void warpIORead(
 				      "*warp_sgnl_controls_form*gauss_width") ){
 	    HGU_XmSetSliderValue(slider, width);
 	  }
-	  if( slider = XtNameToWidget(globals.topl,
-				      "*warp_sgnl_controls_form*thresh_range_low") ){
+	  if( slider =
+	     XtNameToWidget(globals.topl,
+			    "*warp_sgnl_controls_form*thresh_range_low") ){
 	    HGU_XmSetSliderValue(slider, (float) threshLow);
 	    warpGlobals.threshRangeLow = threshLow;
 	  }
-	  if( slider = XtNameToWidget(globals.topl,
-				      "*warp_sgnl_controls_form*thresh_range_high") ){
+	  if( slider =
+	     XtNameToWidget(globals.topl,
+			    "*warp_sgnl_controls_form*thresh_range_high") ){
 	    HGU_XmSetSliderValue(slider, (float) threshHigh);
 	    warpGlobals.threshRangeHigh = threshHigh;
 	  }
 	}
+
+	/* check for signal thresholding parameters */
+	if( !strncmp(bibfileRecord->name,
+		     "MAPaintWarpInputThresholdParams", 31) ){
+	  Widget	radio_box, toggle, slider;
+	  Widget	notebook, option_menu, button;
+	  char		*tmpStr;
+	  int		i;
+	  XmToggleButtonCallbackStruct cbs;
+
+	  /* set defaults */
+	  threshParamStr.thresholdType = WLZ_RGBA_THRESH_NONE;
+	  threshParamStr.threshRGBSpace = WLZ_RGBA_SPACE_RGB;
+	  threshParamStr.threshColorChannel = WLZ_RGBA_CHANNEL_GREY;
+	  threshParamStr.threshRangeLow = 256;
+	  threshParamStr.threshRangeHigh = 256;
+	  for(i=0; i < 3; i++){
+	    threshParamStr.threshRangeRGBLow[i] = 256;
+	    threshParamStr.threshRangeRGBHigh[i] = 256;
+	  }
+	  threshParamStr.threshRGBCombination = 0x0;
+	  threshParamStr.lowRGBPoint.type = WLZ_GREY_RGBA;
+	  threshParamStr.lowRGBPoint.v.rgbv = 0xffffffff;
+	  threshParamStr.highRGBPoint.type = WLZ_GREY_RGBA;
+	  threshParamStr.highRGBPoint.v.rgbv = 0xffffffff;
+	  threshParamStr.colorEllipseEcc = 1.0;
+	  threshParamStr.globalThreshFlg = 1;
+	  threshParamStr.globalThreshVtx.vtX = -10000;
+	  threshParamStr.globalThreshVtx.vtY = -10000;
+	  threshParamStr.incrThreshFlg = 0;
+	  threshParamStr.pickThreshFlg = 0;
+	  threshParamStr.distanceThreshFlg = 0;
+
+	  /* do not check number of fields read */
+	  WlzEffBibParseWarpInputThresholdParamsRecord(bibfileRecord,
+						       &threshParamStr);
+
+	  /* now set values */
+	  warpGlobals.threshRangeLow = threshParamStr.threshRangeLow;
+	  warpGlobals.threshRangeHigh = threshParamStr.threshRangeHigh;
+	  for(i=0; i < 3; i++){
+	    warpGlobals.threshRangeRGBLow[i] =
+	      threshParamStr.threshRangeRGBLow[i];
+	    warpGlobals.threshRangeRGBHigh[i] =
+	      threshParamStr.threshRangeRGBHigh[i];
+	  }
+	  warpGlobals.threshRGBCombination = threshParamStr.threshRGBCombination;
+	  warpGlobals.lowRGBPoint = threshParamStr.lowRGBPoint;
+	  warpGlobals.highRGBPoint = threshParamStr.highRGBPoint;
+	  warpGlobals.colorEllipseEcc = threshParamStr.colorEllipseEcc;
+	  warpGlobals.globalThreshVtx = threshParamStr.globalThreshVtx;
+
+	  /* reset simple controls */
+	  /* do modes before threshold controls */
+	  if( toggle = XtNameToWidget(globals.topl,
+				      "*warp_sgnl_controls_form*global_thresh") ){
+	    XtVaSetValues(toggle, XmNset, threshParamStr.globalThreshFlg, NULL);
+	    cbs.set = threshParamStr.globalThreshFlg;
+	    XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
+	  }
+	  if( toggle = 
+	     XtNameToWidget(globals.topl,
+			    "*warp_sgnl_controls_form*incremental_thresh") ){
+	    XtVaSetValues(toggle, XmNset, threshParamStr.incrThreshFlg, NULL);
+	    cbs.set = threshParamStr.incrThreshFlg;
+	    XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
+	  }
+	  if( toggle =
+	     XtNameToWidget(globals.topl,
+			    "*warp_sgnl_controls_form*pick_mode_thresh") ){
+	    XtVaSetValues(toggle, XmNset, threshParamStr.pickThreshFlg, NULL);
+	    cbs.set = threshParamStr.pickThreshFlg;
+	    XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
+	  }
+	  if( toggle =
+	     XtNameToWidget(globals.topl,
+			    "*warp_sgnl_controls_form*distance_mode_thresh") ){
+	    XtVaSetValues(toggle, XmNset, threshParamStr.distanceThreshFlg, NULL);
+	    cbs.set = threshParamStr.distanceThreshFlg;
+	    XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
+	  }
+  
+	  /* reset the threshold and interact controls */
+	  /* single colour mode */
+	  if( slider =
+	     XtNameToWidget(globals.topl,
+			    "*warp_sgnl_controls_form*thresh_range_low") ){
+	    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeLow);
+	  }
+	  if( slider =
+	     XtNameToWidget(globals.topl,
+			    "*warp_sgnl_controls_form*thresh_range_high") ){
+	    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeHigh);
+	  }
+	  
+	  /* multi-colour mode */
+	  if( slider =
+	     XtNameToWidget(globals.topl,
+			    "*warp_sgnl_controls_form*thresh_range_red_low") ){
+	    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBLow[0]);
+	  }
+	  if( slider =
+	     XtNameToWidget(globals.topl,
+			    "*warp_sgnl_controls_form*thresh_range_red_high") ){
+	    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBHigh[0]);
+	  }
+	  if( slider =
+	     XtNameToWidget(globals.topl,
+			    "*warp_sgnl_controls_form*thresh_range_green_low") ){
+	    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBLow[1]);
+	  }
+	  if( slider =
+	     XtNameToWidget(globals.topl,
+			    "*warp_sgnl_controls_form*thresh_range_green_high") ){
+	    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBHigh[1]);
+	  }
+	  if( slider =
+	     XtNameToWidget(globals.topl,
+			    "*warp_sgnl_controls_form*thresh_range_blue_low") ){
+	    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBLow[2]);
+	  }
+	  if( slider =
+	     XtNameToWidget(globals.topl,
+			    "*warp_sgnl_controls_form*thresh_range_blue_high") ){
+	    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBHigh[2]);
+	  }
+
+	  /* interactive mode */
+	  if( slider =
+	     XtNameToWidget(globals.topl,
+  			    "*warp_sgnl_controls_form*thresh_eccentricity") ){
+	    HGU_XmSetSliderValue(slider, (float) warpGlobals.colorEllipseEcc);
+	  }
+	  if( slider = XtNameToWidget(globals.topl,
+				      "*warp_sgnl_controls_form*thresh_radius") ){
+	    HGU_XmSetSliderValue(slider, (float) 10.0);
+	  }
+	  if( radio_box = 
+	     XtNameToWidget(globals.topl,
+			    "*warp_sgnl_controls_form*threshold_interact_rc") ){
+	    switch( threshParamStr.thresholdType ){
+	    default:
+	    case WLZ_RGBA_THRESH_SLICE:
+	      toggle = XtNameToWidget(radio_box, "*box");
+	      break;
+	    case WLZ_RGBA_THRESH_BOX:
+	      toggle = XtNameToWidget(radio_box, "*slice");
+	      break;
+	    case WLZ_RGBA_THRESH_SPHERE:
+	      toggle = XtNameToWidget(radio_box, "*sphere");
+	      break;
+	    }
+	    if( toggle ){
+	      XtVaSetValues(radio_box, XmNmenuHistory, toggle, NULL);
+	      XtCallCallbacks(toggle, XmNvalueChangedCallback, NULL);
+	    }
+	  }
+
+	  /* threshold type - affects notebook page selected */
+	  warpGlobals.thresholdType = threshParamStr.thresholdType;
+	  switch( threshParamStr.thresholdType ){
+	  case WLZ_RGBA_THRESH_NONE: /* select pre-proc page */
+	    tmpStr = "pre_process_page";
+	    break;
+	  case WLZ_RGBA_THRESH_SINGLE:
+	    tmpStr = "threshold_single_page";
+	    break;
+	  case WLZ_RGBA_THRESH_MULTI:
+	    tmpStr = "threshold_multi_page";
+	    break;
+	  case WLZ_RGBA_THRESH_PLANE:
+	  case WLZ_RGBA_THRESH_SLICE:
+	  case WLZ_RGBA_THRESH_BOX:
+	  case WLZ_RGBA_THRESH_SPHERE:
+	    tmpStr = "threshold_interactive_page";
+	    break;
+	  }
+	  if( notebook = XtNameToWidget(warpGlobals.sgnlControls,
+				  "*warp_sgnl_notebook") ){
+	    int	minPageNum, maxPageNum, pageNum;
+	    XtVaGetValues(notebook,
+			  XmNfirstPageNumber, &minPageNum,
+			  XmNlastPageNumber, &maxPageNum,
+			  NULL);
+	    for(i=minPageNum; i <= maxPageNum; i++){
+	      XmNotebookPageInfo	page_info;
+	      if(XmNotebookGetPageInfo(notebook, i, &page_info) ==
+		 XmPAGE_FOUND){
+		if(strcmp(tmpStr, XtName(page_info.page_widget)) == 0){
+		  if(strncmp(tmpStr, "threshold_", 10) == 0 ){
+		    warpGlobals.lastThresholdPageNum = i;
+		    thresholdMajorPageSelectCb(warpGlobals.sgnlControls,
+					       (XtPointer) warpGlobals.thresholdType,
+					       NULL);
+		  }
+		  break;
+		}
+	      }
+	    }
+	  }
+
+	  /* colour space - affects channel selectors and callbacks */
+	  warpGlobals.threshRGBSpace = threshParamStr.threshRGBSpace;
+	  if( option_menu =
+	     XtNameToWidget(globals.topl,
+			    "*warp_sgnl_controls_form*color_space") ){
+	    switch( warpGlobals.threshRGBSpace ){
+	    default:
+	    case WLZ_RGBA_SPACE_RGB:
+	      button = XtNameToWidget(option_menu, "*RGB");
+	      break;
+	    case WLZ_RGBA_SPACE_HSB:
+	      button = XtNameToWidget(option_menu, "*HSB");
+	      break;
+	    case WLZ_RGBA_SPACE_CMY:
+	      button = XtNameToWidget(option_menu, "*CMY");
+	      break;
+	    }
+	    if( button ){
+	      XtVaSetValues(option_menu, XmNmenuHistory, button, NULL);
+	      XtCallCallbacks(button, XmNactivateCallback, NULL);
+	    }
+	  }
+
+	  /* colour channel - now recalculate the signal domain from scratch */
+	  warpGlobals.threshColorChannel = threshParamStr.threshColorChannel;
+	  if( radio_box =
+	     XtNameToWidget(globals.topl,
+			    "*warp_sgnl_controls_form*threshold_channel_rc") ){
+	    switch( threshParamStr.threshColorChannel ){
+	    default:
+	    case WLZ_RGBA_CHANNEL_GREY:
+	      toggle = XtNameToWidget(radio_box, "*grey");
+	      break;
+	    case WLZ_RGBA_CHANNEL_RED:
+	    case WLZ_RGBA_CHANNEL_HUE:
+	    case WLZ_RGBA_CHANNEL_CYAN:
+	      toggle = XtNameToWidget(radio_box, "*red");
+	      break;
+	    case WLZ_RGBA_CHANNEL_GREEN:
+	    case WLZ_RGBA_CHANNEL_SATURATION:
+	    case WLZ_RGBA_CHANNEL_MAGENTA:
+	      toggle = XtNameToWidget(radio_box, "*green");
+	      break;
+	    case WLZ_RGBA_CHANNEL_BLUE:
+	    case WLZ_RGBA_CHANNEL_BRIGHTNESS:
+	    case WLZ_RGBA_CHANNEL_YELLOW:
+	      toggle = XtNameToWidget(radio_box, "*blue");
+	      break;
+	    }
+	    if( toggle ){
+	      XtVaSetValues(radio_box, XmNmenuHistory, toggle, NULL);
+	      XtCallCallbacks(toggle, XmNvalueChangedCallback, NULL);
+	    }
+	  }
+	}
+
+	/* check for signal post-processing parameters */
 
 	BibFileRecordFree(&bibfileRecord);
 	bibFileErr = BibFileRecordRead(&bibfileRecord, &errMsg, fp);

@@ -294,9 +294,9 @@ Widget createDomainSelectOptionMenu(
   num_overlays = globals.cmapstruct->num_overlays +
     globals.cmapstruct->num_solid_overlays;
 
-  items = (MenuItem *) AlcCalloc(num_overlays+1,sizeof(MenuItem));
+  items = (MenuItem *) AlcCalloc(33,sizeof(MenuItem));
 
-  for(i=0; i < num_overlays; i++){
+  for(i=0; i < 32; i++){
     items[i].name               = (String) AlcMalloc(sizeof(char) * 16);
     sprintf(items[i].name, "domain %d", i+1);
     items[i].wclass             = &xmPushButtonWidgetClass;
@@ -317,7 +317,7 @@ Widget createDomainSelectOptionMenu(
   option_menu = HGU_XmBuildMenu( parent, XmMENU_OPTION, name, 0,
 				XmTEAR_OFF_DISABLED, items);
 
-  for(i=1; i <= num_overlays; i++){
+  for(i=1; i <= 32; i++){
     if( i <= globals.cmapstruct->num_overlays )
     {
       col = globals.cmapstruct->ovly_cols[i] + globals.cmapstruct->gmax -
@@ -331,11 +331,14 @@ Widget createDomainSelectOptionMenu(
     (void) sprintf(str, "*%s", items[i-1].name);
     if( widget = XtNameToWidget(option_menu, str) ){
       XmChangeColor(widget, col);
+      if( i > num_overlays ){
+	XtUnmanageChild(widget);
+      }
     }
     AlcFree( str );
   }
 
-  for(i=0; i < num_overlays; i++){
+  for(i=0; i < 33; i++){
     AlcFree(items[i].name);
   }
   AlcFree( items );
@@ -406,6 +409,8 @@ Widget createDomainSurgeryDialog(
 				      XmNorientation, XmVERTICAL,
 				      XmNnumColumns,	5,
 				      XmNpacking,	XmPACK_COLUMN,
+				      XmNresizeWidth,	True,
+				      XmNresizeHeight,	True,
 				      NULL);
   widget = XtVaCreateManagedWidget("Discard", xmPushButtonWidgetClass,
 				   rowcolumn, NULL);
@@ -420,12 +425,6 @@ Widget createDomainSurgeryDialog(
   for(i=1; i < 33; i++){
     Pixel	pixel;
     char	domainStrBuf[16];
-
-    if( i > (globals.cmapstruct->num_overlays +
-	     globals.cmapstruct->num_solid_overlays) )
-    {
-      continue;
-    }
 
     sprintf(domainStrBuf, "domain %d", i);
     widget = XtVaCreateManagedWidget(domainStrBuf,
@@ -445,6 +444,12 @@ Widget createDomainSurgeryDialog(
 			       (float) globals.colormap[1][pixel]/255.0,
 			       (float) globals.colormap[2][pixel]/255.0);
     XmChangeColor(widget, pixel);
+
+    if( i > (globals.cmapstruct->num_overlays +
+	     globals.cmapstruct->num_solid_overlays) )
+    {
+      XtUnmanageChild(widget);
+    }
   }
 
   /* initialise the object list */

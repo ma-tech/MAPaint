@@ -47,10 +47,15 @@ CSOURCES		= \
 			MAWarpInputInteractUtils.c \
 			MAWarpInputPaintingCb.c \
 			MAWarpInputXUtils.c \
+			MAWarpSignalColorUtils.c \
+			MAWarpSignalDomain.c \
+			MAWarpSignalInteract.c \
+			MAWarpSignalPreprocUtils.c \
 			MAWarpSignalProc.c \
 			MAPMSnake.c \
 			NalgsDPSearch.c \
 			anatomy_menu.c \
+			domainControls.c \
 			domain_menu.c \
 			domain_utils.c \
 			file_menu.c \
@@ -97,10 +102,15 @@ CSOURCES		= \
 			MAWarpInputInteractUtils.c \
 			MAWarpInputPaintingCb.c \
 			MAWarpInputXUtils.c \
+			MAWarpSignalColorUtils.c \
+			MAWarpSignalDomain.c \
+			MAWarpSignalInteract.c \
+			MAWarpSignalPreprocUtils.c \
 			MAWarpSignalProc.c \
 			MAPMSnake.c \
 			NalgsDPSearch.c \
 			anatomy_menu.c \
+			domainControls.c \
 			domain_menu.c \
 			domain_utils.c \
 			file_menu.c \
@@ -146,10 +156,15 @@ CSOURCES		= \
 			MAWarpInputInteractUtils.c \
 			MAWarpInputPaintingCb.c \
 			MAWarpInputXUtils.c \
+			MAWarpSignalColorUtils.c \
+			MAWarpSignalDomain.c \
+			MAWarpSignalInteract.c \
+			MAWarpSignalPreprocUtils.c \
 			MAWarpSignalProc.c \
 			MAPMSnake.c \
 			NalgsDPSearch.c \
 			anatomy_menu.c \
+			domainControls.c \
 			domain_menu.c \
 			domain_utils.c \
 			file_menu.c \

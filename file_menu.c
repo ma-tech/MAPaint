@@ -876,7 +876,7 @@ void set_topl_title(
   String	name)
 {
   String	class_return;
-  char		str_buff[64];
+  char		str_buff[64], app_name[32], *tmpStr;
   int		i, basename_start;
 
   if( globals.app_name == NULL ){
@@ -884,7 +884,24 @@ void set_topl_title(
     XtGetApplicationNameAndClass(XtDisplay(globals.topl),
 				 &globals.app_name, &class_return);
   }
+
+  /* check for emage flag 
+     remove any trailing "_EMAGE" */
+  strncpy(app_name, globals.app_name, 30);
+  if( tmpStr = strstr(app_name, "_EMAGE") ){
+    app_name[tmpStr - app_name] = '\0';
+  }
+  if( globals.emageFlg == True ){
+    sprintf(app_name, "%s(EMAGE)", globals.app_name);
+  }
+  else {
+    sprintf(app_name, "%s", globals.app_name);
+  }
   
+  /* use given name or globals.file or NULL */
+  if( name == NULL ){
+    name = globals.file;
+  }
   if( name ){
     /* get file basename */
     for(i=0, basename_start=0; i < strlen(name); i++){
@@ -892,10 +909,10 @@ void set_topl_title(
 	basename_start = i+1;
       }
     }
-    sprintf(str_buff, "%s: %s", globals.app_name, name+basename_start);
+    sprintf(str_buff, "%s: %s", app_name, name+basename_start);
   }
   else {
-    sprintf(str_buff, "%s", globals.app_name);
+    sprintf(str_buff, "%s", app_name);
   }
 
   XtVaSetValues(globals.topl, XtNtitle, str_buff, NULL);
@@ -1395,6 +1412,9 @@ void file_menu_init(
   char		fileStr[128], *tmpStr;
   FILE 		*fp;
   WlzEffFormat	image_type=WLZEFF_FORMAT_WLZ;
+
+  /* set the top-level title */
+  set_topl_title(NULL);
 
   /* get the visual explicitly */
   visual = HGU_XmWidgetToVisual(topl);

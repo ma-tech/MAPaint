@@ -86,10 +86,13 @@ extern void	threed_display_domain_cb(Widget		w,
 
 extern int	domain_menu_init(Widget	topl);
 
-extern void	StartDD_DomainDominance(Widget		w,
-					XEvent		*event,
-					String		*params,
-					Cardinal	*num_params);
+extern void	DD_StartDomainDominanceDrag(Widget	w,
+					    XEvent	*event,
+					    String	*params,
+					    Cardinal	*num_params);
+
+extern void DD_DomainDominanceDropSite(
+  Widget	site);
 
 extern void save_all_domains_cb(Widget		w,
 				 XtPointer	client_data,
@@ -101,6 +104,9 @@ extern void clear_all_domains_cb(Widget		w,
 
 extern void set_domain_menu_entry(DomainSelection	domain,
 				  String		name_str);
+
+extern void setMenuLabelsAndColors(void);
+extern void MAPaintDomainGetResourceValues(void);
 
 /* domain_utils.c */
 extern WlzObject *get_domain_from_object(WlzObject 	*obj,
@@ -120,6 +126,11 @@ extern void setDomainIncrement(WlzObject	*obj,
 
 extern void setGreyValuesFromObject(WlzObject	*destObj,
 				    WlzObject	*srcObj);
+
+extern void setEMAGEDomainsAndColoursCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data);
 
 /* file_menu.c */
 extern MenuItem		*file_menu_items;
@@ -399,6 +410,7 @@ extern void HGU_XmCreatePrivateColormap(Display *dpy);
 extern int set_paint_colormap(Widget		w,
 			      Colormap		cmap,
 			      PaintCmapStruct	*cmpstr);
+extern void MAPaintColormapGetResourceValues(void);
 
 /* MAColormapDialog.c */
 extern void colormap_cb(Widget		w,

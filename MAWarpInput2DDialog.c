@@ -30,7 +30,8 @@
 #include <MAPaint.h>
 #include <MAWarp.h>
 
-extern void warpSetSignalDomain(void);
+extern void warpSetSignalDomain(
+  WlzIVertex2	*selVtx);
 
 extern void warpReadSignalPopupCb(
   Widget		w,
@@ -222,7 +223,7 @@ void recalcWarpProcObjCb(
   if( warpGlobals.sgnlObj ){
     warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
   }
-  warpSetSignalDomain();
+  warpSetSignalDomain(NULL);
   if( warpGlobals.sgnlObj ){
     warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
   }
@@ -307,6 +308,26 @@ void warpReadSourceCb(
 			   call_data);
 
 	/* reset the source mesh */
+	if( WlzGreyTypeFromObj(warpGlobals.src.obj, NULL) == WLZ_GREY_RGBA ){
+	  Widget	option_menu, widget;
+	  /* switch mesh method to block */
+	  if( option_menu = XtNameToWidget(view_struct->dialog,
+					   "*.mesh_method") ){
+	    if( widget = XtNameToWidget(option_menu, "*.block") ){
+	      XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
+	      warpGlobals.meshMthd = WLZ_MESH_GENMETHOD_BLOCK;
+	      HGU_XmUserMessage(globals.topl,
+				"The mesh generation method has been\n"
+				"switched to Block mode because the source\n"
+				"image just read is a colour image. The\n"
+				"gradient mesh method does not produce a\n"
+				"usable mesh in this version.\n\n"
+				"You may want to adjust the mesh minimum\n"
+				"distance parameter",
+				XmDIALOG_FULL_APPLICATION_MODAL);
+	    }
+	  }
+	}
 	if( warpGlobals.meshTr ){
 	  WlzMeshFreeTransform(warpGlobals.meshTr);
 	}
@@ -776,12 +797,12 @@ Widget createWarpDisplayFrame(
 				   title, NULL);
   button = XtVaCreateManagedWidget("b_4", xmPushButtonWidgetClass,
 				   title, NULL);
-  button = XtVaCreateManagedWidget("b_5", xmToggleButtonWidgetClass,
+  /*button = XtVaCreateManagedWidget("b_5", xmToggleButtonWidgetClass,
 				   title,
 				   XmNindicatorOn,	True,
 				   XmNfillOnSelect,	True,
 				   XmNshadowThickness,	1,
-				   NULL);
+				   NULL);*/
 
   /* add the gamma controls */
   button = XtVaCreateManagedWidget("b_6", xmArrowButtonWidgetClass,
@@ -805,6 +826,15 @@ Widget createWarpDisplayFrame(
 			    XmNvalue,		50,
 			    NULL);
 
+  /* now a text area for grey/color value feedback */
+  button = XtVaCreateWidget("b_9", xmTextWidgetClass, title,
+			    XmNrows,	1,
+			    XmNcolumns,	12,
+			    XmNshadowThickness,	0,
+			    XmNcursorPositionVisible,	False,
+			    XmNautoShowCursorPosition,	False,
+			    XmNvalue,	"-,-,-",
+			    NULL);
 
   /* create the canvas */
   canvas = XtVaCreateManagedWidget("canvas", hgu_DrawingAreaWidgetClass,
@@ -1062,6 +1092,10 @@ static MenuItem warpDisplayFramePopupItemsP[] = {
    warpSetXImageCb, NULL,
    HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"show mesh", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpCanvasMeshCb, NULL,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
   NULL,
 };
 
@@ -1138,6 +1172,10 @@ static MenuItem warpOvlyDisplayFramePopupItemsP[] = {
    warpSetXOvlyImageSrcCb, NULL,
    HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
+  {"show mesh", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
+   warpCanvasMeshCb, NULL,
+   HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
+   XmTEAR_OFF_DISABLED, False, False, NULL},
   {"overlay method", &xmCascadeButtonGadgetClass, 0, NULL, NULL, False,
    NULL, NULL,
    HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
@@ -1209,6 +1247,7 @@ static Widget create2DWarpDialog(
   warpDisplayFramePopupItemsP[0].callback_data = &warpGlobals.dst;
   warpDisplayFramePopupItemsP[1].callback_data = &warpGlobals.dst;
   warpDisplayFramePopupItemsP[2].callback_data = &warpGlobals.dst;
+  warpDisplayFramePopupItemsP[3].callback_data = (XtPointer) 0;
   warpGlobals.dst.popup = HGU_XmBuildMenu(warpGlobals.dst.canvas,
 					  XmMENU_POPUP, "warp_dst_popup",
 					  '\0', XmTEAR_OFF_DISABLED,
@@ -1246,9 +1285,9 @@ static Widget create2DWarpDialog(
   button = XtNameToWidget(child, "*b_4");
   XtAddCallback(button, XmNactivateCallback, warpCanvasResetCb,
 		(XtPointer) &(warpGlobals.dst));
-  button = XtNameToWidget(child, "*b_5");
+/*  button = XtNameToWidget(child, "*b_5");
   XtAddCallback(button, XmNvalueChangedCallback, warpCanvasMeshCb,
-		(XtPointer) 0);
+  (XtPointer) 0);*/
   button = XtNameToWidget(child, "*b_6");
   XtAddCallback(button, XmNactivateCallback, warpIncrGammaCb,
 		(XtPointer) &(warpGlobals.dst));
@@ -1270,6 +1309,7 @@ static Widget create2DWarpDialog(
   warpDisplayFramePopupItemsP[0].callback_data = &warpGlobals.src;
   warpDisplayFramePopupItemsP[1].callback_data = &warpGlobals.src;
   warpDisplayFramePopupItemsP[2].callback_data = &warpGlobals.src;
+  warpDisplayFramePopupItemsP[3].callback_data = (XtPointer) 1;
   warpGlobals.src.popup = HGU_XmBuildMenu(warpGlobals.src.canvas,
 					  XmMENU_POPUP, "warp_src_popup",
 					  '\0', XmTEAR_OFF_DISABLED,
@@ -1305,9 +1345,9 @@ static Widget create2DWarpDialog(
   button = XtNameToWidget(child, "*b_4");
   XtAddCallback(button, XmNactivateCallback, warpCanvasResetCb,
 		(XtPointer) &(warpGlobals.src));
-  button = XtNameToWidget(child, "*b_5");
+/*  button = XtNameToWidget(child, "*b_5");
   XtAddCallback(button, XmNvalueChangedCallback, warpCanvasMeshCb,
-		(XtPointer) 1);
+  (XtPointer) 1);*/
   button = XtNameToWidget(child, "*b_6");
   XtAddCallback(button, XmNactivateCallback, warpIncrGammaCb,
 		(XtPointer) &(warpGlobals.src));
@@ -1332,6 +1372,7 @@ static Widget create2DWarpDialog(
   warpOvlyDisplayFramePopupItemsP[3].callback_data = &warpGlobals.ovly;
   warpOvlyDisplayFramePopupItemsP[4].callback_data = &warpGlobals.ovly;
   warpOvlyDisplayFramePopupItemsP[5].callback_data = &warpGlobals.ovly;
+  warpOvlyDisplayFramePopupItemsP[6].callback_data = (XtPointer) 2;
   warpGlobals.ovly.popup = 
     HGU_XmBuildMenu(warpGlobals.ovly.canvas,
 		    XmMENU_POPUP,
@@ -1366,9 +1407,9 @@ static Widget create2DWarpDialog(
   button = XtNameToWidget(child, "*b_4");
   XtAddCallback(button, XmNactivateCallback, warpCanvasResetCb,
 		(XtPointer) &(warpGlobals.ovly));
-  button = XtNameToWidget(child, "*b_5");
+/*  button = XtNameToWidget(child, "*b_5");
   XtAddCallback(button, XmNvalueChangedCallback, warpCanvasMeshCb,
-		(XtPointer) 2);
+  (XtPointer) 2);*/
   button = XtNameToWidget(child, "*b_6");
   XtAddCallback(button, XmNactivateCallback, warpIncrGammaCb,
 		(XtPointer) &(warpGlobals.ovly));

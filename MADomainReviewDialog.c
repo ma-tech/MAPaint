@@ -1168,7 +1168,6 @@ Widget createDomainReviewDialog(
 				  XmNtopAttachment, XmATTACH_WIDGET,
 				  XmNtopWidget,	frame,
 				  XmNleftAttachment, XmATTACH_FORM,
-				  XmNrightAttachment, XmATTACH_FORM,
 				  NULL);
 
   title_form = XtVaCreateManagedWidget("dest_domain_title_form",
@@ -1191,6 +1190,8 @@ Widget createDomainReviewDialog(
 				      XmNorientation, XmVERTICAL,
 				      XmNnumColumns,	5,
 				      XmNpacking,	XmPACK_COLUMN,
+				      XmNresizeWidth,	True,
+				      XmNresizeHeight,	True,
 				      NULL);
   widget = XtVaCreateManagedWidget("Discard", xmPushButtonWidgetClass,
 				   rowcolumn, NULL);
@@ -1205,12 +1206,6 @@ Widget createDomainReviewDialog(
   for(i=1; i < 33; i++){
     Pixel	pixel;
     char	domainStrBuf[16];
-
-    if( i > (globals.cmapstruct->num_overlays +
-	     globals.cmapstruct->num_solid_overlays) )
-    {
-      continue;
-    }
 
     sprintf(domainStrBuf, "domain %d", i);
     widget = XtVaCreateManagedWidget(domainStrBuf,
@@ -1230,6 +1225,13 @@ Widget createDomainReviewDialog(
 			       (float) globals.colormap[1][pixel]/255.0,
 			       (float) globals.colormap[2][pixel]/255.0);
     XmChangeColor(widget, pixel);
+
+    if( i > (globals.cmapstruct->num_overlays +
+	     globals.cmapstruct->num_solid_overlays) )
+    {
+      XtUnmanageChild(widget);
+    }
+
   }
 
   return( dialog );

@@ -303,7 +303,7 @@ Colormap init_paint_colormap(
   cmpstr->npixels = 0;
   min_required_val = cmpstr->gmin;
   max_required_val = cmpstr->gmax +
-    cmpstr->ovly_incr[cmpstr->num_overlays] + cmpstr->num_solid_overlays;
+    cmpstr->ovly_incr[cmpstr->num_overlays] + /*cmpstr->num_solid_overlays*/ 27;
   for(i=0; i < 256; i++){
 
     if( globals.toplDepth == 8 ){
@@ -471,6 +471,32 @@ int set_paint_colormap(
   return( 0 );
 }
 
+void MAPaintColormapGetResourceValues(void)
+{
+  Widget	canvas = globals.topl;
+
+  /* number of colours etc */
+  XtGetApplicationResources(canvas, globals.cmapstruct, set_att_res,
+			    XtNumber(set_att_res), NULL, 0);
+
+  /* overlay values */
+  XtGetApplicationResources(canvas, &(globals.cmapstruct->ovly_red[0]),
+			    domainColsRed,
+			    XtNumber(domainColsRed), NULL, 0);
+  XtGetApplicationResources(canvas, &(globals.cmapstruct->ovly_green[0]),
+			    domainColsGreen,
+			    XtNumber(domainColsGreen), NULL, 0);
+  XtGetApplicationResources(canvas, &(globals.cmapstruct->ovly_blue[0]),
+			    domainColsBlue,
+			    XtNumber(domainColsBlue), NULL, 0);
+
+  /* wash overlay contrasts */
+  XtGetApplicationResources(canvas, &(globals.cmapstruct->ovly_contrast[0]),
+			    domainContrasts,
+			    XtNumber(domainContrasts), NULL, 0);
+  return;
+}
+
 void init_paint_cmapstruct(
 Widget	canvas)
 {
@@ -488,7 +514,7 @@ Widget	canvas)
 
     XtGetApplicationResources(canvas, cmpstr, set_att_res,
                               XtNumber(set_att_res), NULL, 0);
-    if( cmpstr->num_overlays > 5 )
+    if( cmpstr->num_overlays != 5 )
     {
       cmpstr->num_overlays = 5;
     }

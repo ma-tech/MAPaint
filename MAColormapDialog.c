@@ -263,9 +263,9 @@ Widget		dialog)
     num_overlays = globals.cmapstruct->num_overlays +
       globals.cmapstruct->num_solid_overlays;
 
-    items = (MenuItem *) calloc(num_overlays+1,sizeof(MenuItem));
+    items = (MenuItem *) calloc(33, sizeof(MenuItem));
 
-    for(i=0; i < num_overlays; i++){
+    for(i=0; i < 32; i++){
 	items[i].name               = ovly_strs[i+1];
 	items[i].wclass             = &xmPushButtonWidgetClass;
 	items[i].mnemonic           = 0;
@@ -287,7 +287,7 @@ Widget		dialog)
     free( items );
 
     str = (String) malloc(sizeof(char) * (8));
-    for(i=1; i <= num_overlays; i++){
+    for(i=1; i <= 32; i++){
       if( i <= globals.cmapstruct->num_overlays )
       {
 	col = globals.cmapstruct->ovly_cols[i] + globals.cmapstruct->gmax -
@@ -304,6 +304,9 @@ Widget		dialog)
       (void) sprintf(str, "*%s", ovly_strs[i]);
       if( widget = XtNameToWidget(option_menu, str) ){
 	XtVaSetValues(widget, XmNbackground, col, NULL);
+      }
+      if( i > num_overlays ){
+	XtUnmanageChild(widget);
       }
     }
     free( str );

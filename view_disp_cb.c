@@ -574,54 +574,61 @@ void view_feedback_cb(
     vtx = Wlz3DViewGetIntersectionPoint(wlzViewStr,
 					vl->view_struct->wlzViewStr,
 					&errNum);
+    if( errNum == WLZ_ERR_NONE ){
+      x = vtx.vtX - vl->view_struct->wlzViewStr->minvals.vtX;
+      y = vtx.vtY - vl->view_struct->wlzViewStr->minvals.vtY;
+
+      angle = Wlz3DViewGetIntersectionAngle(wlzViewStr,
+					    vl->view_struct->wlzViewStr,
+					    &errNum);
+      if( errNum == WLZ_ERR_NONE ){
+	dpy = XtDisplay(vl->view_struct->canvas);
+	win = XtWindow(vl->view_struct->canvas);
+
+	t = tan( angle );
+	xmax = vl->view_struct->wlzViewStr->maxvals.vtX -
+	  vl->view_struct->wlzViewStr->minvals.vtX;
+	ymax = vl->view_struct->wlzViewStr->maxvals.vtY -
+	  vl->view_struct->wlzViewStr->minvals.vtY;
+	if( fabs( t ) > 1.0 ){
+	  y0 = 0;
+	  y1 = ymax;
+	  x0 = x + (y0 - y) / t;
+	  x1 = x + (y1 - y) / t;
+	} else {
+	  x0 = 0;
+	  x1 = xmax;
+	  y0 = y + (x0 - x) * t;
+	  y1 = y + (x1 - x) * t;
+	}
+
+	/* reset for scale setting */
+	x0 *= vl->view_struct->wlzViewStr->scale;
+	y0 *= vl->view_struct->wlzViewStr->scale;
+	x1 *= vl->view_struct->wlzViewStr->scale;
+	y1 *= vl->view_struct->wlzViewStr->scale;
+
+	xrectangle.x = xrectangle.y = 0;
+	xrectangle.width = (xmax+1) * vl->view_struct->wlzViewStr->scale;
+	xrectangle.height = (ymax+1) * vl->view_struct->wlzViewStr->scale;
+	XSetClipRectangles(dpy, globals.gc_set, 0, 0, &xrectangle, 1,
+			   Unsorted);
+	XDrawLine(dpy, win, globals.gc_set, x0, y0, x1, y1);
+	XFlush( dpy );
+	XSetClipMask(dpy, globals.gc_set, None);
+      }
+    }
+
+    /* reset the error in case it is WLZ_ERR_ALG */
     if( errNum != WLZ_ERR_NONE ){
-      MAPaintReportWlzError(globals.topl, "view_feedback_cb", errNum);
-      return;
+      if( errNum == WLZ_ERR_ALG ){
+	errNum = WLZ_ERR_NONE;
+      }
+      else {
+	MAPaintReportWlzError(globals.topl, "view_feedback_cb", errNum);
+	return;
+      }
     }
-    x = vtx.vtX - vl->view_struct->wlzViewStr->minvals.vtX;
-    y = vtx.vtY - vl->view_struct->wlzViewStr->minvals.vtY;
-
-    angle = Wlz3DViewGetIntersectionAngle(wlzViewStr,
-					  vl->view_struct->wlzViewStr,
-					  &errNum);
-    if( errNum != WLZ_ERR_NONE ){
-      MAPaintReportWlzError(globals.topl, "view_feedback_cb", errNum);
-      return;
-    }
-    dpy = XtDisplay(vl->view_struct->canvas);
-    win = XtWindow(vl->view_struct->canvas);
-
-    t = tan( angle );
-    xmax = vl->view_struct->wlzViewStr->maxvals.vtX -
-      vl->view_struct->wlzViewStr->minvals.vtX;
-    ymax = vl->view_struct->wlzViewStr->maxvals.vtY -
-      vl->view_struct->wlzViewStr->minvals.vtY;
-    if( fabs( t ) > 1.0 ){
-      y0 = 0;
-      y1 = ymax;
-      x0 = x + (y0 - y) / t;
-      x1 = x + (y1 - y) / t;
-    } else {
-      x0 = 0;
-      x1 = xmax;
-      y0 = y + (x0 - x) * t;
-      y1 = y + (x1 - x) * t;
-    }
-
-    /* reset for scale setting */
-    x0 *= vl->view_struct->wlzViewStr->scale;
-    y0 *= vl->view_struct->wlzViewStr->scale;
-    x1 *= vl->view_struct->wlzViewStr->scale;
-    y1 *= vl->view_struct->wlzViewStr->scale;
-
-    xrectangle.x = xrectangle.y = 0;
-    xrectangle.width = (xmax+1) * vl->view_struct->wlzViewStr->scale;
-    xrectangle.height = (ymax+1) * vl->view_struct->wlzViewStr->scale;
-    XSetClipRectangles(dpy, globals.gc_set, 0, 0, &xrectangle, 1,
-		       Unsorted);
-    XDrawLine(dpy, win, globals.gc_set, x0, y0, x1, y1);
-    XFlush( dpy );
-    XSetClipMask(dpy, globals.gc_set, None);
     vl = vl->next;
   }
 

@@ -38,7 +38,7 @@ Cardinal	*num_params)
   {
     if( strcmp(*params, "DomainDominance") == 0 )
     {
-      StartDD_DomainDominance(w, event, params, num_params);
+      DD_StartDomainDominanceDrag(w, event, params, num_params);
     }
   }
 
@@ -289,6 +289,8 @@ static XrmOptionDescRec mapaint_options[] = {
   {"-stage",	".theilerStage", XrmoptionSepArg, NULL},
   {"-help",	"*help_menu.sensitive", XrmoptionNoArg, "True"},
   {"-logfile",	".logfile", XrmoptionSepArg, NULL},
+  {"-emage",	".emage", XrmoptionNoArg, "True"},
+  {"-noemage",	".emage", XrmoptionNoArg, "False"},
 };
 
 main(
@@ -305,6 +307,7 @@ main(
   Arg			arg[3];
   Boolean		d8Flg=False;
   Boolean		d24Flg=False;
+  Boolean		emageFlg=False;
   XrmValue		xrmValue;
   char			*rtnStrType;
   char			*nameStr, *depthRscStr;
@@ -333,10 +336,10 @@ main(
   XtToolkitThreadInitialize();
   app_con = XtCreateApplicationContext();
   XtAppSetFallbackResources(app_con, fallback_resources);
-  dpy = XtOpenDisplay(app_con, NULL, nameStr, "MAPaint", mapaint_options, 10,
+  dpy = XtOpenDisplay(app_con, NULL, nameStr, "MAPaint", mapaint_options, 13,
 		      &argc, argv);
   globals.dpy = dpy;
-  
+
   /* now check what visuals are available to determine the mode */
   if( XrmGetResource(XtDatabase(dpy), depthRscStr, "MAPaint.24bit",
 		     &rtnStrType, &xrmValue) == True ){
@@ -344,6 +347,7 @@ main(
       d24Flg = True;
     }
   }
+
   /* use the default visual unless 24 bit requested */
   if( d24Flg == True ){
     if( visual = HGU_XGetVisual(dpy, DefaultScreen(dpy), TrueColor, 24) ){
@@ -475,9 +479,25 @@ main(
   XtSetArg(arg[1], XmNvisual, globals.toplVisual);
   XtSetArg(arg[2], XtNcolormap, globals.cmap);
 
+  /* check for emage defaults - reuse depth resource string */
+  sprintf(depthRscStr, "%s.emage", nameStr);
+  if( XrmGetResource(XtDatabase(dpy), depthRscStr, "MAPaint.emage",
+		     &rtnStrType, &xrmValue) == True ){
+    if( !strcmp(xrmValue.addr, "True") ){
+      emageFlg = True;
+    }
+  }
+  globals.emageFlg = emageFlg;
+  
   /* finally create the top-level shell */
-  topl = XtAppCreateShell(NULL, "MAPaint", applicationShellWidgetClass,
-			  dpy, arg, 3);
+  if( emageFlg == True ){
+    topl = XtAppCreateShell("MAPaint_EMAGE", "MAPaint", applicationShellWidgetClass,
+			    dpy, arg, 3);
+  }
+  else {
+    topl = XtAppCreateShell(NULL, "MAPaint", applicationShellWidgetClass,
+			    dpy, arg, 3);
+  }
   
   /* check for command line reference image */
   if( argc > 1 ){

@@ -53,7 +53,7 @@ typedef enum {
 
 typedef struct {
   WlzObject		*obj;
-  Widget		canvas, popup;
+  Widget		canvas, text, popup;
   XImage		*ximage;
   XImage		*ovlyImages[2];
   Pixmap		ovlyPixmaps[2];
@@ -132,6 +132,12 @@ typedef struct {
   WlzPixelV	highRGBPoint;	/* high-point for slice/box/ball */
   double	colorEllipseEcc;	/* ball eccentricity */
   int		lastThresholdPageNum;
+  int		globalThreshFlg; /* do global thresholding */
+  WlzIVertex2	globalThreshVtx;
+  int		incrThreshFlg; /* do incremental */
+  WlzObject	*incrThreshObj;
+  int		pickThreshFlg; /* pick mode for endpoint values */
+  int		distanceThreshFlg; /* distance mode for endpoint values */
 
 } MAPaintWarp2DStruct;
 
@@ -324,6 +330,73 @@ extern Widget createWarpSgnlDisplayFrame(
   Widget	parent,
   String	name,
   ThreeDViewStruct	*view_struct);
+
+extern Widget createWarpDisplayFrame(
+  Widget	parent,
+  String	name,
+  Visual	*visual,
+  int		depth);
+
+extern WlzObject *mapaintWarpObj(
+  WlzObject	*obj,
+  WlzInterpolationType	interpType);
+
+extern void view_canvas_highlight(
+  ThreeDViewStruct	*view_struct,
+  Boolean		highlight);
+
+extern MAPaintWarp2DStruct warpGlobals;
+extern Widget warp_read_src_dialog;
+extern Widget warp_read_sgnl_dialog;
+
+extern void warpSetSignalDomain(
+  WlzIVertex2	*selVtx);
+
+extern void sgnlCanvasMotionInputCb(
+  Widget          w,
+  XtPointer	client_data,
+  XtPointer	call_data);
+
+extern void sgnlIncrClear(void);
+extern void sgnlIncrPush(
+  WlzObject	*obj);
+extern WlzObject *sgnlIncrPop(void);
+extern WlzObject *sgnlIncrObj(void);
+
+extern void sgnlCanvasInputCb(
+  Widget          w,
+  XtPointer	client_data,
+  XtPointer	call_data);
+
+extern void warpSetSignalProcObj(void);
+extern void warpSetSignalThreshObj(void);
+
+extern void warpSetSignalDomain(
+  WlzIVertex2	*selVtx);
+extern void sgnlResetSgnlDomain(
+  Widget	w,
+  WlzIVertex2	*selVtx);
+extern WlzPixelV warpThreshCentre(
+  WlzPixelV	pix1,
+  WlzPixelV	pix2);
+extern void warpThreshSetLimitsFromDist(
+  WlzPixelV	centreCol,	
+  WlzDVertex2	dist,
+  WlzPixelV	*sgnlStart,
+  WlzPixelV	*sgnlFinish);
+extern void sgnlInteractSetHighLowControls(
+  WlzPixelV	*pix1,
+  WlzPixelV	*pix2);
+
+extern void warpSetThreshColorTypeSensitive(
+  Boolean	sensitive);
+extern void warpSetThreshColorTypeToggles(
+  WlzRGBAColorSpace	colSpc);
+
+extern void warpColorSpaceCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data);
 
 /* do not add anything after this line */
 #endif /* MAWARP_H */
