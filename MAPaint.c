@@ -5,7 +5,7 @@
 * Author:	Richard Baldock, MRC Human Genetics Unit		*
 * Copyright:	Medical Research Council, UK.				*
 * $Revision$
-* $Name
+* $Name$
 * Date:		
 * Synopsis:	
 ************************************************************************/
