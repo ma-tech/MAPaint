@@ -229,7 +229,7 @@ static MenuItem domain_menu_itemsP[] = {		/* file_menu items */
      clear_domain_cb, NULL, HGU_XmHelpStandardCb,
      "paint/paint.html#clear_domain",
      XmTEAR_OFF_DISABLED, False, False, NULL},
-{"threed_display_domain", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
+{"threed_display_domain", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
      threed_display_domain_cb, NULL, HGU_XmHelpStandardCb,
      "paint/paint.html#threed_display_domain",
      XmTEAR_OFF_DISABLED, False, False, NULL},
@@ -254,6 +254,8 @@ static Widget	domain_controls_dialog;
 
 #define res_offset(field)   XtOffsetOf(PaintGlobals, field)
 
+/* this resource list is used to re-establish the default
+   domain names and filenames. Change with care */
 static XtResource domain_res[] = {
 {"domain_name_0", "DomainName", XtRString, sizeof(String),
      res_offset(domain_name[0]), XtRString, "greys"},
@@ -503,87 +505,99 @@ void selectNextDomain(int downFlag)
 }
 
 void select_domain_cb(
-Widget		w,
-XtPointer	client_data,
-XtPointer	call_data)
+  Widget		w,
+  XtPointer	client_data,
+  XtPointer	call_data)
 {
-    XmToggleButtonCallbackStruct *cbs =
-	(XmToggleButtonCallbackStruct *) call_data;
-    int		new_domain;
+  XmToggleButtonCallbackStruct *cbs =
+    (XmToggleButtonCallbackStruct *) call_data;
+  int		new_domain;
+  Widget	toggle;
 
-    if( !cbs->set )
-	return;
+  if( !cbs->set )
+    return;
 
-    globals.current_priority = (PrioritySelection) client_data;
-    new_domain =
-      globals.priority_to_domain_lut[globals.current_priority];
+  globals.current_priority = (PrioritySelection) client_data;
+  new_domain =
+    globals.priority_to_domain_lut[globals.current_priority];
 
-    /* check for domain change */
-    if( new_domain != globals.current_domain )
-    {
-      globals.current_domain = new_domain;
-    }
+  /* check for domain change */
+  if( new_domain != globals.current_domain )
+  {
+    globals.current_domain = new_domain;
+  }
 
-    /* check which domain is selected */
-    switch( globals.current_domain ){
-    case DOMAIN_1:
-    case DOMAIN_2:
-    case DOMAIN_3:
-    case DOMAIN_4:
-    case DOMAIN_5:
-    case DOMAIN_6:
-    case DOMAIN_7:
-    case DOMAIN_8:
-    case DOMAIN_9:
-    case DOMAIN_10:
-    case DOMAIN_11:
-    case DOMAIN_12:
-    case DOMAIN_13:
-    case DOMAIN_14:
-    case DOMAIN_15:
-    case DOMAIN_16:
-    case DOMAIN_17:
-    case DOMAIN_18:
-    case DOMAIN_19:
-    case DOMAIN_20:
-    case DOMAIN_21:
-    case DOMAIN_22:
-    case DOMAIN_23:
-    case DOMAIN_24:
-    case DOMAIN_25:
-    case DOMAIN_26:
-    case DOMAIN_27:
-    case DOMAIN_28:
-    case DOMAIN_29:
-    case DOMAIN_30:
-    case DOMAIN_31:
-    case DOMAIN_32:
-	globals.current_col =
-	    globals.cmapstruct->ovly_cols[globals.current_domain];
-	break;
-    case MASK_DOMAIN:
-    case GREYS_DOMAIN:
-    default:
-	break;
-    }
+  /* check which domain is selected */
+  switch( globals.current_domain ){
+  case DOMAIN_1:
+  case DOMAIN_2:
+  case DOMAIN_3:
+  case DOMAIN_4:
+  case DOMAIN_5:
+  case DOMAIN_6:
+  case DOMAIN_7:
+  case DOMAIN_8:
+  case DOMAIN_9:
+  case DOMAIN_10:
+  case DOMAIN_11:
+  case DOMAIN_12:
+  case DOMAIN_13:
+  case DOMAIN_14:
+  case DOMAIN_15:
+  case DOMAIN_16:
+  case DOMAIN_17:
+  case DOMAIN_18:
+  case DOMAIN_19:
+  case DOMAIN_20:
+  case DOMAIN_21:
+  case DOMAIN_22:
+  case DOMAIN_23:
+  case DOMAIN_24:
+  case DOMAIN_25:
+  case DOMAIN_26:
+  case DOMAIN_27:
+  case DOMAIN_28:
+  case DOMAIN_29:
+  case DOMAIN_30:
+  case DOMAIN_31:
+  case DOMAIN_32:
+    globals.current_col =
+      globals.cmapstruct->ovly_cols[globals.current_domain];
 
-    /* if painting then reset highlight colour */
-    if( paint_key ){
-      Pixel	pixel;
-      Widget	widget;
-
-      if( globals.current_domain > globals.cmapstruct->num_overlays ){
-	pixel = globals.cmapstruct->ovly_cols[globals.current_domain];
+    /* reset the 3D display toggle */
+    if( toggle = XtNameToWidget(globals.topl,
+				"*domain_menu*threed_display_domain") ){
+      if( globals.domain_display_list[globals.current_domain] ){
+	XtVaSetValues(toggle, XmNset, True, NULL);
       }
       else {
-	pixel = globals.cmapstruct->ovly_cols[globals.current_domain] +
-	  globals.cmapstruct->gmax - globals.cmapstruct->gmin;
+	XtVaSetValues(toggle, XmNset, False, NULL);
       }
-      widget = XtNameToWidget(paint_key->dialog, "*.scrolled_window");
-      XtVaSetValues(widget, XmNborderColor, pixel, NULL);
     }
+    break;
+  case MASK_DOMAIN:
+  case GREYS_DOMAIN:
+  default:
+    break;
+  }
+
+  /* if painting then reset highlight colour */
+  if( paint_key ){
+    Pixel	pixel;
+    Widget	widget;
+
+    if( globals.current_domain > globals.cmapstruct->num_overlays ){
+      pixel = globals.cmapstruct->ovly_cols[globals.current_domain];
+    }
+    else {
+      pixel = globals.cmapstruct->ovly_cols[globals.current_domain] +
+	globals.cmapstruct->gmax - globals.cmapstruct->gmin;
+    }
+    widget = XtNameToWidget(paint_key->dialog, "*.scrolled_window");
+    XtVaSetValues(widget, XmNborderColor, pixel, NULL);
+  }
       
-    return;
+  return;
 }
 
 void domain_cb(
@@ -598,67 +612,86 @@ XtPointer	call_data)
 }
 
 void int_toggle_cb(
-Widget		w,
-XtPointer	client_data,
-XtPointer	call_data)
+  Widget		w,
+  XtPointer	client_data,
+  XtPointer	call_data)
 {
-    XmToggleButtonCallbackStruct *cbs =
-	(XmToggleButtonCallbackStruct *) call_data;
+  XmToggleButtonCallbackStruct *cbs =
+    (XmToggleButtonCallbackStruct *) call_data;
 
-    int		*val = (int *) client_data;
+  int		*val = (int *) client_data;
 
-    *val = cbs->set;
+  *val = cbs->set;
 
-    return;
+  return;
 }
 
 void set_domain_menu_entry(
-    DomainSelection	domain,
-    String		name_str)
+  DomainSelection	domain,
+  String		name_str)
 {
-    Widget	widget = NULL;
-    XmString	name;
-    int		i, num_overlays;
-    char	str_buf[64];
+  Widget	widget = NULL;
+  XmString	name;
+  int		i, num_overlays;
+  char	str_buf[64];
 
-    if( name_str == NULL ){
-	return;
-    }
-
-    num_overlays = globals.cmapstruct->num_overlays +
-      globals.cmapstruct->num_solid_overlays;
-
-    /* get the corresponding priority and widget */
-    for(i=1; i <= num_overlays; i++)
-    {
-      if( globals.priority_to_domain_lut[i] == domain )
-      {
-	sprintf(str_buf, "*menubar*domain_menu*select*domain_%d", i);
-	widget = XtNameToWidget(globals.topl, str_buf);
-	break;
-      }
-    }
-
-    if( widget == NULL )
-	return;
-
-    /* strip directory element and set new name */
-    for(i = strlen(name_str)-1; i >= 0; i--){
-	if( name_str[i] == '/' ){
-	    break;
-	}
-    }
-
-    name = XmStringCreateSimple( name_str+i+1 );
-    XtVaSetValues(widget, XmNlabelString, name, NULL);
-    XmStringFree( name );
-
-    /* copy into the stored domain names - lose some memory here possibly */
-    globals.domain_name[domain] = (String) malloc(sizeof(char) *
-						  (strlen(name_str+i+1) + 1));
-    (void) strcpy(globals.domain_name[domain], name_str+i+1);
-
+  if( name_str == NULL ){
     return;
+  }
+
+  num_overlays = globals.cmapstruct->num_overlays +
+    globals.cmapstruct->num_solid_overlays;
+
+  /* get the corresponding priority and widget */
+  for(i=1; i <= num_overlays; i++)
+  {
+    if( globals.priority_to_domain_lut[i] == domain )
+    {
+      sprintf(str_buf, "*menubar*domain_menu*select*domain_%d", i);
+      widget = XtNameToWidget(globals.topl, str_buf);
+      break;
+    }
+  }
+
+  if( widget == NULL )
+    return;
+
+  /* strip directory element and set new name */
+  for(i = strlen(name_str)-1; i >= 0; i--){
+    if( name_str[i] == '/' ){
+      break;
+    }
+  }
+
+  name = XmStringCreateSimple( name_str+i+1 );
+  XtVaSetValues(widget, XmNlabelString, name, NULL);
+
+  /* copy into the stored domain names - lose some memory here possibly */
+  globals.domain_name[domain] = (String) malloc(sizeof(char) *
+						(strlen(name_str+i+1) + 1));
+  (void) strcpy(globals.domain_name[domain], name_str+i+1);
+
+  /* change the name in the review and surgery dialogs */
+  sprintf(str_buf, "*review_dialog*dest_domain_rc*domain %d", domain);
+  if( widget = XtNameToWidget(globals.topl, str_buf) ){
+    XtVaSetValues(widget, XmNlabelString, name, NULL);
+  }
+  sprintf(str_buf, "*review_dialog*src_domain*domain %d", domain);
+  if( widget = XtNameToWidget(globals.topl, str_buf) ){
+    XtVaSetValues(widget, XmNlabelString, name, NULL);
+  }
+  sprintf(str_buf, "*surgery_dialog*dest_domain_rc*domain %d", domain);
+  if( widget = XtNameToWidget(globals.topl, str_buf) ){
+    XtVaSetValues(widget, XmNlabelString, name, NULL);
+  }
+  sprintf(str_buf, "*surgery_dialog*src_domain*domain %d", domain);
+  if( widget = XtNameToWidget(globals.topl, str_buf) ){
+    XtVaSetValues(widget, XmNlabelString, name, NULL);
+  }
+
+  XmStringFree( name );
+
+  return;
 }
 
 int setDomain(
@@ -722,6 +755,18 @@ int setDomain(
      if( name_str ){
        set_domain_menu_entry(domain, name_str);
      }
+
+     /* reset the 3D display */
+     if( globals.domain_display_list[domain] ){
+       WlzObject	*domObj;
+       glDeleteLists(globals.domain_display_list[globals.current_domain],
+		     1);
+       domObj = get_domain_from_object(globals.obj, domain);
+       MAOpenGLDisplayDomainIndex(domObj, domain);
+       MAOpenGLDrawScene( globals.canvas );
+       WlzFreeObj(domObj);
+     }
+     
      break;
 
    case MASK_DOMAIN:
@@ -745,11 +790,14 @@ void read_domain_cb(
 {
   XmFileSelectionBoxCallbackStruct	*cbs =
     (XmFileSelectionBoxCallbackStruct *) call_data;
+  Boolean		replace_flg=False;
   Boolean		check_overlap=False;
   FILE			*fp;
   WlzObject		*obj, *obj1, *obj2, *obj3;
   String		name_str;
   WlzPixelV		threshV;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
+  Widget		widget;
 
   /* set hour glass cursor */
   HGU_XmSetHourGlassCursor(globals.topl);
@@ -777,16 +825,35 @@ void read_domain_cb(
   }
   (void) fclose( fp );
 
-  /* check overlap with existing domains */
-  if( client_data ){
-    XtVaGetValues((Widget) client_data, XmNset, &check_overlap, NULL);
+  /* check if replace existing required */
+  if( widget =
+     XtNameToWidget(globals.topl,
+		    "*read_domain_dialog*Replace existing domain") ){
+    XtVaGetValues(widget, XmNset, &replace_flg, NULL);
+  }
+  if( replace_flg == True ){
+    /* could lose important data therefore ask for confirmation */
+    if( HGU_XmUserConfirm(globals.topl,
+			  "Replace existing domain?\n"
+			  "(i.e. delete it!)",
+			  "yes", "no", 0) ){
+      if( clearDomain(globals.current_domain) ){
+	/* report an error */
+      }
+    }
   }
 
-  if( check_overlap == True ){
+  /* check overlap with existing domains */
+  if( widget = XtNameToWidget(globals.topl,
+			      "*read_domain_dialog*Check overlap") ){
+    XtVaGetValues(widget, XmNset, &check_overlap, NULL);
+  }
+
+  if( (replace_flg != True) && (check_overlap == True) ){
     threshV.type = WLZ_GREY_INT;
     threshV.v.inv = globals.cmapstruct->ovly_cols[1];
-    if( obj1 = WlzThreshold(globals.obj, threshV, WLZ_THRESH_HIGH, NULL ) ){
-      if( obj2 = WlzIntersect2(obj, obj1, NULL) ){
+    if( obj1 = WlzThreshold(globals.obj, threshV, WLZ_THRESH_HIGH, &errNum ) ){
+      if( obj2 = WlzIntersect2(obj, obj1, &errNum) ){
 	int 		p, counter, str_len;
 	char		*str_buf=NULL;
 	WlzPlaneDomain 	*pdom = obj2->domain.p;
@@ -859,20 +926,22 @@ void read_domain_cb(
       WlzFreeObj( obj1 );
     }
   }
-  if( obj == NULL ){
-    return;
-  }
   
   /* get the name string and set the domain */
-  XmStringGetLtoR(cbs->value, XmSTRING_DEFAULT_CHARSET, &name_str);
-  obj = WlzAssignObject(obj, NULL);
-  setDomain(obj, globals.current_domain, name_str);
-  WlzFreeObj(obj);
-  AlcFree( (void *) name_str );
+  if( (errNum == WLZ_ERR_NONE) && obj ){
+    XmStringGetLtoR(cbs->value, XmSTRING_DEFAULT_CHARSET, &name_str);
+    obj = WlzAssignObject(obj, NULL);
+    setDomain(obj, globals.current_domain, name_str);
+    WlzFreeObj(obj);
+    AlcFree( (void *) name_str );
+  }
 
   /* set hour glass cursor */
   HGU_XmUnsetHourGlassCursor(globals.topl);
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "read_domain_cb", errNum);
+  }
   return;
 }
 
@@ -955,6 +1024,25 @@ int clearDomain(
   case DOMAIN_31:
   case DOMAIN_32:
     obj = get_domain_from_object(globals.obj, domain);
+
+    /* clear the domain label and filename to default
+       this uses special knowledge of the resource list,
+       should really get this from resources */
+    set_domain_menu_entry(domain, domain_res[domain].default_addr);
+    globals.domain_filename[globals.current_domain] =
+      domain_res[domain+32].default_addr;
+    /* clear the 3D view */
+    if( globals.domain_display_list[domain] ){
+      Widget toggle;
+
+      glDeleteLists(globals.domain_display_list[globals.current_domain], 1);
+      globals.domain_display_list[domain] = 0;
+      MAOpenGLDrawScene( globals.canvas );
+      if( toggle = XtNameToWidget(globals.topl,
+				  "*domain_menu*threed_display_domain") ){
+	XtVaSetValues(toggle, XmNset, False, NULL);
+      }
+    }
     break;
   case MASK_DOMAIN:
     if( globals.mask_domain )
@@ -986,149 +1074,167 @@ int clearDomain(
 }
 
 void clear_domain_cb(
-Widget		w,
-XtPointer	client_data,
-XtPointer	call_data)
+  Widget		w,
+  XtPointer	client_data,
+  XtPointer	call_data)
 {
-    WlzObject	*obj;
+  WlzObject	*obj;
 
-    /* check the reference object */
-    if( globals.obj == NULL )
-	return;
-
-    /* set hour glass cursor */
-    HGU_XmSetHourGlassCursor(globals.topl);
-
-    /* operation irreversible therefore ask for confirmation */
-    if( !HGU_XmUserConfirm(globals.topl, "Really clear domain?",
-			   "yes", "no", 0) )
-	return;
-
-    /* check which domain is selected */
-    if( clearDomain(globals.current_domain) ){
-      /* report an error */
-    }
-    display_all_views_cb(w, client_data, call_data);
-
-    /* set hour glass cursor */
-    HGU_XmUnsetHourGlassCursor(globals.topl);
-
+  /* check the reference object */
+  if( globals.obj == NULL )
     return;
+
+  /* set hour glass cursor */
+  HGU_XmSetHourGlassCursor(globals.topl);
+
+  /* operation irreversible therefore ask for confirmation */
+  if( !HGU_XmUserConfirm(globals.topl, "Really clear domain?",
+			 "yes", "no", 0) ){
+    HGU_XmUnsetHourGlassCursor(globals.topl);
+    return;
+  }
+
+  /* check which domain is selected */
+  if( clearDomain(globals.current_domain) ){
+    /* report an error */
+  }
+  display_all_views_cb(w, client_data, call_data);
+
+  /* set hour glass cursor */
+  HGU_XmUnsetHourGlassCursor(globals.topl);
+
+  return;
 }
 
 void write_domain_cb(
-Widget		w,
-XtPointer	client_data,
-XtPointer	call_data)
+  Widget		w,
+  XtPointer	client_data,
+  XtPointer	call_data)
 {
-    XmFileSelectionBoxCallbackStruct	*cbs =
-	(XmFileSelectionBoxCallbackStruct *) call_data;
-    FILE		*fp;
-    WlzObject		*obj;
-    String		name_str;
+  XmFileSelectionBoxCallbackStruct	*cbs =
+    (XmFileSelectionBoxCallbackStruct *) call_data;
+  FILE		*fp;
+  WlzObject		*obj;
+  String		name_str;
 
-    /* check the reference object */
-    if( globals.obj == NULL )
-	return;
+  /* check the reference object */
+  if( globals.obj == NULL )
+    return;
 
-    /* set hour glass cursor */
-    HGU_XmSetHourGlassCursor(globals.topl);
-
-    /* get the file pointer */
-    if( (fp = HGU_XmGetFilePointerBck(globals.topl, cbs->value,
-				      cbs->dir, "w", ".bak")) == NULL )
-	return;
-
-    /* check which domain is selected */
-    switch( globals.current_domain ){
-    case DOMAIN_1:
-    case DOMAIN_2:
-    case DOMAIN_3:
-    case DOMAIN_4:
-    case DOMAIN_5:
-    case DOMAIN_6:
-    case DOMAIN_7:
-    case DOMAIN_8:
-    case DOMAIN_9:
-    case DOMAIN_10:
-    case DOMAIN_11:
-    case DOMAIN_12:
-    case DOMAIN_13:
-    case DOMAIN_14:
-    case DOMAIN_15:
-    case DOMAIN_16:
-    case DOMAIN_17:
-    case DOMAIN_18:
-    case DOMAIN_19:
-    case DOMAIN_20:
-    case DOMAIN_21:
-    case DOMAIN_22:
-    case DOMAIN_23:
-    case DOMAIN_24:
-    case DOMAIN_25:
-    case DOMAIN_26:
-    case DOMAIN_27:
-    case DOMAIN_28:
-    case DOMAIN_29:
-    case DOMAIN_30:
-    case DOMAIN_31:
-    case DOMAIN_32:
-	obj = get_domain_from_object(globals.obj, globals.current_domain);
-
-	/* reset the menu-entry label */
-	XmStringGetLtoR(cbs->value, XmSTRING_DEFAULT_CHARSET, &name_str);
-	set_domain_menu_entry(globals.current_domain, name_str);
-	free( name_str );
-
-	break;
-    case MASK_DOMAIN:
-	obj = WlzMakeMain(globals.mask_domain->type,
-			  globals.mask_domain->domain,
-			  globals.mask_domain->values,
-			  NULL, NULL, NULL);
-	break;
-    case GREYS_DOMAIN:
-    default:
-	(void) fclose( fp );
-	/* set hour glass cursor */
-	HGU_XmUnsetHourGlassCursor(globals.topl);
-	return;
+  /* check if any views selected for painting */
+  if( paint_key ){
+    if( !HGU_XmUserConfirm(globals.topl,
+			   "Warning: There is a view window selected\n"
+			   "\tfor painting. Any part of the domain\n"
+			   "\tto be written that is in that view\n"
+			   "\twill not be saved. To save the\n"
+			   "\twhole domain select \"cancel\",\n"
+			   "\tbelow, deselect the view from painting\n"
+			   "\tand re-write the domain.\n\n"
+			   "Do you want to continue writing?",
+			   "yes", "cancel", 1) ){
+      return;
     }
+  }
 
-    /* write the domain only */
-    if( obj != NULL ){
-	WlzValues	objVals = obj->values;
-	obj->values.core = NULL;
-	if( WlzWriteObj(fp, obj) == WLZ_ERR_NONE ){
-	    globals.domain_changed_since_saved[globals.current_domain] = 0;
-	    globals.domain_filename[globals.current_domain] =
-		HGU_XmGetFileStr(w, cbs->value, cbs->dir);
-	} else {
-	    char		*errstr;
-	    errstr = (char *) AlcMalloc(128);
-	    sprintf(errstr, "Write Domain Object:\n"
-		            "    woolz error detected:\n"
-		            "    WARNING: domain not saved\n"
-		            "    - please check disc space or quotas");
-	    HGU_XmUserError(globals.topl, errstr,
-			    XmDIALOG_FULL_APPLICATION_MODAL);
-	    AlcFree( (void *) errstr );
-	}
-	obj->values = objVals;
-	WlzFreeObj( obj );
-    }
-    if( fclose( fp ) == EOF ){
-      HGU_XmUserError(globals.topl,
-		      "Save Domain:\n"
-		      "    Error closing the save domain file.\n"
-		      "    Please check disk space or quotas\n"
-		      "    Domain not saved.",
-		      XmDIALOG_FULL_APPLICATION_MODAL);
-    }
+  /* set hour glass cursor */
+  HGU_XmSetHourGlassCursor(globals.topl);
 
+  /* get the file pointer */
+  if( (fp = HGU_XmGetFilePointerBck(globals.topl, cbs->value,
+				    cbs->dir, "w", ".bak")) == NULL )
+    return;
+
+  /* check which domain is selected */
+  switch( globals.current_domain ){
+  case DOMAIN_1:
+  case DOMAIN_2:
+  case DOMAIN_3:
+  case DOMAIN_4:
+  case DOMAIN_5:
+  case DOMAIN_6:
+  case DOMAIN_7:
+  case DOMAIN_8:
+  case DOMAIN_9:
+  case DOMAIN_10:
+  case DOMAIN_11:
+  case DOMAIN_12:
+  case DOMAIN_13:
+  case DOMAIN_14:
+  case DOMAIN_15:
+  case DOMAIN_16:
+  case DOMAIN_17:
+  case DOMAIN_18:
+  case DOMAIN_19:
+  case DOMAIN_20:
+  case DOMAIN_21:
+  case DOMAIN_22:
+  case DOMAIN_23:
+  case DOMAIN_24:
+  case DOMAIN_25:
+  case DOMAIN_26:
+  case DOMAIN_27:
+  case DOMAIN_28:
+  case DOMAIN_29:
+  case DOMAIN_30:
+  case DOMAIN_31:
+  case DOMAIN_32:
+    obj = get_domain_from_object(globals.obj, globals.current_domain);
+
+    /* reset the menu-entry label */
+    XmStringGetLtoR(cbs->value, XmSTRING_DEFAULT_CHARSET, &name_str);
+    set_domain_menu_entry(globals.current_domain, name_str);
+    free( name_str );
+
+    break;
+  case MASK_DOMAIN:
+    obj = WlzMakeMain(globals.mask_domain->type,
+		      globals.mask_domain->domain,
+		      globals.mask_domain->values,
+		      NULL, NULL, NULL);
+    break;
+  case GREYS_DOMAIN:
+  default:
+    (void) fclose( fp );
     /* set hour glass cursor */
     HGU_XmUnsetHourGlassCursor(globals.topl);
     return;
+  }
+
+  /* write the domain only */
+  if( obj != NULL ){
+    WlzValues	objVals = obj->values;
+    obj->values.core = NULL;
+    if( WlzWriteObj(fp, obj) == WLZ_ERR_NONE ){
+      globals.domain_changed_since_saved[globals.current_domain] = 0;
+      globals.domain_filename[globals.current_domain] =
+	HGU_XmGetFileStr(w, cbs->value, cbs->dir);
+    } else {
+      char		*errstr;
+      errstr = (char *) AlcMalloc(128);
+      sprintf(errstr, "Write Domain Object:\n"
+	      "    woolz error detected:\n"
+	      "    WARNING: domain not saved\n"
+	      "    - please check disc space or quotas");
+      HGU_XmUserError(globals.topl, errstr,
+		      XmDIALOG_FULL_APPLICATION_MODAL);
+      AlcFree( (void *) errstr );
+    }
+    obj->values = objVals;
+    WlzFreeObj( obj );
+  }
+  if( fclose( fp ) == EOF ){
+    HGU_XmUserError(globals.topl,
+		    "Save Domain:\n"
+		    "    Error closing the save domain file.\n"
+		    "    Please check disk space or quotas\n"
+		    "    Domain not saved.",
+		    XmDIALOG_FULL_APPLICATION_MODAL);
+  }
+
+  /* unset hour glass cursor */
+  HGU_XmUnsetHourGlassCursor(globals.topl);
+  return;
 }
 
 
@@ -1245,6 +1351,7 @@ XtPointer	call_data)
     WlzPlaneDomain	*planedmn;
     int			z;
     float		red, green, blue;
+    Widget		toggle;
 
     /* check the reference object */
     if( globals.obj == NULL )
@@ -1253,12 +1360,19 @@ XtPointer	call_data)
     /* set hour glass cursor */
     HGU_XmSetHourGlassCursor(globals.topl);
 
+    /* get the toggle, this is probably w but we may wish to
+       call this callback from elsewhere */
+    toggle = XtNameToWidget(globals.topl, "*domain_menu*threed_display_domain");
+
     /* remove the display list if currently visible */
     if( globals.domain_display_list[globals.current_domain] != 0 )
     {
       glDeleteLists(globals.domain_display_list[globals.current_domain], 1);
       globals.domain_display_list[globals.current_domain] = 0;
       MAOpenGLDrawScene( globals.canvas );
+      if( toggle ){
+	XtVaSetValues(toggle, XmNset, False, NULL);
+      }
       return;
     }
 
@@ -1318,6 +1432,9 @@ XtPointer	call_data)
     /* display in 3D */
     MAOpenGLDisplayDomainIndex(obj, globals.current_domain);
     WlzFreeObj( obj );
+    if( toggle ){
+      XtVaSetValues(toggle, XmNset, True, NULL);
+    }
 
     /* set hour glass cursor */
     HGU_XmUnsetHourGlassCursor(globals.topl);
@@ -1704,53 +1821,57 @@ static Widget create_domain_controls_dialog(
 }
 
 void write_paint_object_cb(
-Widget	w,
-XtPointer	client_data,
-XtPointer	call_data)
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
 {
-    XmFileSelectionBoxCallbackStruct *cbs =
-	(XmFileSelectionBoxCallbackStruct *) call_data;
-    WlzEffFormat	image_type = (WlzEffFormat) client_data;
-    FILE		*fp;
-    String		icsfile;
+  XmFileSelectionBoxCallbackStruct *cbs =
+    (XmFileSelectionBoxCallbackStruct *) call_data;
+  WlzEffFormat	image_type = (WlzEffFormat) client_data;
+  FILE		*fp;
+  String		icsfile;
 
-    /* get the file pointer or file name if ics format */
-    if( image_type == WLZEFF_FORMAT_ICS )
+  /* get the file pointer or file name if ics format */
+  if( image_type == WLZEFF_FORMAT_ICS )
+  {
+    if( (icsfile = HGU_XmGetFileStr(globals.topl, cbs->value,
+				    cbs->dir)) == NULL )
     {
-      if( (icsfile = HGU_XmGetFileStr(globals.topl, cbs->value,
-				      cbs->dir)) == NULL )
-      {
-	return;
-      }
-      fp = NULL;
+      return;
     }
-    else
+    fp = NULL;
+  }
+  else
+  {
+    if( (fp = HGU_XmGetFilePointer(globals.topl, cbs->value,
+				   cbs->dir, "w")) == NULL )
     {
-      if( (fp = HGU_XmGetFilePointer(globals.topl, cbs->value,
-				     cbs->dir, "w")) == NULL )
-      {
-	return;
-      }
-      icsfile = NULL;
+      return;
     }
+    icsfile = NULL;
+  }
 
-    /* write the reference object */
-    WlzEffWriteObj(fp, icsfile, globals.obj, image_type);
+  /* write the reference object */
+  WlzEffWriteObj(fp, icsfile, globals.obj, image_type);
 
-    /* close the file pointer if non NULL */
-    if( fp )
-    {
-      if( fclose( fp ) == EOF ){
-	HGU_XmUserError(globals.topl,
-			"Write painted object:\n"
-			"    Error in closing the object file\n"
-			"    Please check disk space or quotas\n"
-			"    Painted object not saved",
-			XmDIALOG_FULL_APPLICATION_MODAL);
-      }
+  /* close the file pointer if non NULL */
+  if( fp )
+  {
+    if( fclose( fp ) == EOF ){
+      HGU_XmUserError(globals.topl,
+		      "Write painted object:\n"
+		      "    Error in closing the object file\n"
+		      "    Please check disk space or quotas\n"
+		      "    Painted object not saved",
+		      XmDIALOG_FULL_APPLICATION_MODAL);
     }
+  }
 
-    return;
+  /* update the FileSelectionBox */
+  XmFileSelectionDoSearch( w, NULL );
+  XtVaSetValues(w, XmNdirSpec, cbs->value, NULL);
+
+  return;
 }
 
 static void image_type_cb(
@@ -1814,157 +1935,175 @@ static void image_type_cb(
 }
 
 int domain_menu_init(
-Widget	topl)
+  Widget	topl)
 {
-    Widget		widget, file_type_menu;
-    int			i, n;
-    XtTranslations	trans_tb;
-    Atom		import_list[1];
-    Arg			args[8];
-    Visual		*visual;
+  Widget		widget, form, file_type_menu;
+  int			i, n;
+  XtTranslations	trans_tb;
+  Atom		import_list[1];
+  Arg			args[8];
+  Visual		*visual;
 
-    globals.mask_domain    = NULL;
-    globals.current_domain = DOMAIN_1;
-    globals.current_col    = 64;
-    globals.auto_increment = 0;
-    globals.propogate      = 0;
+  globals.mask_domain    = NULL;
+  globals.current_domain = DOMAIN_1;
+  globals.current_col    = 64;
+  globals.auto_increment = 0;
+  globals.propogate      = 0;
 
-    globals.gc_greys  = NULL;
-    globals.gc_reds   = NULL;
-    globals.gc_blues  = NULL;
+  globals.gc_greys  = NULL;
+  globals.gc_reds   = NULL;
+  globals.gc_blues  = NULL;
 
-    for(i=0; i < 33; i++)
+  for(i=0; i < 33; i++)
+  {
+    globals.domain_display_list[i] = 0;
+    globals.priority_to_domain_lut[i] = i;
+    globals.domain_changed_since_saved[i] = 0;
+  }
+
+  /* create the domain controls dialog */
+  domain_controls_dialog = create_domain_controls_dialog( topl );
+  XtManageChild( domain_controls_dialog );
+  HGU_XmSaveRestoreAddWidget( domain_controls_dialog,
+			     NULL, NULL, NULL, NULL );
+
+  /* get the visual explicitly */
+  visual = HGU_XmWidgetToVisual(topl);
+  XtSetArg(args[0], XmNvisual, visual);
+
+  /* create the read-domain file selection dialog */
+  read_domain_dialog = XmCreateFileSelectionDialog( topl,
+						   "read_domain_dialog",
+						   args, 1);
+
+  /* add a form to hold checkboxes */
+  form = XtVaCreateManagedWidget("read_domain_form", xmFormWidgetClass,
+				 read_domain_dialog,
+				 XmNborderWidth,	0,
+				 NULL);
+  widget = XtVaCreateManagedWidget("Check overlap",
+				   xmToggleButtonGadgetClass, form,
+				   XmNtopAttachment,	XmATTACH_FORM,
+				   XmNleftAttachment,	XmATTACH_FORM,
+				   NULL);
+  widget = XtVaCreateManagedWidget("Replace existing domain",
+				   xmToggleButtonGadgetClass, form,
+				   XmNtopAttachment,	XmATTACH_WIDGET,
+				   XmNtopWidget,	widget,
+				   XmNleftAttachment,	XmATTACH_FORM,
+				   NULL);
+ 
+  XtAddCallback(read_domain_dialog, XmNcancelCallback, 
+		PopdownCallback, NULL);
+  XtAddCallback(read_domain_dialog, XmNokCallback, read_domain_cb, NULL);
+  XtAddCallback(read_domain_dialog, XmNokCallback, display_all_views_cb,
+		NULL);
+  XtAddCallback(read_domain_dialog, XmNokCallback, PopdownCallback, NULL);
+  XtAddCallback(read_domain_dialog, XmNmapCallback, FSBPopupCallback, NULL);
+  XtManageChild( read_domain_dialog );
+
+  HGU_XmSaveRestoreAddWidget( read_domain_dialog, HGU_XmFSD_SaveFunc,
+			     (XtPointer) XtName(topl), NULL, NULL );
+
+  widget = XtNameToWidget( topl, "*domain_menu*read_domain");
+  if( widget != NULL )
+    XtAddCallback(widget, XmNactivateCallback, popup_dialog_cb,
+		  (XtPointer) read_domain_dialog);
+
+  /* create the write-domain file selection dialog */
+  write_domain_dialog = XmCreateFileSelectionDialog( topl,
+						    "write_domain_dialog",
+						    args, 1);
+  XtAddCallback(write_domain_dialog, XmNcancelCallback, 
+		PopdownCallback, NULL);
+  XtAddCallback(write_domain_dialog, XmNokCallback, write_domain_cb, NULL);
+  XtAddCallback(write_domain_dialog, XmNokCallback, PopdownCallback, NULL);
+  XtAddCallback(write_domain_dialog, XmNmapCallback, FSBPopupCallback, NULL);
+  XtManageChild( write_domain_dialog );
+
+  HGU_XmSaveRestoreAddWidget( write_domain_dialog, HGU_XmFSD_SaveFunc,
+			     (XtPointer) XtName(topl), NULL, NULL );
+
+  widget = XtNameToWidget( topl, "*domain_menu*write_domain");
+  if( widget != NULL )
+    XtAddCallback(widget, XmNactivateCallback, popup_dialog_cb,
+		  (XtPointer) write_domain_dialog);
+
+  /* create the write-paint volume file selection dialog */
+  write_paint_volume_dialog =
+    XmCreateFileSelectionDialog( topl, "write_paint_volume_dialog", args, 1);
+
+  /* add a file type selection menu */
+  file_type_menu = HGU_XmBuildMenu(write_paint_volume_dialog, XmMENU_OPTION,
+				   "file_type", 0, XmTEAR_OFF_DISABLED,
+				   file_type_menu_itemsP);
+  XtManageChild( file_type_menu );
+
+  image_type_cb(write_paint_volume_dialog, (XtPointer) WLZEFF_FORMAT_WLZ,
+		NULL);
+  XtAddCallback(write_paint_volume_dialog, XmNcancelCallback, 
+		PopdownCallback, NULL);
+  XtAddCallback(write_paint_volume_dialog, XmNmapCallback,
+		FSBPopupCallback, NULL);
+  XtManageChild( write_paint_volume_dialog );
+
+  HGU_XmSaveRestoreAddWidget( write_paint_volume_dialog, HGU_XmFSD_SaveFunc,
+			     (XtPointer) XtName(topl), NULL, NULL );
+
+  widget = XtNameToWidget( topl, "*domain_menu*write_paint_volume");
+  if( widget != NULL )
+    XtAddCallback(widget, XmNactivateCallback, popup_dialog_cb,
+		  (XtPointer) write_paint_volume_dialog);
+
+  /* set up the domain names and files plus drag and drop actions */
+  XtGetApplicationResources(topl, &globals, domain_res,
+			    XtNumber(domain_res), NULL, 0);
+  trans_tb = XtParseTranslationTable(dragTranslations);
+
+  for(i=1; i < 33; i++){
+    XmString	xmstr;
+    char		str_buf[64];
+    Pixel		pixel;
+    int		data_index;
+
+    /* get the widgets in priority order */
+    sprintf(str_buf, "*menubar*domain_menu*select*domain_%d", i);
+    widget = XtNameToWidget(topl, str_buf);
+    if( i > (globals.cmapstruct->num_overlays +
+	     globals.cmapstruct->num_solid_overlays) )
     {
-      globals.domain_display_list[i] = 0;
-      globals.priority_to_domain_lut[i] = i;
-      globals.domain_changed_since_saved[i] = 0;
+      XtUnmanageChild(widget);
+      continue;
     }
 
-    /* create the domain controls dialog */
-    domain_controls_dialog = create_domain_controls_dialog( topl );
-    XtManageChild( domain_controls_dialog );
-    HGU_XmSaveRestoreAddWidget( domain_controls_dialog,
-				NULL, NULL, NULL, NULL );
-
-    /* get the visual explicitly */
-    visual = HGU_XmWidgetToVisual(topl);
-    XtSetArg(args[0], XmNvisual, visual);
-
-    /* create the read-domain file selection dialog */
-    read_domain_dialog = XmCreateFileSelectionDialog( topl,
-						     "read_domain_dialog",
-						     args, 1);
-    widget = XtVaCreateManagedWidget("Check overlap",
-				     xmToggleButtonGadgetClass,
-				     read_domain_dialog, NULL);
-    XtAddCallback(read_domain_dialog, XmNcancelCallback, 
-                  PopdownCallback, NULL);
-    XtAddCallback(read_domain_dialog, XmNokCallback, read_domain_cb,
-		  (XtPointer) widget);
-    XtAddCallback(read_domain_dialog, XmNokCallback, display_all_views_cb,
-		  NULL);
-    XtAddCallback(read_domain_dialog, XmNokCallback, PopdownCallback, NULL);
-    XtManageChild( read_domain_dialog );
-
-    HGU_XmSaveRestoreAddWidget( read_domain_dialog, HGU_XmFSD_SaveFunc,
-			       (XtPointer) XtName(topl), NULL, NULL );
-
-    widget = XtNameToWidget( topl, "*domain_menu*read_domain");
-    if( widget != NULL )
-	XtAddCallback(widget, XmNactivateCallback, popup_dialog_cb,
-		      (XtPointer) read_domain_dialog);
-
-    /* create the write-domain file selection dialog */
-    write_domain_dialog = XmCreateFileSelectionDialog( topl,
-						     "write_domain_dialog",
-						     args, 1);
-    XtAddCallback(write_domain_dialog, XmNcancelCallback, 
-                  PopdownCallback, NULL);
-    XtAddCallback(write_domain_dialog, XmNokCallback, write_domain_cb, NULL);
-    XtAddCallback(write_domain_dialog, XmNokCallback, PopdownCallback, NULL);
-    XtManageChild( write_domain_dialog );
-
-    HGU_XmSaveRestoreAddWidget( write_domain_dialog, HGU_XmFSD_SaveFunc,
-			       (XtPointer) XtName(topl), NULL, NULL );
-
-    widget = XtNameToWidget( topl, "*domain_menu*write_domain");
-    if( widget != NULL )
-	XtAddCallback(widget, XmNactivateCallback, popup_dialog_cb,
-		      (XtPointer) write_domain_dialog);
-
-    /* create the write-paint volume file selection dialog */
-    write_paint_volume_dialog =
-      XmCreateFileSelectionDialog( topl, "write_paint_volume_dialog", args, 1);
-
-    /* add a file type selection menu */
-    file_type_menu = HGU_XmBuildMenu(write_paint_volume_dialog, XmMENU_OPTION,
-				     "file_type", 0, XmTEAR_OFF_DISABLED,
-				     file_type_menu_itemsP);
-    XtManageChild( file_type_menu );
-
-    image_type_cb(write_paint_volume_dialog, (XtPointer) WLZEFF_FORMAT_WLZ,
-		  NULL);
-    XtAddCallback(write_paint_volume_dialog, XmNcancelCallback, 
-                  PopdownCallback, NULL);
-    XtManageChild( write_paint_volume_dialog );
-
-    HGU_XmSaveRestoreAddWidget( write_paint_volume_dialog, HGU_XmFSD_SaveFunc,
-			       (XtPointer) XtName(topl), NULL, NULL );
-
-    widget = XtNameToWidget( topl, "*domain_menu*write_paint_volume");
-    if( widget != NULL )
-	XtAddCallback(widget, XmNactivateCallback, popup_dialog_cb,
-		      (XtPointer) write_paint_volume_dialog);
-
-    /* set up the domain names and files plus drag and drop actions */
-    XtGetApplicationResources(topl, &globals, domain_res,
-                              XtNumber(domain_res), NULL, 0);
-    trans_tb = XtParseTranslationTable(dragTranslations);
-
-    for(i=1; i < 33; i++){
-	XmString	xmstr;
-	char		str_buf[64];
-	Pixel		pixel;
-	int		data_index;
-
-	/* get the widgets in priority order */
-	sprintf(str_buf, "*menubar*domain_menu*select*domain_%d", i);
-	widget = XtNameToWidget(topl, str_buf);
-	if( i > (globals.cmapstruct->num_overlays +
-		 globals.cmapstruct->num_solid_overlays) )
-	{
-	  XtUnmanageChild(widget);
-	  continue;
-	}
-
-	/* get the data for each priority */
-	data_index = globals.priority_to_domain_lut[i];
-	xmstr = XmStringCreateSimple( globals.domain_name[data_index] );
-	pixel = globals.cmapstruct->ovly_cols[data_index] +
-	  globals.cmapstruct->gmax - globals.cmapstruct->gmin;
-	if( data_index > globals.cmapstruct->num_overlays )
-	{
-	  pixel = globals.cmapstruct->ovly_cols[data_index];
-	}
-	XmChangeColor(widget, pixel);
-	XtVaSetValues(widget,
-		      XmNlabelString, xmstr,
-		      NULL);
-	XmStringFree(xmstr);
-
-	/* add drag and drop translations */
-	XtOverrideTranslations(widget, trans_tb);
-
-	/* register as a drop site */
-	n = 0;
-	import_list[0] = XmInternAtom(XtDisplay(widget),
-				     "HGU_PAINT_DOMAIN_NAME", False);
-	XtSetArg(args[n], XmNimportTargets, import_list); n++;
-	XtSetArg(args[n], XmNnumImportTargets, 1); n++;
-	XtSetArg(args[n], XmNdropSiteOperations, XmDROP_MOVE); n++;
-	XtSetArg(args[n], XmNdropProc, DD_DomainDominanceHandleCb); n++;
-	XmDropSiteRegister(widget, args, n);
+    /* get the data for each priority */
+    data_index = globals.priority_to_domain_lut[i];
+    xmstr = XmStringCreateSimple( globals.domain_name[data_index] );
+    pixel = globals.cmapstruct->ovly_cols[data_index] +
+      globals.cmapstruct->gmax - globals.cmapstruct->gmin;
+    if( data_index > globals.cmapstruct->num_overlays )
+    {
+      pixel = globals.cmapstruct->ovly_cols[data_index];
     }
+    XmChangeColor(widget, pixel);
+    XtVaSetValues(widget,
+		  XmNlabelString, xmstr,
+		  NULL);
+    XmStringFree(xmstr);
 
-    return( 0 );
+    /* add drag and drop translations */
+    XtOverrideTranslations(widget, trans_tb);
+
+    /* register as a drop site */
+    n = 0;
+    import_list[0] = XmInternAtom(XtDisplay(widget),
+				  "HGU_PAINT_DOMAIN_NAME", False);
+    XtSetArg(args[n], XmNimportTargets, import_list); n++;
+    XtSetArg(args[n], XmNnumImportTargets, 1); n++;
+    XtSetArg(args[n], XmNdropSiteOperations, XmDROP_MOVE); n++;
+    XtSetArg(args[n], XmNdropProc, DD_DomainDominanceHandleCb); n++;
+    XmDropSiteRegister(widget, args, n);
+  }
+
+  return( 0 );
 }

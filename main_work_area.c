@@ -133,9 +133,5 @@ void init_main_work_area(
   globals.dpy = XtDisplay( globals.canvas );
   globals.win = XtWindow ( globals.canvas );
 
-/*   set_backingX( globals.dpy, globals.win );*/
-
-    /* colour display lut */
-
   return;
 }

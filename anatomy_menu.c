@@ -52,13 +52,14 @@ String getAnatShortNameFromCoord(
   int		i, i_min, vol, vol_min;
   int		domainIndexList[32];
   int		numDomains=0;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* edit this so that the name returned is of the
      smallest domain that contains the coordinate */
   for(i=0; i < numAnatObjItems; i++){
     if(anatObjItems[i].domain &&
        WlzInsideDomain(anatObjItems[i].domain,
-		       (double) p, (double) l, (double) k, NULL) ){
+		       (double) p, (double) l, (double) k, &errNum) ){
       domainIndexList[numDomains++] = i;
     }
   }
@@ -79,6 +80,9 @@ String getAnatShortNameFromCoord(
     }
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "getAnatShortNameFromCoord", errNum);
+  }
   return name;
 }
 
@@ -91,13 +95,14 @@ String getAnatFullNameFromCoord(
   int		i, i_min, vol, vol_min;
   int		domainIndexList[32];
   int		numDomains=0;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* edit this so that the name returned is of the
      smallest domain that contains the coordinate */
   for(i=0; i < numAnatObjItems; i++){
     if(anatObjItems[i].domain &&
        WlzInsideDomain(anatObjItems[i].domain,
-		       (double) p, (double) l, (double) k, NULL) ){
+		       (double) p, (double) l, (double) k, &errNum) ){
       domainIndexList[numDomains++] = i;
     }
   }
@@ -119,6 +124,9 @@ String getAnatFullNameFromCoord(
     }
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "getAnatFullNameFromCoord", errNum);
+  }
   return name;
 }
 
@@ -169,8 +177,9 @@ void read_anatomy_cb(
   }
   (void) fclose(fp);
 
-  /* display the object in 3D */
-  MAOpenGLDisplayDomainIndex(anatObj, globals.current_domain);
+  /* note for the anatomy domain we assume that the user wishes
+     to append the domain to the current therefore do not
+     check for replace and do not check for overlaps */
 
   /* set the anatomy as a domain */
   if( globals.current_domain > globals.cmapstruct->num_overlays )
@@ -189,9 +198,28 @@ void read_anatomy_cb(
   }
   display_all_views_cb(widget, (XtPointer) NULL, call_data);
 
-  /* set the domain menu entry */
-  sscanf(XtName(widget), "%s", anatStr);
-  set_domain_menu_entry(globals.current_domain, anatStr);
+  /* display the object in 3D */
+  if( globals.domain_display_list[globals.current_domain] ){
+    glDeleteLists(globals.domain_display_list[globals.current_domain], 1);
+  }
+  else {
+    Widget	toggle;
+    /* set the toggle to be checked */
+    if( toggle = XtNameToWidget(globals.topl,
+				"*domain_menu*threed_display_domain") ){
+      XtVaSetValues(toggle, XmNset, True, NULL);
+    }
+    globals.domain_display_list[globals.current_domain] = 1;
+  }
+  if( anatObj = get_domain_from_object(globals.obj, globals.current_domain) ){
+    MAOpenGLDisplayDomainIndex(anatObj, globals.current_domain);
+    MAOpenGLDrawScene( globals.canvas );
+    WlzFreeObj(anatObj);
+  }
+
+  /* set the domain menu entry  - don't do this */
+/*  sscanf(XtName(widget), "%s", anatStr);
+    set_domain_menu_entry(globals.current_domain, anatStr);*/
 
   return;
 }
@@ -258,6 +286,7 @@ MenuItem *createAnatomyMenuItems(
        ((statBuf.st_mode&S_IFMT) != S_IFDIR) ){
 #endif /* LINUX2 */
       /* its an ordinary file - check for object or info file */
+      /* this also collects the domain files and puts them on a list */
       sprintf(strBuf, "%s.wlz", name);
       if( strcmp(dp->d_name, strBuf) == 0 ){
 	FILE	*fp;
@@ -481,6 +510,23 @@ void set_anatomy_menu(
     closedir(dfd);
     AlcFree((void *) theilerDir);
     return;
+  }
+
+  /* clear any existing domains on the list */
+  while( numAnatObjItems > 0){
+    numAnatObjItems--;
+    if( anatObjItems[numAnatObjItems].shortName ){
+      AlcFree(anatObjItems[numAnatObjItems].shortName);
+      anatObjItems[numAnatObjItems].shortName = NULL;
+    }
+    if( anatObjItems[numAnatObjItems].fullName ){
+      AlcFree(anatObjItems[numAnatObjItems].fullName);
+      anatObjItems[numAnatObjItems].fullName = NULL;
+    }
+    if( anatObjItems[numAnatObjItems].domain ){
+      WlzFreeObj(anatObjItems[numAnatObjItems].domain);
+      anatObjItems[numAnatObjItems].domain = NULL;
+    }
   }
 
   /* recursively create the menu item arrays */

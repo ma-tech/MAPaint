@@ -173,6 +173,9 @@ void warpSetOvlyObject(void)
 		      XmDIALOG_FULL_APPLICATION_MODAL);
     }
 
+    if( errNum != WLZ_ERR_NONE ){
+      MAPaintReportWlzError(globals.topl, "warpSetOvlyObject", errNum);
+    }
     return;
   }
 
@@ -184,6 +187,7 @@ void warpSetOvlyObject(void)
     WlzFreeAffineTransform(trans);
   }
   else {
+    MAPaintReportWlzError(globals.topl, "warpSetOvlyObject", errNum);
     return;
   }
 

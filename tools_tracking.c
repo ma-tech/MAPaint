@@ -37,7 +37,7 @@ void imageTrackCurrentDomain(
   MATrackDomainCostParams	costParams;
   PMSnakeLCParams		LCParams;
   PMSnakeNLCParams		NLCParams;
-
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
   /* check there is a previous object for this domain */
   if((view_struct->prev_domain[domain] == NULL) ||
      (WlzArea(view_struct->prev_domain[domain], NULL) <= 0))
@@ -48,7 +48,7 @@ void imageTrackCurrentDomain(
   /* if there is an existing object then ask for confirmation before
      continuing */
   if(view_struct->curr_domain[domain] &&
-     (WlzArea(view_struct->curr_domain[domain], NULL) > 0)){
+     (WlzArea(view_struct->curr_domain[domain], &errNum) > 0)){
     /* get confirmation */
     if( !HGU_XmUserConfirm(globals.topl,
 			   "Image Track:\n"
@@ -62,65 +62,80 @@ void imageTrackCurrentDomain(
   }
 
   /* get the reference image and domain */
-  if( view_struct->prev_view_obj ){
-    ref_obj = WlzAssignObject(view_struct->prev_view_obj, NULL);
-  }
-  else {
-    float	tmpDist, curr_dist;
-    WlzObject	*obj;
+  if( errNum == WLZ_ERR_NONE ){
+    if( view_struct->prev_view_obj ){
+      ref_obj = WlzAssignObject(view_struct->prev_view_obj, NULL);
+    }
+    else {
+      float	tmpDist, curr_dist;
 
-    curr_dist = view_struct->wlzViewStr->dist;
-    tmpDist = view_struct->prev_dist;
-    Wlz3DSectionIncrementDistance(view_struct->wlzViewStr,
-				  (tmpDist - curr_dist));
-    obj = WlzGetSectionFromObject(globals.orig_obj, view_struct->wlzViewStr, NULL);
-    view_struct->prev_view_obj = WlzAssignObject(obj, NULL);
-    Wlz3DSectionIncrementDistance(view_struct->wlzViewStr,
-				  -(tmpDist - curr_dist));
+      curr_dist = view_struct->wlzViewStr->dist;
+      tmpDist = view_struct->prev_dist;
+      Wlz3DSectionIncrementDistance(view_struct->wlzViewStr,
+				    (tmpDist - curr_dist));
+      obj = WlzGetSectionFromObject(globals.orig_obj, view_struct->wlzViewStr,
+				    &errNum);
+      view_struct->prev_view_obj = WlzAssignObject(obj, NULL);
+      Wlz3DSectionIncrementDistance(view_struct->wlzViewStr,
+				    -(tmpDist - curr_dist));
+    }
   }
     
-  ref_domain = WlzMakeMain(WLZ_2D_DOMAINOBJ,
-			   view_struct->prev_domain[domain]->domain,
-			   view_struct->prev_domain[domain]->values,
-			   NULL, NULL, NULL);
+  if( errNum == WLZ_ERR_NONE ){
+    ref_domain = WlzMakeMain(WLZ_2D_DOMAINOBJ,
+			     view_struct->prev_domain[domain]->domain,
+			     view_struct->prev_domain[domain]->values,
+			     NULL, NULL, &errNum);
     
-  /* set up the search control parameters */
-  searchParams.spacing = HGU_XmGetSliderValue( spacing_slider );
-  searchParams.range = HGU_XmGetSliderValue( range_slider );
+    /* set up the search control parameters */
+    searchParams.spacing = HGU_XmGetSliderValue( spacing_slider );
+    searchParams.range = HGU_XmGetSliderValue( range_slider );
 
-  /* set up the image cost parameters */
-  costParams.size = HGU_XmGetSliderValue( size_slider );
-  costParams.LCParams = &LCParams;
-  costParams.NLCParams = &NLCParams;
+    /* set up the image cost parameters */
+    costParams.size = HGU_XmGetSliderValue( size_slider );
+    costParams.LCParams = &LCParams;
+    costParams.NLCParams = &NLCParams;
 
-  /* now the local and non-local snake costs */
-  LCParams.nu_dist = HGU_XmGetSliderValue(dist_slider);
-  NLCParams.nu_alpha = HGU_XmGetSliderValue(alpha_slider);
-  NLCParams.nu_kappa = HGU_XmGetSliderValue(kappa_slider);
+    /* now the local and non-local snake costs */
+    LCParams.nu_dist = HGU_XmGetSliderValue(dist_slider);
+    NLCParams.nu_alpha = HGU_XmGetSliderValue(alpha_slider);
+    NLCParams.nu_kappa = HGU_XmGetSliderValue(kappa_slider);
+  }
 
   /* get the current image and new domain by tracking */
-  if( view_struct->view_object == NULL ){
-    view_struct->view_object =
-      WlzGetSectionFromObject(globals.orig_obj,
-			      view_struct->wlzViewStr,
-			      NULL);
+  if( (errNum == WLZ_ERR_NONE) && (view_struct->view_object == NULL) ){
+    if( obj = WlzGetSectionFromObject(globals.orig_obj,
+				      view_struct->wlzViewStr,
+				      &errNum) ){
+      view_struct->view_object = WlzAssignObject(obj, NULL);
+    }
+    else {
+      WlzFreeObj( ref_obj );
+      WlzFreeObj( ref_domain );
+      return;
+    }
   }
 
-  new_domain = HGU_TrackDomain(ref_obj, view_struct->view_object, ref_domain,
-			       MATRACK_PMSNAKE_SEARCH_METHOD,
-			       &searchParams,
-			       MATRACK_CORRELATION_COST_TYPE,
-			       &costParams,
-			       NULL);
-  WlzFreeObj( ref_obj );
-  WlzFreeObj( ref_domain );
+  if( errNum == WLZ_ERR_NONE ){
+    new_domain = HGU_TrackDomain(ref_obj, view_struct->view_object, ref_domain,
+				 MATRACK_PMSNAKE_SEARCH_METHOD,
+				 &searchParams,
+				 MATRACK_CORRELATION_COST_TYPE,
+				 &costParams,
+				 NULL);
+    WlzFreeObj( ref_obj );
+    WlzFreeObj( ref_domain );
 
-  /* increment the current domain */
-  if( new_domain ){
-    setDomainIncrement(new_domain, view_struct, domain, 0);
-    WlzFreeObj( new_domain );
+    /* increment the current domain */
+    if( new_domain ){
+      setDomainIncrement(new_domain, view_struct, domain, 0);
+      WlzFreeObj( new_domain );
+    }
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "imageTrackCurrentDomain", errNum);
+  }
   return;
 }
 

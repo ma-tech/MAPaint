@@ -115,6 +115,7 @@ void MAPaintMorphological2DCb(
   DomainSelection	sel_domain;
   int			delFlag;
   WlzObject		*obj, *obj1, *obj2, *structElem;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   switch( cbs->event->type ){
 
@@ -144,18 +145,22 @@ void MAPaintMorphological2DCb(
 	 if dilate then get dilated object and add */
       structElem = WlzMakeStdStructElement(WLZ_2D_DOMAINOBJ,
 					   struct_elem_type,
-					   struct_elem_size, NULL);
-      if( delFlag ){
-	obj1 = WlzStructErosion(obj, structElem, NULL);
-	obj2 = WlzDiffDomain(obj, obj1, NULL);
-	WlzFreeObj(obj);
-	WlzFreeObj(obj1);
-	obj = WlzAssignObject(obj2, NULL);
-      }
-      else {
-	obj1 = WlzStructDilation(obj, structElem, NULL);
-	WlzFreeObj(obj);
-	obj = WlzAssignObject(obj1, NULL);
+					   struct_elem_size, &errNum);
+      if( errNum == WLZ_ERR_NONE ){
+	if( delFlag ){
+	  if((obj1 = WlzStructErosion(obj, structElem, &errNum)) &&
+	     (obj2 = WlzDiffDomain(obj, obj1, &errNum))){
+	    WlzFreeObj(obj);
+	    WlzFreeObj(obj1);
+	    obj = WlzAssignObject(obj2, NULL);
+	  }
+	}
+	else {
+	  if( obj1 = WlzStructDilation(obj, structElem, &errNum) ){
+	    WlzFreeObj(obj);
+	    obj = WlzAssignObject(obj1, NULL);
+	  }
+	}
       }
 
       /* reset the painted object and redisplay */
@@ -210,6 +215,9 @@ void MAPaintMorphological2DCb(
     break;
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "MAPaintMorphological2DCb", errNum);
+  }
   return;
 }
 

@@ -79,6 +79,7 @@ XtPointer		call_data)
   WlzObject	*srcDomain;
   WlzObject	**rtnObjs;
   int		numObjs;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check for a selected view and install the current view domains */
   if( !paint_key ){
@@ -107,8 +108,8 @@ XtPointer		call_data)
   }
 
   /* cut the object and put them on the list */
-  if( Wlz3DSectionSegmentObject(srcDomain, paint_key->wlzViewStr,
-				&numObjs, &rtnObjs) == WLZ_ERR_NONE ){
+  if( (errNum = Wlz3DSectionSegmentObject(srcDomain, paint_key->wlzViewStr,
+					  &numObjs, &rtnObjs)) == WLZ_ERR_NONE ){
     surgeryObjs[0] = rtnObjs[0];
     surgeryObjs[1] = rtnObjs[1];
     AlcFree((void *) rtnObjs);
@@ -116,6 +117,7 @@ XtPointer		call_data)
   else {
     surgeryObjs[0] = NULL;
     surgeryObjs[1] = NULL;
+    MAPaintReportWlzError(globals.topl, "cutDomainSurgeryCb", errNum);
   }
 
   /* set the 3D display flashing */
@@ -295,14 +297,8 @@ Widget createDomainSelectOptionMenu(
   items = (MenuItem *) AlcCalloc(num_overlays+1,sizeof(MenuItem));
 
   for(i=0; i < num_overlays; i++){
-    items[i].name               = (String)
-      AlcMalloc(strlen(globals.domain_name[i+1]) + 1);
-    strcpy(items[i].name, globals.domain_name[i+1]);
-    for(c=items[i].name; (*c) != '\0'; c++){
-      if( (*c) == '.' ){
-	*c = '_';
-      }
-    }
+    items[i].name               = (String) AlcMalloc(sizeof(char) * 16);
+    sprintf(items[i].name, "domain %d", i+1);
     items[i].wclass             = &xmPushButtonWidgetClass;
     items[i].mnemonic           = 0;
     items[i].accelerator        = NULL;
@@ -423,7 +419,7 @@ Widget createDomainSurgeryDialog(
 
   for(i=1; i < 33; i++){
     Pixel	pixel;
-    String	domain_str;;
+    char	domainStrBuf[16];
 
     if( i > (globals.cmapstruct->num_overlays +
 	     globals.cmapstruct->num_solid_overlays) )
@@ -431,12 +427,11 @@ Widget createDomainSurgeryDialog(
       continue;
     }
 
-    domain_str = (String) AlcMalloc(strlen(globals.domain_name[i])+2);
-    (void) strcpy(domain_str, globals.domain_name[i]);
-    widget = XtVaCreateManagedWidget(domain_str,
+    sprintf(domainStrBuf, "domain %d", i);
+    widget = XtVaCreateManagedWidget(domainStrBuf,
 				     xmPushButtonWidgetClass,
 				     rowcolumn, NULL);
-    AlcFree((void *) domain_str);
+
     XtAddCallback(widget, XmNactivateCallback, surgeryDestDomainCb,
 		  (XtPointer) i);
     pixel = globals.cmapstruct->ovly_cols[i] +

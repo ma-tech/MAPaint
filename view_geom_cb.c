@@ -42,22 +42,26 @@ void distance_cb(
 {
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
-  Widget	slider = w;
-  float	new_dist;
+  Widget		slider = w;
+  float			new_dist;
 
-  if( !wlzViewStr->initialised )
-    if( init_view_struct( view_struct ) )
+  if( !wlzViewStr->initialised ){
+    if( init_view_struct( view_struct ) ){
       return;
+    }
+  }
 
   while( strcmp(XtName(slider), "distance_slider") ){
-    if( (slider = XtParent(slider)) == NULL )
+    if( (slider = XtParent(slider)) == NULL ){
       return;
+    }
   }
 
   /* get the new distance and reset the LUT's */
   new_dist = HGU_XmGetSliderValue( slider );
-  if( wlzViewStr->dist == new_dist )
+  if( wlzViewStr->dist == new_dist ){
     return;
+  }
   Wlz3DSectionIncrementDistance(wlzViewStr,
 				(new_dist - wlzViewStr->dist));
   wlzViewStr->dist = new_dist;
@@ -74,7 +78,7 @@ void distance_cb(
   setViewSliderSensitivities(view_struct, True);
   view_struct->controlFlag &= ~MAPAINT_FIXED_LINE_SET;
 
-    /* tablet needs re-initialising if in use */
+  /* tablet needs re-initialising if in use */
   view_struct->tablet_initialised = 0;
 
   /* redisplay the section */
@@ -206,13 +210,16 @@ void phi_cb(
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   Widget	slider = w;
 
-  if( !wlzViewStr->initialised )
-    if( init_view_struct( view_struct ) )
+  if( !wlzViewStr->initialised ){
+    if( init_view_struct( view_struct ) ){
       return;
+    }
+  }
 
   while( strcmp(XtName(slider), "phi_slider") ){
-    if( (slider = XtParent(slider)) == NULL )
+    if( (slider = XtParent(slider)) == NULL ){
       return;
+    }
   }
 
   /* get the new phi and reset the LUT's */
@@ -246,13 +253,16 @@ void zeta_cb(
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   Widget	slider = w;
 
-  if( !wlzViewStr->initialised )
-    if( init_view_struct( view_struct ) )
+  if( !wlzViewStr->initialised ){
+    if( init_view_struct( view_struct ) ){
       return;
+    }
+  }
 
   while( strcmp(XtName(slider), "zeta_slider") ){
-    if( (slider = XtParent(slider)) == NULL )
+    if( (slider = XtParent(slider)) == NULL ){
       return;
+    }
   }
 
   /* get the new zeta and reset the LUT's */
@@ -281,13 +291,16 @@ void psi_cb(
   Widget	slider = w;
   float	theta, phi, psi;
 
-  if( !wlzViewStr->initialised )
-    if( init_view_struct( view_struct ) )
+  if( !wlzViewStr->initialised ){
+    if( init_view_struct( view_struct ) ){
       return;
+    }
+  }
 
   while( strcmp(XtName(slider), "psi_slider") ){
-    if( (slider = XtParent(slider)) == NULL )
+    if( (slider = XtParent(slider)) == NULL ){
       return;
+    }
   }
 
   /* get the new psi and reset the LUT's */

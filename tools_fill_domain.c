@@ -59,6 +59,7 @@ WlzObject *getSelectedRegion(
   unsigned int		sel_col;
   DomainSelection	sel_domain;
   int			i, nobjs;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* get the selected domain */
   if( (sel_domain = getSelectedDomainType(x, y, view_struct)) < 0 ){
@@ -68,11 +69,14 @@ WlzObject *getSelectedRegion(
   /* check for painted object */
   if( view_struct->painted_object == NULL ){
     WlzObject	*sectObj;
-    sectObj = WlzGetSectionFromObject(globals.obj, wlzViewStr, NULL);
+    sectObj = WlzGetSectionFromObject(globals.obj, wlzViewStr, &errNum);
     if( sectObj ){
       view_struct->painted_object = WlzAssignObject(sectObj, NULL);
     }
     else {
+      if( errNum != WLZ_ERR_NONE ){
+	MAPaintReportWlzError(globals.topl, "getSelectedRegion", errNum);
+      }
       return NULL;
     }
   }
@@ -91,7 +95,8 @@ WlzObject *getSelectedRegion(
   obj = WlzAssignObject(obj, NULL);
 
   /* segment domain and find connected region */
-  if( WlzLabel(obj, &nobjs, &objs, 256, 1, WLZ_4_CONNECTED) == WLZ_ERR_NONE ){
+  if( (errNum = WlzLabel(obj, &nobjs, &objs, 256, 1, WLZ_4_CONNECTED))
+     == WLZ_ERR_NONE ){
     for(i=0, obj1=NULL; i < nobjs; i++){
       if( WlzInsideDomain(objs[i], 0, y, x, NULL) ){
 	obj1 = WlzMakeMain(WLZ_2D_DOMAINOBJ,
@@ -103,6 +108,7 @@ WlzObject *getSelectedRegion(
     AlcFree((void *) objs);
   }
   else {
+    MAPaintReportWlzError(globals.topl, "getSelectedRegion", errNum);
     obj1 = NULL;
   }
   WlzFreeObj( obj );
@@ -141,7 +147,7 @@ void MAPaintFill2DCb(
   int			delFlag;
   WlzObject		*obj, *obj1;
   Boolean		toggleFlg;
-  WlzErrorNum		errNum;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   switch( cbs->event->type ){
 
@@ -167,9 +173,13 @@ void MAPaintFill2DCb(
 	XtVaGetValues(fill_flood_w, XmNset, &toggleFlg, NULL);
 	if( toggleFlg ){
 	  obj = WlzAssignObject(obj, NULL);
-	  obj1 = WlzDomainFill(obj, &errNum);
-	  WlzFreeObj(obj);
-	  obj = obj1;
+	  if( obj1 = WlzDomainFill(obj, &errNum) ){
+	    WlzFreeObj(obj);
+	    obj = obj1;
+	  }
+	  else {
+	    MAPaintReportWlzError(globals.topl, "MAPaintFill2DCb", errNum);
+	  }
 	}
 	obj = WlzAssignObject(obj, NULL);
       }

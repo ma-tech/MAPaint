@@ -36,18 +36,17 @@ void autosave_opts_cb(
   return;
 }
 
-static void autosave_all_domains(void)
+void autosave_all_domains(void)
 {
   FILE		*fp;
   WlzErrorNum	errNum=WLZ_ERR_NONE;
+  int		i;
 
   /* get the autosave file */
   if( (fp = fopen(globals.autosave_file, "w")) != NULL )
   {
 
-    /* save supplementary information */
-
-    /* save the object data  - this could be more efficient */
+    /* save the object data  - this could be more efficient (not much) */
     if( (errNum = WlzWriteObj(fp, globals.obj)) != WLZ_ERR_NONE ){
       char		*errstr;
       const char	*errMsg;
@@ -65,6 +64,16 @@ static void autosave_all_domains(void)
       AlcFree( (void *) errstr );
     }
       
+    /* save supplementary information  - not required on read but useful */
+    for(i=1; i < 33; i++){
+      if( globals.domain_name[i] ){
+	fprintf(fp, "%d:%s\n", i, globals.domain_name[i]);
+      }
+      else {
+	fprintf(fp, "%d:no name\n", i);
+      }
+    }
+
     if( fclose( fp ) == EOF ){
       HGU_XmUserError(globals.topl,
 		      "Write Autosave File:\n"
@@ -363,6 +372,7 @@ static void autosave_recover_cb(
   Widget		widget, dialog = (Widget) client_data;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
   WlzPixelV		thresh;
+  char			lineBuf[128];
 
 
   /* check if an autosave is in progress - to catch double clicks */
@@ -393,12 +403,6 @@ static void autosave_recover_cb(
     return;
   }
 
-  /* read the save information and domain names */
-  for(i=0; i < 33; i++)
-  {
-    new_domain_names[i] = NULL;
-  }
-
   /* read the required object */
   if( (obj = WlzReadObj(fp, &errNum)) == NULL )
   {
@@ -419,7 +423,38 @@ static void autosave_recover_cb(
     autosave_recover_flag = False;
     return;
   }
+
+  /* read the save information and domain names */
+  for(i=0; i < 33; i++)
+  {
+    new_domain_names[i] = NULL;
+  }
+  while( fgets(lineBuf, 127, fp) ){
+    int		index;
+    char	*nameStr=NULL;
+
+    /* get the index */
+    if( sscanf(lineBuf, "%d", &index) ){
+      for(i=0; i < strlen(lineBuf); i++){
+	if( lineBuf[i] == ':' ){
+	  nameStr = &(lineBuf[i+1]);
+	}
+	if( lineBuf[i] == '\n' ){
+	  lineBuf[i] == '\0';
+	  break;
+	}
+      }
+      if( nameStr ){
+	new_domain_names[index] = strdup(nameStr);
+      }
+    }
+    else {
+      continue;
+    }
+  }
+
   (void) fclose( fp );
+
   /* check the object */
   if((obj->type != WLZ_3D_DOMAINOBJ) ||
      (obj->domain.core == NULL) ||
@@ -464,10 +499,10 @@ static void autosave_recover_cb(
      and diff domain afterwards */
   thresh.type = WLZ_GREY_INT;
   thresh.v.inv = globals.cmapstruct->ovly_cols[DOMAIN_1];
-  tmpObj = WlzThreshold(obj, thresh, WLZ_THRESH_HIGH, NULL);
+  tmpObj = WlzThreshold(obj, thresh, WLZ_THRESH_HIGH, &errNum);
   
   if( tmpObj ){
-    if( WlzVolume(tmpObj, NULL) > 0 ){
+    if( WlzVolume(tmpObj, &errNum) > 0 ){
       WlzPixelV	min, max;
 
       numDomains = globals.cmapstruct->num_overlays +
@@ -495,12 +530,12 @@ static void autosave_recover_cb(
     }
     else {
       new_domains[i] = get_domain_from_object(allDomainsObj, domain);
-      if( WlzVolume(new_domains[i], NULL) <= 0 )
+      if( WlzVolume(new_domains[i], &errNum) <= 0 )
       {
 	WlzFreeObj( new_domains[i] );
 	new_domains[i] = NULL;
       }
-      else if( tmpObj = WlzDiffDomain(allDomainsObj, new_domains[i], NULL) ){
+      else if( tmpObj = WlzDiffDomain(allDomainsObj, new_domains[i], &errNum) ){
 	WlzFreeObj(allDomainsObj);
 	allDomainsObj = WlzAssignObject(tmpObj, NULL);
       }

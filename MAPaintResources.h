@@ -242,7 +242,7 @@ static String  fallback_resources[] = {
     "*view_menu*arbitrary_view:mnemonic		A",
 
     /* view dialog */
-    "*view_dialog*save_section.labelString:	Save",
+    "*view_dialog*save_section.labelString:	Save section",
     "*view_dialog*dismiss.labelString:		Dismiss",
     "*view_dialog*listen.labelString:		Listen",
     "*view_dialog*listen.sensitive:		False",
@@ -387,6 +387,7 @@ static String  fallback_resources[] = {
 
     "*paint_draw_params.labelString:		 Draw/Paint Parameters:",
     "*paint_draw_controls_form*cursor.labelString:	Cursor Type:",
+    "*paint_draw_controls_form*cursor.cursorType:	Sights",
     "*paint_draw_controls_form*paint_shape.labelString:	Paint Shape:",
     "*paint_draw_controls_form*paint_border.labelString:Paint Border",
     "*paint_draw_controls_form*blob_size.labelString:	Paint size:",
@@ -532,6 +533,7 @@ static String  fallback_resources[] = {
     "*helpVersionUrl:		paint.1.0/paint.html#version",
     "*helpWWWServer:		http://genex.hgu.mrc.ac.uk/",
     "*helpDir:			Software/paint/paint_help/MAPaint_1.00",
+    "*help_menu.sensitive:            	False",
     "*help_menu.labelString:            	Help",
     "*help_menu.mnemonic:               	H",
     "*help_menu.borderWidth:            	0",

@@ -163,6 +163,9 @@ void PMSnake(
     opt_j = optimal_path[i][opt_j];
   }
 
+  /* clean up memory allocation */
+  AlcDouble2Free(optimal_cost);
+  AlcInt2Free(optimal_path);
   return;
 }
 
@@ -243,6 +246,9 @@ void PMEdgeSnake(
     opt_j = optimal_path[i][opt_j];
   }
 
+  /* clean up memory allocation */
+  AlcDouble2Free(optimal_cost);
+  AlcInt2Free(optimal_path);
   return;
 }
 

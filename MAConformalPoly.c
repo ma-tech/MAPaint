@@ -13,7 +13,7 @@
 *   Author Name :  Richard Baldock					*
 *   Author Login:  richard@hgu.mrc.ac.uk				*
 *   Date        :  Mon Mar 29 19:10:25 1999				*
-*   $Revision$								*
+*   $Revision$						*
 *   $Name$								*
 *   Synopsis    : 							*
 *************************************************************************
@@ -391,6 +391,9 @@ void conformalCalculateMeshCb(
 
   AlcFree((void *) dPts);
   AlcFree((void *) sPts);
+  if( wlzErr != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "conformalCalculateMeshCb", wlzErr);
+  }
   return;
 }
 
@@ -441,6 +444,7 @@ void conformal_input_cb(
   WlzPolygonDomain	*startPoly;
   WlzFVertex2		fpVtx, *fvtxs;
   WlzObject		*polygon;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* switch on event type */
   switch( cbs->event->type ){
@@ -456,7 +460,7 @@ void conformal_input_cb(
 	fpVtx.vtY = cbs->event->xbutton.y;
 	startPoly = WlzAssignPolygonDomain(
 	  WlzMakePolyDmn(WLZ_POLYGON_FLOAT, (WlzIVertex2 *) &fpVtx,
-			 1, 1, 1, NULL), NULL);
+			 1, 1, 1, NULL), &errNum);
 	if( confPoly ){
 	  WlzFreePolyDmn(confPoly);
 	}
@@ -470,19 +474,21 @@ void conformal_input_cb(
 	}
 
 	/* convert to an 8-connected polyline */
-	polygon = WlzPolyTo8Polygon(confPoly, 1, NULL);
-	WlzFreePolyDmn(confPoly);
-	confPoly = WlzAssignPolygonDomain(
-	  WlzMakePolyDmn(WLZ_POLYGON_INT,
-			 polygon->domain.poly->vtx,
-			 polygon->domain.poly->nvertices,
-			 polygon->domain.poly->nvertices,
-			 1, NULL), NULL);
-	confPoly->type = WLZ_POLYGON_FLOAT;
-	fvtxs = (WlzFVertex2 *) confPoly->vtx;
-	for(i=0; i < confPoly->nvertices; i++){
-	  fvtxs[i].vtX = (float) confPoly->vtx[i].vtX;
-	  fvtxs[i].vtY = (float) confPoly->vtx[i].vtY;
+	if( polygon = WlzPolyTo8Polygon(confPoly, 1, &errNum) ){
+	  WlzFreePolyDmn(confPoly);
+	  if( confPoly = WlzAssignPolygonDomain(
+	    WlzMakePolyDmn(WLZ_POLYGON_INT,
+			   polygon->domain.poly->vtx,
+			   polygon->domain.poly->nvertices,
+			   polygon->domain.poly->nvertices,
+			   1, &errNum), NULL)){
+	    confPoly->type = WLZ_POLYGON_FLOAT;
+	    fvtxs = (WlzFVertex2 *) confPoly->vtx;
+	    for(i=0; i < confPoly->nvertices; i++){
+	      fvtxs[i].vtX = (float) confPoly->vtx[i].vtX;
+	      fvtxs[i].vtY = (float) confPoly->vtx[i].vtY;
+	    }
+	  }
 	}
 
 	/* determine the conformal approximate coordinate mesh */
@@ -593,6 +599,9 @@ void conformal_input_cb(
     break;
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "conformal_input_cb", errNum);
+  }
   return;
 }
 

@@ -174,63 +174,80 @@ static void warpSetSignalProcObj(void)
   }
 
   if( warpGlobals.sgnl.obj ){
-    obj1 = WlzCopyObject(warpGlobals.sgnl.obj, NULL);
-    obj1 = WlzAssignObject(obj1, NULL);
+    if( obj1 = WlzCopyObject(warpGlobals.sgnl.obj, &errNum) ){
+      obj1 = WlzAssignObject(obj1, NULL);
+    }
   }
   else {
     return;
   }
 
   /* normalise the data */
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*normalise") ){
-    XtVaGetValues(toggle, XmNset, &setFlg, NULL);
-    if( setFlg ){
-      errNum = WlzGreyNormalise(obj1);
+  if( errNum == WLZ_ERR_NONE ){
+    if( toggle = XtNameToWidget(globals.topl,
+				"*warp_sgnl_controls_form*normalise") ){
+      XtVaGetValues(toggle, XmNset, &setFlg, NULL);
+      if( setFlg ){
+	errNum = WlzGreyNormalise(obj1);
+      }
     }
   }
 
   /* Histo equalise */
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*histo_equalise") ){
-    XtVaGetValues(toggle, XmNset, &setFlg, NULL);
-    if( setFlg ){
-      errNum = WlzHistogramEqualiseObj(obj1, 1, 1);
+  if( errNum == WLZ_ERR_NONE ){
+    if( toggle = XtNameToWidget(globals.topl,
+				"*warp_sgnl_controls_form*histo_equalise") ){
+      XtVaGetValues(toggle, XmNset, &setFlg, NULL);
+      if( setFlg ){
+	errNum = WlzHistogramEqualiseObj(obj1, 1, 1);
+      }
     }
   }
 
   /* Shade correction */
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*shade_correction") ){
-    XtVaGetValues(toggle, XmNset, &setFlg, NULL);
-    if( setFlg ){
-      errNum = WlzHistogramEqualiseObj(obj1, 1, 1);
+  if( errNum == WLZ_ERR_NONE ){
+    if( toggle = XtNameToWidget(globals.topl,
+				"*warp_sgnl_controls_form*shade_correction") ){
+      XtVaGetValues(toggle, XmNset, &setFlg, NULL);
+      if( setFlg ){
+	errNum = WlzHistogramEqualiseObj(obj1, 1, 1);
+      }
     }
   }
 
   /* Gauss smoothing */
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*gauss_smooth") ){
-    XtVaGetValues(toggle, XmNset, &setFlg, NULL);
-    if( setFlg ){
-      double	width;
-      if( slider = XtNameToWidget(globals.topl,
-				  "*warp_sgnl_controls_form*gauss_width") ){
-	width = HGU_XmGetSliderValue(slider);
-      }
-      else {
-	width = 3;
-      }
-      if( obj2 = WlzGauss2(obj1, width, width, 0, 0, &errNum) ){
-	WlzFreeObj(obj1);
-	obj1 = WlzAssignObject(obj2, NULL);
+  if( errNum == WLZ_ERR_NONE ){
+    if( toggle = XtNameToWidget(globals.topl,
+				"*warp_sgnl_controls_form*gauss_smooth") ){
+      XtVaGetValues(toggle, XmNset, &setFlg, NULL);
+      if( setFlg ){
+	double	width;
+	if( slider = XtNameToWidget(globals.topl,
+				    "*warp_sgnl_controls_form*gauss_width") ){
+	  width = HGU_XmGetSliderValue(slider);
+	}
+	else {
+	  width = 3;
+	}
+	if( obj2 = WlzGauss2(obj1, width, width, 0, 0, &errNum) ){
+	  WlzFreeObj(obj1);
+	  obj1 = WlzAssignObject(obj2, NULL);
+	}
       }
     }
   }
 
   /* if anything left set the processed object */
-  if( obj1 ){
-    warpGlobals.sgnlProcObj = obj1;
+  if( errNum == WLZ_ERR_NONE ){
+    if( obj1 ){
+      warpGlobals.sgnlProcObj = obj1;
+    }
+  }
+  else {
+    if( obj1 ){
+      WlzFreeObj(obj1);
+    }
+    MAPaintReportWlzError(globals.topl, "warpSetSignalProcObj", errNum);
   }
 
   return;
@@ -238,7 +255,7 @@ static void warpSetSignalProcObj(void)
 
 static void warpSetSignalDomain(void)
 {
-  WlzErrorNum	errNum;
+  WlzErrorNum	errNum=WLZ_ERR_NONE;
   WlzPixelV	threshV;
   WlzObject	*obj, *obj1;
 
@@ -254,30 +271,35 @@ static void warpSetSignalDomain(void)
   }
 
   /* threshold the resultant image */
-  threshV.type = WLZ_GREY_INT;
-  threshV.v.inv = warpGlobals.threshRangeLow;
-  if( obj1 ){
-    if( warpGlobals.sgnlObj ){
-      WlzFreeObj(warpGlobals.sgnlObj);
-    }
-    if( obj = WlzThreshold(obj1, threshV, WLZ_THRESH_HIGH, &errNum) ){
-      WlzFreeObj(obj1);
-      obj = WlzAssignObject(obj, &errNum);
-      threshV.v.inv = warpGlobals.threshRangeHigh + 1;
-      if( obj1 = WlzThreshold(obj, threshV, WLZ_THRESH_LOW, &errNum) ){
-	warpGlobals.sgnlObj = WlzAssignObject(obj1, &errNum);
+  if( errNum == WLZ_ERR_NONE ){
+    threshV.type = WLZ_GREY_INT;
+    threshV.v.inv = warpGlobals.threshRangeLow;
+    if( obj1 ){
+      if( warpGlobals.sgnlObj ){
+	WlzFreeObj(warpGlobals.sgnlObj);
+      }
+      if( obj = WlzThreshold(obj1, threshV, WLZ_THRESH_HIGH, &errNum) ){
+	WlzFreeObj(obj1);
+	obj = WlzAssignObject(obj, &errNum);
+	threshV.v.inv = warpGlobals.threshRangeHigh + 1;
+	if( obj1 = WlzThreshold(obj, threshV, WLZ_THRESH_LOW, &errNum) ){
+	  warpGlobals.sgnlObj = WlzAssignObject(obj1, &errNum);
+	}
+	else {
+	  warpGlobals.sgnlObj = NULL;
+	}
+	WlzFreeObj(obj);
       }
       else {
+	WlzFreeObj(obj1);
 	warpGlobals.sgnlObj = NULL;
       }
-      WlzFreeObj(obj);
     }
-    else {
-      WlzFreeObj(obj1);
-      warpGlobals.sgnlObj = NULL;
-    }
-  }  
+  }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "warpSetSignalDomain", errNum);
+  }
   return;
 }
 
@@ -375,7 +397,7 @@ void warpReadSignalCb(
   ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
   WlzObject		*obj;
   FILE			*fp;
-  WlzErrorNum		errNum;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check we can open the file and save the filename */
   if( (fp = HGU_XmGetFilePointer(view_struct->dialog, cbs->value,
@@ -433,6 +455,9 @@ void warpReadSignalCb(
     }
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "warpReadSignalCb", errNum);
+  }
   return;
 }
 
@@ -460,10 +485,13 @@ void warpReadSignalPopupCb(
 		  PopdownCallback, NULL);
     XtAddCallback(warp_read_sgnl_dialog, XmNcancelCallback, 
 		  PopdownCallback, NULL);
+    XtAddCallback(warp_read_sgnl_dialog, XmNmapCallback,
+		  FSBPopupCallback, NULL);
   }
 
   XtManageChild(warp_read_sgnl_dialog);
   PopupCallback(w, (XtPointer) XtParent(warp_read_sgnl_dialog), NULL);
+  XtCallCallbacks(warp_read_sgnl_dialog, XmNmapCallback, call_data);
 
   return;
 }
@@ -478,7 +506,7 @@ void warpReadSourceCb(
   ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
   WlzObject		*obj;
   FILE			*fp;
-  WlzErrorNum		errNum;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check we can open the file and save the filename */
   if( (fp = HGU_XmGetFilePointer(view_struct->dialog, cbs->value,
@@ -552,6 +580,9 @@ void warpReadSourceCb(
     }
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "warpReadSourceCb", errNum);
+  }
   return;
 }
 
@@ -579,10 +610,13 @@ void warpReadSourcePopupCb(
 		  PopdownCallback, NULL);
     XtAddCallback(warp_read_src_dialog, XmNcancelCallback, 
 		  PopdownCallback, NULL);
+    XtAddCallback(warp_read_src_dialog, XmNmapCallback,
+		  FSBPopupCallback, NULL);
   }
 
   XtManageChild(warp_read_src_dialog);
   PopupCallback(w, (XtPointer) XtParent(warp_read_src_dialog), NULL);
+  XtCallCallbacks(warp_read_src_dialog, XmNmapCallback, call_data);
 
   return;
 }
@@ -784,21 +818,31 @@ static void warpControlsCb(
 
     /* set the overlay compound object */
     if( warpGlobals.ovly.obj ){
-      cobj = (WlzCompoundArray *) warpGlobals.ovly.obj;
-      cobj->o[0] = WlzAssignObject(warpGlobals.dst.obj, NULL);
+      WlzFreeObj( warpGlobals.ovly.obj );
     }
-    else {
-      cobj = WlzMakeCompoundArray(WLZ_COMPOUND_ARR_2, 1, 2, NULL,
-				  WLZ_2D_DOMAINOBJ, NULL);
-      cobj->n = 1;
-      cobj->o[0] = WlzAssignObject(warpGlobals.dst.obj, NULL);
-      warpGlobals.ovly.obj = (WlzObject *) cobj;
-    }
+    cobj = WlzMakeCompoundArray(WLZ_COMPOUND_ARR_2, 1, 2, NULL,
+				WLZ_2D_DOMAINOBJ, NULL);
+    cobj->n = 1;
+    cobj->o[0] = WlzAssignObject(warpGlobals.dst.obj, NULL);
+    warpGlobals.ovly.obj = (WlzObject *) cobj;
+
     if( warpGlobals.ovly.ximage ){
       AlcFree(warpGlobals.ovly.ximage->data);
       warpGlobals.ovly.ximage->data = NULL;
       XDestroyImage(warpGlobals.ovly.ximage);
       warpGlobals.ovly.ximage = NULL;
+    }
+    if( warpGlobals.ovly.ovlyImages[0] ){
+      AlcFree(warpGlobals.ovly.ovlyImages[0]->data);
+      warpGlobals.ovly.ovlyImages[0]->data = NULL;
+      XDestroyImage(warpGlobals.ovly.ovlyImages[0]);
+      warpGlobals.ovly.ovlyImages[0] = NULL;
+    }
+    if( warpGlobals.ovly.ovlyImages[1] ){
+      AlcFree(warpGlobals.ovly.ovlyImages[1]->data);
+      warpGlobals.ovly.ovlyImages[1]->data = NULL;
+      XDestroyImage(warpGlobals.ovly.ovlyImages[1]);
+      warpGlobals.ovly.ovlyImages[1] = NULL;
     }
 	
   }
@@ -853,6 +897,9 @@ WlzObject *mapaintWarpObj(
     }
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "mapaintWarpObj", errNum);
+  }
   return obj1;
 }
 
@@ -863,6 +910,7 @@ void mapWarpDataCb(
 {
   ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
   WlzObject		*obj, *tmpObj;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check for signal domain and warp transform */
   if((warpGlobals.sgnlObj == NULL)){
@@ -870,21 +918,23 @@ void mapWarpDataCb(
   }
 
   /* shift the signal object for the -ve bounds-obj mesh bug */
-  if(!(tmpObj = WlzAssignObject(
+  if( tmpObj = WlzAssignObject(
     WlzShiftObject(warpGlobals.sgnlObj, warpGlobals.srcXOffset,
-		   warpGlobals.srcYOffset, 0, NULL), NULL)) ){
-    return;
-  }
+		   warpGlobals.srcYOffset, 0, &errNum), NULL) ){
 		       
-  /* transform the domain and add to current domain */
-  if( obj = mapaintWarpObj(tmpObj,
-			   WLZ_INTERPOLATION_NEAREST) ){
-    pushUndoDomains(view_struct);
-    setDomainIncrement(obj, view_struct, globals.current_domain, 0);
-    WlzFreeObj(obj);
+    /* transform the domain and add to current domain */
+    if( obj = mapaintWarpObj(tmpObj,
+			     WLZ_INTERPOLATION_NEAREST) ){
+      pushUndoDomains(view_struct);
+      setDomainIncrement(obj, view_struct, globals.current_domain, 0);
+      WlzFreeObj(obj);
+    }
+    WlzFreeObj(tmpObj);
   }
-  WlzFreeObj(tmpObj);
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "mapWarpDataCb", errNum);
+  }
   return;
 }
 

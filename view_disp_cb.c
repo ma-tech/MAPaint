@@ -56,41 +56,49 @@ static void display_scaled_image(
   }
   widthp = WLZ_MIN(widthp, x_exp + width_exp);
   heightp = WLZ_MIN(heightp, y_exp + height_exp);
+  /* make all measures of width and exposed width consistent */
+  width_exp = widthp - x_exp;
+  height_exp = heightp - y_exp;
 
-  scaled_data = (UBYTE *) AlcMalloc(sizeof(UBYTE) * width_exp * height_exp *
-				    scale * scale);
-  scaled_image = XCreateImage(dpy, win_att.visual, win_att.depth,
-			      ZPixmap, 0, (char *) scaled_data,
-			      width_exp*scale,
-			      height_exp*scale, 8, width_exp*scale);
+  if( scaled_data = (UBYTE *) AlcMalloc(sizeof(UBYTE) * width_exp *
+					height_exp * scale * scale) ){
+    scaled_image = XCreateImage(dpy, win_att.visual, win_att.depth,
+				ZPixmap, 0, (char *) scaled_data,
+				width_exp*scale,
+				height_exp*scale, 8, width_exp*scale);
 
-  data = (UBYTE *) view_struct->ximage->data;
-  for(yp=y_exp; yp < heightp; yp++)
-  {
-    linedata = data + (yp*view_struct->ximage->bytes_per_line) + x_exp;
-    line1data = scaled_data;
-    for(xp=x_exp; xp < widthp; xp++, linedata++)
+    data = (UBYTE *) view_struct->ximage->data;
+    for(yp=y_exp; yp < heightp; yp++)
     {
-      for(i=0; i < scale; i++, line1data++)
+      linedata = data + (yp*view_struct->ximage->bytes_per_line) + x_exp;
+      line1data = scaled_data;
+      for(xp=x_exp; xp < widthp; xp++, linedata++)
       {
-	*line1data = *linedata;
+	for(i=0; i < scale; i++, line1data++)
+	{
+	  *line1data = *linedata;
+	}
+      }
+      scaled_data += width_exp * scale;
+      for(i=1; i < scale; i++, scaled_data += width_exp * scale)
+      {
+	memcpy((void *) scaled_data,
+	       (const void *) (scaled_data - width_exp * scale),
+	       width_exp * scale);
       }
     }
-    scaled_data += width_exp * scale;
-    for(i=1; i < scale; i++, scaled_data += width_exp * scale)
-    {
-      memcpy((void *) scaled_data,
-	     (const void *) (scaled_data - width_exp * scale),
-	     width_exp * scale);
-    }
-  }
 
-  XPutImage(dpy, win, globals.gc_greys, scaled_image, 0, 0,
-	    x_exp*scale, y_exp*scale, width_exp*scale, height_exp*scale);
-  XFlush(dpy);
-  AlcFree((void *) scaled_image->data);
-  scaled_image->data = NULL;
-  XDestroyImage(scaled_image);
+    XPutImage(dpy, win, globals.gc_greys, scaled_image, 0, 0,
+	      x_exp*scale, y_exp*scale, width_exp*scale, height_exp*scale);
+    XFlush(dpy);
+    AlcFree((void *) scaled_image->data);
+    scaled_image->data = NULL;
+    XDestroyImage(scaled_image);
+  }
+  else {
+    MAPaintReportWlzError(globals.topl, "display_scaled_image",
+			  WLZ_ERR_MEM_ALLOC);
+  }
 
   return;
 }
@@ -133,201 +141,212 @@ static void display_scaled_down_image(
   widthp = WLZ_MIN(widthp / scale, x_exp + width_exp);
   heightp = WLZ_MIN(heightp / scale, y_exp + height_exp);
 
-  scaled_data = (UBYTE *) AlcMalloc(sizeof(UBYTE) * width_exp * height_exp);
-  scaled_image = XCreateImage(dpy, win_att.visual, win_att.depth,
-			      ZPixmap, 0, (char *) scaled_data,
-			      width_exp, height_exp, 8, width_exp);
+  if( scaled_data = (UBYTE *) AlcMalloc(sizeof(UBYTE) *
+					width_exp * height_exp) ){
+    scaled_image = XCreateImage(dpy, win_att.visual, win_att.depth,
+				ZPixmap, 0, (char *) scaled_data,
+				width_exp, height_exp, 8, width_exp);
 
-  data = (UBYTE *) view_struct->ximage->data;
-  for(yp=y_exp; yp < heightp; yp++)
-  {
-    linedata = data + (yp * scale * view_struct->ximage->bytes_per_line) +
-      x_exp * scale;
-    scaled_data = (UBYTE *) scaled_image->data + (yp-y_exp) * width_exp;
-    for(xp=x_exp; xp < widthp; xp++, scaled_data++, linedata += scale)
+    data = (UBYTE *) view_struct->ximage->data;
+    for(yp=y_exp; yp < heightp; yp++)
     {
-      *scaled_data = *linedata;
+      linedata = data + (yp * scale * view_struct->ximage->bytes_per_line) +
+	x_exp * scale;
+      scaled_data = (UBYTE *) scaled_image->data + (yp-y_exp) * width_exp;
+      for(xp=x_exp; xp < widthp; xp++, scaled_data++, linedata += scale)
+      {
+	*scaled_data = *linedata;
+      }
     }
+
+    XPutImage(dpy, win, globals.gc_greys, scaled_image, 0, 0,
+	      x_exp, y_exp, width_exp, height_exp);
+
+    XFlush(dpy);
+    AlcFree((void *) scaled_image->data);
+    scaled_image->data = NULL;
+    XDestroyImage(scaled_image);
   }
-
-  XPutImage(dpy, win, globals.gc_greys, scaled_image, 0, 0,
-	    x_exp, y_exp, width_exp, height_exp);
-
-  XFlush(dpy);
-  AlcFree((void *) scaled_image->data);
-  scaled_image->data = NULL;
-  XDestroyImage(scaled_image);
+  else {
+    MAPaintReportWlzError(globals.topl, "display_scaled_down_image",
+			  WLZ_ERR_MEM_ALLOC);
+  }
 
   return;
 }
  
 
 void redisplay_view_cb(
-Widget		w,
-XtPointer	client_data,
-XtPointer	call_data)
+  Widget		w,
+  XtPointer	client_data,
+  XtPointer	call_data)
 {
-    ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
-    WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
-    Display		*dpy = XtDisplay(view_struct->canvas);
-    Window		win = XtWindow(view_struct->canvas);
-    unsigned int	widthp, heightp;
-    WlzDVertex3		vtx;
-    int			x, y;
-    XExposeEvent	event;
-    XmDrawingAreaCallbackStruct
-      *cbs = (XmDrawingAreaCallbackStruct *) call_data;
-    Widget		x_bar, y_bar, clip=NULL, scrolled_window;
-    int 		minimum, maximum, value, width, height, size;
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
+  Display		*dpy = XtDisplay(view_struct->canvas);
+  Window		win = XtWindow(view_struct->canvas);
+  unsigned int	widthp, heightp;
+  WlzDVertex3		vtx;
+  int			x, y;
+  XExposeEvent	event;
+  XmDrawingAreaCallbackStruct
+    *cbs = (XmDrawingAreaCallbackStruct *) call_data;
+  Widget		x_bar, y_bar, clip=NULL, scrolled_window;
+  int 		minimum, maximum, value, width, height, size;
 
-    if( !wlzViewStr->initialised )
-	if( init_view_struct( view_struct ) )
-	    return;
-
-    if( globals.gc_greys == NULL ){
-	globals.gc_greys = HGU_XCreateGC( dpy, win );
+  if( !wlzViewStr->initialised ){
+    if( init_view_struct( view_struct ) ){
+      return;
     }
+  }
+
+  if( globals.gc_greys == NULL ){
+    globals.gc_greys = HGU_XCreateGC( dpy, win );
+  }
 
 /*    widthp  = wlzViewStr->maxvals.vtX - wlzViewStr->minvals.vtX + 1;
       heightp = wlzViewStr->maxvals.vtY - wlzViewStr->minvals.vtY + 1;*/
-    widthp = view_struct->ximage->width * wlzViewStr->scale;
-    heightp = view_struct->ximage->height * wlzViewStr->scale;
+  widthp = view_struct->ximage->width * wlzViewStr->scale;
+  heightp = view_struct->ximage->height * wlzViewStr->scale;
 
-    /* check for expose event */
-    if( cbs && (cbs->event) && (cbs->event->type == Expose) ){
-      event = cbs->event->xexpose;
-    }
-    else {
-      event.type = Expose;
-      event.x = 0;
-      event.y = 0;
-      event.width = widthp;
-      event.height = heightp;
-    }
+  /* check for expose event */
+  if( cbs && (cbs->event) && (cbs->event->type == Expose) ){
+    event = cbs->event->xexpose;
+  }
+  else {
+    event.type = Expose;
+    event.x = 0;
+    event.y = 0;
+    event.width = widthp;
+    event.height = heightp;
+  }
 
-    /* check if exposed region can be reduced */
-    /* get the scrolled window parent */
-    scrolled_window = XtParent(view_struct->canvas);
-    while( !XtIsSubclass(scrolled_window, xmScrolledWindowWidgetClass) ){
-      scrolled_window = XtParent(scrolled_window);
-    }
+  /* check if exposed region can be reduced */
+  /* get the scrolled window parent */
+  scrolled_window = XtParent(view_struct->canvas);
+  while( !XtIsSubclass(scrolled_window, xmScrolledWindowWidgetClass) ){
+    scrolled_window = XtParent(scrolled_window);
+  }
 
-    /* get the scrollbars */
-    XtVaGetValues(scrolled_window,
-		  XmNhorizontalScrollBar, &x_bar,
-		  XmNverticalScrollBar, &y_bar,
-		  XmNclipWindow, &clip,
-		  NULL);
+  /* get the scrollbars */
+  XtVaGetValues(scrolled_window,
+		XmNhorizontalScrollBar, &x_bar,
+		XmNverticalScrollBar, &y_bar,
+		XmNclipWindow, &clip,
+		NULL);
 
-    /* set x expose region */
-    XtVaGetValues(x_bar,
-		  XmNminimum, &minimum,
-		  XmNmaximum, &maximum,
-		  XmNvalue,   &value,
-		  XmNsliderSize, &size, NULL);
-    x = value * widthp / (maximum - minimum);
-    width = size * widthp / (maximum - minimum);
+  /* set x expose region */
+  XtVaGetValues(x_bar,
+		XmNminimum, &minimum,
+		XmNmaximum, &maximum,
+		XmNvalue,   &value,
+		XmNsliderSize, &size, NULL);
+  x = value * widthp / (maximum - minimum);
+  width = size * widthp / (maximum - minimum);
       
-    /* set y expose region */
-    XtVaGetValues(y_bar,
-		  XmNminimum, &minimum,
-		  XmNmaximum, &maximum,
-		  XmNvalue,   &value,
-		  XmNsliderSize, &size, NULL);
-    y = value * heightp / (maximum - minimum);
-    height = size * heightp / (maximum - minimum);
+  /* set y expose region */
+  XtVaGetValues(y_bar,
+		XmNminimum, &minimum,
+		XmNmaximum, &maximum,
+		XmNvalue,   &value,
+		XmNsliderSize, &size, NULL);
+  y = value * heightp / (maximum - minimum);
+  height = size * heightp / (maximum - minimum);
 
-    event.x = WLZ_MAX(x, event.x);
-    event.y = WLZ_MAX(y, event.y);
-    event.width = WLZ_MIN(width, widthp - event.x);
-    event.height = WLZ_MIN(height, heightp - event.y);
+  event.x = WLZ_MAX(x, event.x);
+  event.y = WLZ_MAX(y, event.y);
+  event.width = WLZ_MIN(width, widthp - event.x);
+  event.height = WLZ_MIN(height, heightp - event.y);
     
-    if( wlzViewStr->scale > 1.0 )
-    {
-      display_scaled_image(dpy, win, view_struct,
-			   view_struct->ximage->width,
-			   view_struct->ximage->height, &event);
-    }
-    else if( wlzViewStr->scale < 1.0 )
-    {
-      display_scaled_down_image(dpy, win, view_struct,
-			   view_struct->ximage->width,
-			   view_struct->ximage->height, &event);
-    }
-    else
-    {
-      XPutImage(dpy, win, globals.gc_greys, view_struct->ximage,
-		event.x, event.y, event.x, event.y,
-		event.width, event.height);
-    }
+  if( wlzViewStr->scale > 1.0 )
+  {
+    display_scaled_image(dpy, win, view_struct,
+			 view_struct->ximage->width,
+			 view_struct->ximage->height, &event);
+  }
+  else if( wlzViewStr->scale < 1.0 )
+  {
+    display_scaled_down_image(dpy, win, view_struct,
+			      view_struct->ximage->width,
+			      view_struct->ximage->height, &event);
+  }
+  else
+  {
+    XPutImage(dpy, win, globals.gc_greys, view_struct->ximage,
+	      event.x, event.y, event.x, event.y,
+	      event.width, event.height);
+  }
 
-    /* if dist is zero check for display fixed point or fixed line */
-    if( WLZ_NINT(wlzViewStr->dist) == 0 ){
-      WlzObject	*sectObj = view_struct->painted_object;
+  /* if dist is zero check for display fixed point or fixed line */
+  if( WLZ_NINT(wlzViewStr->dist) == 0 ){
+    WlzObject	*sectObj = view_struct->painted_object;
 
-      if( view_struct->controlFlag&MAPAINT_SHOW_FIXED_POINT ){
-	x = (0 - sectObj->domain.i->kol1) * wlzViewStr->scale;
-	y = (0 - sectObj->domain.i->line1) * wlzViewStr->scale;
-	HGU_XDrawCross(dpy, win, globals.gc_set, x, y);
-      }
-      if(view_struct->controlFlag&MAPAINT_SHOW_FIXED_LINE &&
-	 view_struct->controlFlag&MAPAINT_FIXED_LINE_SET){
-	x = (0 - sectObj->domain.i->kol1) * wlzViewStr->scale;
-	y = (0 - sectObj->domain.i->line1) * wlzViewStr->scale;
-	vtx = wlzViewStr->fixed_2;
-	Wlz3DSectionTransformVtx(&vtx, wlzViewStr);
-	vtx.vtX -= sectObj->domain.i->kol1;
-	vtx.vtY -= sectObj->domain.i->line1;
-	vtx.vtX *= wlzViewStr->scale;
-	vtx.vtY *= wlzViewStr->scale;
-	XDrawLine(dpy, win, globals.gc_set, x, y, (int) vtx.vtX, (int)vtx.vtY);
-	HGU_XDrawCross(dpy, win, globals.gc_set, (int) vtx.vtX, (int)vtx.vtY);
-      }
+    if( view_struct->controlFlag&MAPAINT_SHOW_FIXED_POINT ){
+      x = (0 - sectObj->domain.i->kol1) * wlzViewStr->scale;
+      y = (0 - sectObj->domain.i->line1) * wlzViewStr->scale;
+      HGU_XDrawCross(dpy, win, globals.gc_set, x, y);
     }
+    if(view_struct->controlFlag&MAPAINT_SHOW_FIXED_LINE &&
+       view_struct->controlFlag&MAPAINT_FIXED_LINE_SET){
+      x = (0 - sectObj->domain.i->kol1) * wlzViewStr->scale;
+      y = (0 - sectObj->domain.i->line1) * wlzViewStr->scale;
+      vtx = wlzViewStr->fixed_2;
+      Wlz3DSectionTransformVtx(&vtx, wlzViewStr);
+      vtx.vtX -= sectObj->domain.i->kol1;
+      vtx.vtY -= sectObj->domain.i->line1;
+      vtx.vtX *= wlzViewStr->scale;
+      vtx.vtY *= wlzViewStr->scale;
+      XDrawLine(dpy, win, globals.gc_set, x, y, (int) vtx.vtX, (int)vtx.vtY);
+      HGU_XDrawCross(dpy, win, globals.gc_set, (int) vtx.vtX, (int)vtx.vtY);
+    }
+  }
 
-    XFlush( dpy );
-    return;
+  XFlush( dpy );
+  return;
 }
 
 void redisplay_all_views_cb(
-Widget		w,
-XtPointer	client_data,
-XtPointer	call_data)
+  Widget		w,
+  XtPointer	client_data,
+  XtPointer	call_data)
 {
-    ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
-    ViewListEntry	*vl = global_view_list;
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  ViewListEntry	*vl = global_view_list;
 
-    while( vl != NULL ){
-	if( vl->view_struct != paint_key )
-	    redisplay_view_cb( w, (XtPointer) vl->view_struct, call_data );
-	vl = vl->next;
-    }
+  while( vl != NULL ){
+    if( vl->view_struct != paint_key )
+      redisplay_view_cb( w, (XtPointer) vl->view_struct, call_data );
+    vl = vl->next;
+  }
 
-    return;
+  return;
 }
 
 void display_view_cb(
-Widget		w,
-XtPointer	client_data,
-XtPointer	call_data)
+  Widget		w,
+  XtPointer	client_data,
+  XtPointer	call_data)
 {
-    ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
-    WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
-    Display		*dpy = XtDisplay(view_struct->canvas);
-    Window		win = XtWindow(view_struct->canvas);
-    WlzObject		*sectObj;
-    WlzErrorNum		errNum=WLZ_ERR_NONE;
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
+  Display		*dpy = XtDisplay(view_struct->canvas);
+  Window		win = XtWindow(view_struct->canvas);
+  WlzObject		*sectObj;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
-    if( !wlzViewStr->initialised )
-	if( init_view_struct( view_struct ) )
-	    return;
-
-    if( globals.gc_greys == NULL ){
-	globals.gc_greys = HGU_XCreateGC( dpy, win );
+  if( !wlzViewStr->initialised ){
+    if( init_view_struct( view_struct ) ){
+      return;
     }
+  }
 
-    /* get the section and set the painted object pointer */
-    sectObj = WlzGetSectionFromObject(globals.obj, wlzViewStr, NULL);
+  if( globals.gc_greys == NULL ){
+    globals.gc_greys = HGU_XCreateGC( dpy, win );
+  }
+
+  /* get the section and set the painted object pointer */
+  if( sectObj = WlzGetSectionFromObject(globals.obj, wlzViewStr,
+					&errNum) ){
     if( view_struct->painted_object ){
       WlzFreeObj(view_struct->painted_object);
     }
@@ -340,24 +359,29 @@ XtPointer	call_data)
 
     /* display it */
     redisplay_view_cb(w, client_data, call_data);
-    return;
+  }
+  else {
+    MAPaintReportWlzError(globals.topl, "display_view_cb", errNum);
+  }
+
+  return;
 }
 
 void display_all_views_cb(
-Widget		w,
-XtPointer	client_data,
-XtPointer	call_data)
+  Widget		w,
+  XtPointer	client_data,
+  XtPointer	call_data)
 {
-    ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
-    ViewListEntry	*vl = global_view_list;
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  ViewListEntry	*vl = global_view_list;
 
-    while( vl != NULL ){
-	if( vl->view_struct != paint_key )
-	    display_view_cb( w, (XtPointer) vl->view_struct, call_data );
-	vl = vl->next;
-    }
+  while( vl != NULL ){
+    if( vl->view_struct != paint_key )
+      display_view_cb( w, (XtPointer) vl->view_struct, call_data );
+    vl = vl->next;
+  }
 
-    return;
+  return;
 }
 
 void view_feedback_cb(
@@ -375,6 +399,7 @@ void view_feedback_cb(
   Window		win;
   XRectangle		xrectangle;
   WlzDVertex2		vtx;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check initialisation */
   if( !view_struct->wlzViewStr->initialised )
@@ -390,18 +415,29 @@ void view_feedback_cb(
     }
 
     /* check initialisation */
-    if( !vl->view_struct->wlzViewStr->initialised )
-      if( init_view_struct( vl->view_struct ) )
+    if( !vl->view_struct->wlzViewStr->initialised ){
+      if( init_view_struct( vl->view_struct ) ){
 	continue;
+      }
+    }
 
     vtx = Wlz3DViewGetIntersectionPoint(wlzViewStr,
 					vl->view_struct->wlzViewStr,
-					NULL);
+					&errNum);
+    if( errNum != WLZ_ERR_NONE ){
+      MAPaintReportWlzError(globals.topl, "view_feedback_cb", errNum);
+      return;
+    }
     x = vtx.vtX;
     y = vtx.vtY;
+
     angle = Wlz3DViewGetIntersectionAngle(wlzViewStr,
 					  vl->view_struct->wlzViewStr,
-					  NULL);
+					  &errNum);
+    if( errNum != WLZ_ERR_NONE ){
+      MAPaintReportWlzError(globals.topl, "view_feedback_cb", errNum);
+      return;
+    }
     dpy = XtDisplay(vl->view_struct->canvas);
     win = XtWindow(vl->view_struct->canvas);
 

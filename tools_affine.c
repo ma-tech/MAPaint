@@ -191,6 +191,7 @@ void MAPaintAffine2DCb(
   Window		win=XtWindow(w);
   WlzAffineTransform	*trans, *trans1;
   double		theta, scale, tx, ty;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   switch( cbs->event->type ){
 
@@ -265,7 +266,7 @@ void MAPaintAffine2DCb(
       }
 
       origObj = WlzAssignObject(origObj, NULL);
-      if( (obj = WlzObjToBoundary(origObj, 1, NULL)) == NULL ){
+      if( (obj = WlzObjToBoundary(origObj, 1, &errNum)) == NULL ){
 	WlzFreeObj(origObj);
 	origObj = NULL;
 	break;
@@ -274,21 +275,32 @@ void MAPaintAffine2DCb(
 	WlzShiftObject(obj,
 		       -(view_struct->painted_object->domain.i->kol1),
 		       -(view_struct->painted_object->domain.i->line1),
-		       0, NULL);
+		       0, &errNum);
       WlzFreeObj(obj);
-      origBoundary = WlzAssignObject(origBoundary, NULL);
-      scaleTrans = WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
-					      0.0, 0.0, 0.0,
-					      wlzViewStr->scale,
-					      0.0, 0.0, 0.0, 0.0, 0.0,
-					      0, NULL);
-      lastTrans = WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
-					      0.0, 0.0, 0.0, 1.0,
-					      0.0, 0.0, 0.0, 0.0, 0.0,
-					      0, NULL);
-      lastBoundary = WlzAffineTransformObj(origBoundary, scaleTrans,
-					   WLZ_INTERPOLATION_NEAREST, NULL);
-      DisplayBound(dpy, win, affineGc, lastBoundary->domain.b);
+      if( origBoundary ){
+	origBoundary = WlzAssignObject(origBoundary, NULL);
+	if(scaleTrans = WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
+						   0.0, 0.0, 0.0,
+						   wlzViewStr->scale,
+						   0.0, 0.0, 0.0, 0.0, 0.0,
+						   0, &errNum)){
+	  lastTrans = WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
+						 0.0, 0.0, 0.0, 1.0,
+						 0.0, 0.0, 0.0, 0.0, 0.0,
+						 0, &errNum);
+	}
+	if( errNum == WLZ_ERR_NONE ){
+	  lastBoundary = WlzAffineTransformObj(origBoundary, scaleTrans,
+					       WLZ_INTERPOLATION_NEAREST,
+					       &errNum);
+	}
+	else {
+	  lastBoundary = NULL;
+	}
+	if( lastBoundary ){
+	  DisplayBound(dpy, win, affineGc, lastBoundary->domain.b);
+	}
+      }
       break;
 
     default:
@@ -317,24 +329,27 @@ void MAPaintAffine2DCb(
 	   increment each one */
 	if( obj = WlzAffineTransformObj(view_struct->painted_object,
 					trans, WLZ_INTERPOLATION_NEAREST,
-					NULL) ){
+					&errNum) ){
 	  int		numOverlays, i;
 	  WlzObject	*tmpObj;
 
+	  obj = WlzAssignObject(obj, NULL);
 	  setGreyValuesFromObject(view_struct->painted_object,
 				  obj);
-
-	  obj = WlzAssignObject(obj, NULL);
 
 	  /* push onto undo stack and increment*/
 	  pushUndoDomains(view_struct);
 
 	  /* clear painted object to greys */
 	  if( view_struct->view_object == NULL ){
-	    view_struct->view_object =
-	      WlzGetSectionFromObject(globals.orig_obj,
-				      view_struct->wlzViewStr,
-				      NULL);
+	    if( tmpObj = WlzGetSectionFromObject(globals.orig_obj,
+						 view_struct->wlzViewStr,
+						 &errNum) ){
+	      view_struct->view_object = WlzAssignObject(tmpObj, NULL);
+	    }
+	    else {
+	      break;
+	    }
 	  }
 	  setGreyValuesFromObject(view_struct->painted_object,
 				  view_struct->view_object);
@@ -382,7 +397,7 @@ void MAPaintAffine2DCb(
       }
       else {
 	if( obj = WlzAffineTransformObj(origObj, trans,
-					WLZ_INTERPOLATION_NEAREST, NULL) ){
+					WLZ_INTERPOLATION_NEAREST, &errNum) ){
 	  /* push onto undo stack and increment*/
 	  pushUndoDomains(view_struct);
 	  setDomainIncrement(origObj, view_struct, origDomain, 1);
@@ -393,14 +408,14 @@ void MAPaintAffine2DCb(
       }
 
       /* free the various saved objects */
-      WlzFreeObj(origObj);
+      if(origObj){WlzFreeObj(origObj);}
       origObj = NULL;
-      WlzFreeObj(origBoundary);
-      WlzFreeObj(lastBoundary);
-      WlzFreeAffineTransform(trans);
-      WlzFreeAffineTransform(trans1);
-      WlzFreeAffineTransform(lastTrans);
-      WlzFreeAffineTransform(scaleTrans);
+      if(origBoundary){WlzFreeObj(origBoundary);}
+      if(lastBoundary){WlzFreeObj(lastBoundary);}
+      if(trans){WlzFreeAffineTransform(trans);}
+      if(trans1){WlzFreeAffineTransform(trans1);}
+      if(lastTrans){WlzFreeAffineTransform(lastTrans);}
+      if(scaleTrans){WlzFreeAffineTransform(scaleTrans);}
     }
     break;
 
@@ -422,7 +437,7 @@ void MAPaintAffine2DCb(
 					       (double) delX, (double) delY,
 					       0.0,
 					       1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-					       0, NULL);
+					       0, &errNum);
 	break;
 
       case HGU_XTRANSMODE_ROTATE:
@@ -433,7 +448,7 @@ void MAPaintAffine2DCb(
 	lastTrans =
 	  WlzAffineTransformFromSpin((double) origX / wlzViewStr->scale,
 				     (double) origY / wlzViewStr->scale,
-				     theta, NULL);
+				     theta, &errNum);
 	break;
 
       case HGU_XTRANSMODE_SCALE:
@@ -447,7 +462,7 @@ void MAPaintAffine2DCb(
 	  WlzAffineTransformFromSpinSqueeze
 	  ((double) origX / wlzViewStr->scale,
 	   (double) origY / wlzViewStr->scale,
-	   theta, scale, scale, NULL);
+	   theta, scale, scale, &errNum);
 	break;
 
       case HGU_XTRANSMODE_SHEAR:
@@ -471,20 +486,25 @@ void MAPaintAffine2DCb(
 					       tx, ty, 0.0,
 					       1.0, 0.0, 0.0,
 					       scale, theta, 0.0,
-					       0, NULL);
+					       0, &errNum);
 	break;
       }
 
       /* un display the last boundary, calculate and 
 	 display the new boundary */
-      trans1 = WlzAffineTransformProduct(lastTrans, scaleTrans, NULL);
-      boundary = WlzAffineTransformObj(origBoundary, trans1,
-				       WLZ_INTERPOLATION_NEAREST, NULL);
-      DisplayBound(dpy, win, affineGc, lastBoundary->domain.b);
-      DisplayBound(dpy, win, affineGc, boundary->domain.b);
-      WlzFreeObj(lastBoundary);
-      lastBoundary = boundary;
-      WlzFreeAffineTransform(trans1);
+      if( errNum == WLZ_ERR_NONE ){
+	if( trans1 = WlzAffineTransformProduct(lastTrans, scaleTrans, &errNum) ){
+	  if( boundary = WlzAffineTransformObj(origBoundary, trans1,
+					       WLZ_INTERPOLATION_NEAREST,
+					       &errNum) ){
+	    DisplayBound(dpy, win, affineGc, lastBoundary->domain.b);
+	    DisplayBound(dpy, win, affineGc, boundary->domain.b);
+	    WlzFreeObj(lastBoundary);
+	    lastBoundary = boundary;
+	  }
+	  WlzFreeAffineTransform(trans1);
+	}
+      }
     }
     break;
 
@@ -521,6 +541,9 @@ void MAPaintAffine2DCb(
     break;
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "MAPaintAffine2DCb", errNum);
+  }
   return;
 }
 

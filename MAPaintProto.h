@@ -158,6 +158,7 @@ extern void setup_ref_display_list_cb(Widget	w,
 				      XtPointer	call_data);
 
 /* theilerStage.c */
+extern char *theilerString(char	*str);
 extern void theiler_menu_init(Widget	topl);
 
 extern void theiler_stage_setup_cb(Widget	w,
@@ -341,6 +342,10 @@ extern WlzObject *get_mask_domain_from_view(ThreeDViewStruct  *view_struct,
 extern void HGU_XmSetHourGlassCursor(Widget	w);
 extern void HGU_XmUnsetHourGlassCursor(Widget	w);
 
+extern void MAPaintReportWlzError(Widget	w,
+				  String	srcStr,
+				  WlzErrorNum	wlzErr);
+
 extern void install_cmap_cb(Widget	w,
 			    XtPointer	client_data,
 			    XtPointer	call_data);
@@ -380,6 +385,7 @@ extern void colormap_cb(Widget		w,
 extern Widget create_colormap_dialog(Widget	topl);
 
 /* MAAutosaveDialog.c */
+extern void autosave_all_domains(void);
 extern void autosave_opts_cb(Widget	w,
 			     XtPointer	client_data,
 			     XtPointer	call_data);

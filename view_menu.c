@@ -210,7 +210,7 @@ void set_view_dialog_title(
   phi *= 180.0 / WLZ_M_PI;
   (void) sprintf(str_buff, "%s: (%.2f, %.2f)",
 		 view_struct->titleStr, phi, theta);
-  xmstr = XmStringCreateSimple( str_buff );
+  xmstr = XmStringCreateLocalized( str_buff );
   XtVaSetValues(dialog, XmNdialogTitle, xmstr, NULL);
   XmStringFree( xmstr );
 
@@ -307,6 +307,7 @@ void display_pointer_feedback_informationV(
   char			str_buf[512];
   String		domainName;
   short			i, numCols, numSpaces;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
   
   widthp  = wlzViewStr->maxvals.vtX - wlzViewStr->minvals.vtX + 1;
   heightp = wlzViewStr->maxvals.vtY - wlzViewStr->minvals.vtY + 1;
@@ -334,35 +335,41 @@ void display_pointer_feedback_informationV(
   spacesBuf[numSpaces] = '\0';
 
   /* get the image grey-value */
-  gVWSp = WlzGreyValueMakeWSp(globals.orig_obj, NULL);
-  WlzGreyValueGet(gVWSp, (double) plane, (double) line, (double) kol);
-  switch(gVWSp->gType){
-  case WLZ_GREY_INT:
-    sprintf(str_buf, "%s(%d,%d,%d) %d: %s\n%s", spacesBuf, kol, line, plane,
-	    gVWSp->gVal[0].inv, globals.domain_name[sel_domain], domainName);
-    break;
-  case WLZ_GREY_SHORT:
-    sprintf(str_buf, "%s(%d,%d,%d) %d: %s\n%s", spacesBuf, kol, line, plane,
-	    gVWSp->gVal[0].shv, globals.domain_name[sel_domain], domainName);
-    break;
-  case WLZ_GREY_UBYTE:
-    sprintf(str_buf, "%s(%d,%d,%d) %d: %s\n%s", spacesBuf, kol, line, plane,
-	    gVWSp->gVal[0].ubv, globals.domain_name[sel_domain], domainName);
-    break;
-  case WLZ_GREY_FLOAT:
-    sprintf(str_buf, "%s(%d,%d,%d) %f: %s\n%s", spacesBuf, kol, line, plane,
-	    gVWSp->gVal[0].flv, globals.domain_name[sel_domain], domainName);
-    break;
-  case WLZ_GREY_DOUBLE:
-    sprintf(str_buf, "%s(%d,%d,%d) %f: %s\n%s", spacesBuf, kol, line, plane,
-	    gVWSp->gVal[0].dbv, globals.domain_name[sel_domain], domainName);
-    break;
+  if( gVWSp = WlzGreyValueMakeWSp(globals.orig_obj, &errNum) ){
+    WlzGreyValueGet(gVWSp, (double) plane, (double) line, (double) kol);
+    switch(gVWSp->gType){
+    case WLZ_GREY_INT:
+      sprintf(str_buf, "%s(%d,%d,%d) %d: %s\n%s", spacesBuf, kol, line, plane,
+	      gVWSp->gVal[0].inv, globals.domain_name[sel_domain], domainName);
+      break;
+    case WLZ_GREY_SHORT:
+      sprintf(str_buf, "%s(%d,%d,%d) %d: %s\n%s", spacesBuf, kol, line, plane,
+	      gVWSp->gVal[0].shv, globals.domain_name[sel_domain], domainName);
+      break;
+    case WLZ_GREY_UBYTE:
+      sprintf(str_buf, "%s(%d,%d,%d) %d: %s\n%s", spacesBuf, kol, line, plane,
+	      gVWSp->gVal[0].ubv, globals.domain_name[sel_domain], domainName);
+      break;
+    case WLZ_GREY_FLOAT:
+      sprintf(str_buf, "%s(%d,%d,%d) %f: %s\n%s", spacesBuf, kol, line, plane,
+	      gVWSp->gVal[0].flv, globals.domain_name[sel_domain], domainName);
+      break;
+    case WLZ_GREY_DOUBLE:
+      sprintf(str_buf, "%s(%d,%d,%d) %f: %s\n%s", spacesBuf, kol, line, plane,
+	      gVWSp->gVal[0].dbv, globals.domain_name[sel_domain], domainName);
+      break;
+    }
+    WlzGreyValueFreeWSp(gVWSp);
+  }
+  else {
+    MAPaintReportWlzError(globals.topl,
+			  "display_pointer_feedback_informationV", errNum);
+    sprintf(str_buf, "Something gone wrong see error message");
   }
   XtVaSetValues(view_struct->text,
 		XmNvalue, 		str_buf,
 		NULL);
   XmTextSetCursorPosition(view_struct->text, strlen(str_buf));
-  WlzGreyValueFreeWSp(gVWSp);
 
   return;
 }
@@ -583,14 +590,19 @@ static void saveSectionCb(
   WlzThreeDViewStruct	*wlzViewStr=view_struct->wlzViewStr;
   String		fileStr;
   FILE			*fp;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* get the view object */
   if( view_struct->view_object == NULL ){
-    view_struct->view_object =
-      WlzAssignObject(WlzGetSectionFromObject(globals.orig_obj,
-					      wlzViewStr,
-					      NULL), NULL);
-    
+    WlzObject	*tmpObj;
+    if( tmpObj = WlzGetSectionFromObject(globals.orig_obj,
+					 wlzViewStr, &errNum) ){
+      view_struct->view_object = WlzAssignObject(tmpObj, NULL);
+    }
+    else {
+      MAPaintReportWlzError(globals.topl, "saveSectionCb", errNum);
+      return;
+    }
   }
 
   /* get a filename for the section object */

@@ -44,6 +44,7 @@ void setup_obj_props_cb(
   char			str_buf[32];
   XmString		xmstr;
   WlzPlaneDomain	*planedom;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check object */
   if( (globals.orig_obj == NULL) ){
@@ -52,7 +53,7 @@ void setup_obj_props_cb(
 
   /* get the backgound value and set the display */
   if( (widget = XtNameToWidget(obj_props_dialog, "*background")) ){
-    bckgrnd = WlzGetBackground(globals.orig_obj, NULL);
+    bckgrnd = WlzGetBackground(globals.orig_obj, &errNum);
     WlzValueConvertPixel(&pVal, bckgrnd, WLZ_GREY_FLOAT);
     val = pVal.v.flv;
     HGU_XmSetSliderValue(widget, val);
@@ -90,6 +91,9 @@ void setup_obj_props_cb(
     XmStringFree(xmstr);
   }
   
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "setup_obj_props_cb", errNum);
+  }
   return;
 }
 
@@ -102,6 +106,7 @@ static void obj_props_set_cb(
   Widget		widget;
   WlzPlaneDomain	*planedom1, *planedom2;
   WlzPixelV		min, max, Min, Max;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check object */
   if( (globals.orig_obj == NULL) || (globals.obj == NULL) ){
@@ -115,71 +120,79 @@ static void obj_props_set_cb(
   new_background.type = WLZ_GREY_INT;
   new_background.v.inv = (int) HGU_XmGetSliderValue( widget );
 
-  old_background = WlzGetBackground(globals.orig_obj, NULL);
+  old_background = WlzGetBackground(globals.orig_obj, &errNum);
   WlzValueConvertPixel(&pVal, old_background, WLZ_GREY_INT);
   if( pVal.v.inv != new_background.v.inv ){
     Widget	toggle;
     WlzSetBackground(globals.orig_obj, new_background);
-    if( globals.obj != NULL )
-	WlzFreeObj( globals.obj );
-    globals.obj = WlzAssignObject(
-      WlzConvertPix( globals.orig_obj, WLZ_GREY_UBYTE, NULL ), NULL);
+    if( globals.obj != NULL ){
+      WlzFreeObj( globals.obj );
+    }
+    if( globals.obj = WlzConvertPix( globals.orig_obj, WLZ_GREY_UBYTE,
+				    &errNum ) ){
+      globals.obj = WlzAssignObject(globals.obj, NULL);
 
-    min.type = WLZ_GREY_UBYTE;
-    max.type = WLZ_GREY_UBYTE;
-    Min.type = WLZ_GREY_UBYTE;
-    Max.type = WLZ_GREY_UBYTE;
-    min.v.ubv = 0;
-    max.v.ubv = 255;
-    Min.v.ubv = globals.cmapstruct->gmin;
-    Max.v.ubv = globals.cmapstruct->gmax;
-    WlzGreySetRange(globals.obj, min, max, Min, Max);
+      min.type = WLZ_GREY_UBYTE;
+      max.type = WLZ_GREY_UBYTE;
+      Min.type = WLZ_GREY_UBYTE;
+      Max.type = WLZ_GREY_UBYTE;
+      min.v.ubv = 0;
+      max.v.ubv = 255;
+      Min.v.ubv = globals.cmapstruct->gmin;
+      Max.v.ubv = globals.cmapstruct->gmax;
+      WlzGreySetRange(globals.obj, min, max, Min, Max);
 
-    /* also convert the background values */
-    min = WlzGetBackground(globals.orig_obj, NULL);
-    WlzValueConvertPixel(&min, min, WLZ_GREY_INT);
-    max.type = WLZ_GREY_INT;
-    max.v.inv = ((min.v.inv * (Max.v.ubv - Min.v.ubv)) / 255) + Min.v.ubv;
-    WlzSetBackground(globals.obj, max);
+      /* also convert the background values */
+      min = WlzGetBackground(globals.orig_obj, NULL);
+      WlzValueConvertPixel(&min, min, WLZ_GREY_INT);
+      max.type = WLZ_GREY_INT;
+      max.v.inv = ((min.v.inv * (Max.v.ubv - Min.v.ubv)) / 255) + Min.v.ubv;
+      WlzSetBackground(globals.obj, max);
 
-    /* fill blank planes here - should be a resource option */
-    if( (toggle = XtNameToWidget(globals.topl,
-				 "*read_obj_dialog*fill_blanks")) ){
-      Boolean	fill_blanks, min_domain;
-      XtVaGetValues(toggle, XmNset, &fill_blanks, NULL);
-      if( fill_blanks ){
-	if( (toggle = XtNameToWidget(globals.topl,
-				     "*read_obj_dialog*min_domain")) ){
-	  XtVaGetValues(toggle, XmNset, &min_domain, NULL);
-	  if( min_domain ){
-	    WlzFillBlankPlanes(globals.obj, 1);
-	  } else {
-	    WlzFillBlankPlanes(globals.obj, 0);
+      /* fill blank planes here - should be a resource option */
+      if( (toggle = XtNameToWidget(globals.topl,
+				   "*read_obj_dialog*fill_blanks")) ){
+	Boolean	fill_blanks, min_domain;
+	XtVaGetValues(toggle, XmNset, &fill_blanks, NULL);
+	if( fill_blanks ){
+	  if( (toggle = XtNameToWidget(globals.topl,
+				       "*read_obj_dialog*min_domain")) ){
+	    XtVaGetValues(toggle, XmNset, &min_domain, NULL);
+	    if( min_domain ){
+	      WlzFillBlankPlanes(globals.obj, 1);
+	    } else {
+	      WlzFillBlankPlanes(globals.obj, 0);
+	    }
 	  }
-	}
-	else {
-	  WlzFillBlankPlanes(globals.obj, 1);
+	  else {
+	    WlzFillBlankPlanes(globals.obj, 1);
+	  }
 	}
       }
     }
   }
 
-  /* set the voxel sizes on both reference and painted objects */
-  planedom1 = (WlzPlaneDomain *) globals.orig_obj->domain.p;
-  planedom2 = (WlzPlaneDomain *) globals.obj->domain.p;
-  if( (widget = XtNameToWidget(obj_props_dialog, "*x_size")) ){
-    planedom1->voxel_size[0] = HGU_XmGetSliderValue( widget );
-    planedom2->voxel_size[0] = planedom1->voxel_size[0];
-  }
-  if( (widget = XtNameToWidget(obj_props_dialog, "*y_size")) ){
-    planedom1->voxel_size[1] = HGU_XmGetSliderValue( widget );
-    planedom2->voxel_size[1] = planedom1->voxel_size[1];
-  }
-  if( (widget = XtNameToWidget(obj_props_dialog, "*z_size")) ){
-    planedom1->voxel_size[2] = HGU_XmGetSliderValue( widget );
-    planedom2->voxel_size[2] = planedom1->voxel_size[2];
+  if( errNum == WLZ_ERR_NONE ){
+    /* set the voxel sizes on both reference and painted objects */
+    planedom1 = (WlzPlaneDomain *) globals.orig_obj->domain.p;
+    planedom2 = (WlzPlaneDomain *) globals.obj->domain.p;
+    if( (widget = XtNameToWidget(obj_props_dialog, "*x_size")) ){
+      planedom1->voxel_size[0] = HGU_XmGetSliderValue( widget );
+      planedom2->voxel_size[0] = planedom1->voxel_size[0];
+    }
+    if( (widget = XtNameToWidget(obj_props_dialog, "*y_size")) ){
+      planedom1->voxel_size[1] = HGU_XmGetSliderValue( widget );
+      planedom2->voxel_size[1] = planedom1->voxel_size[1];
+    }
+    if( (widget = XtNameToWidget(obj_props_dialog, "*z_size")) ){
+      planedom1->voxel_size[2] = HGU_XmGetSliderValue( widget );
+      planedom2->voxel_size[2] = planedom1->voxel_size[2];
+    }
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "obj_props_set_cb", errNum);
+  }
   return;
 }
 

@@ -114,6 +114,7 @@ void realignSetOverlay(
   WlzObject		*obj1=NULL, *obj2;
   WlzAffineTransform	*trans;
   double		spX, spY;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* regenerate the image to be displayed */
   /* rescale the original */
@@ -124,15 +125,17 @@ void realignSetOverlay(
     scale = wlzViewStr->scale * dst_height / src_height;
     spX = (overlayObj->domain.i->lastkl + overlayObj->domain.i->kol1) / 2;
     spY = (overlayObj->domain.i->lastln + overlayObj->domain.i->line1) / 2;
-    trans = WlzAffineTransformFromSpinSqueeze(spX, spY, theta,
-					      scale*x_scale,
-					      scale*y_scale, NULL);
-    obj1 = WlzAffineTransformObj(overlayObj, trans,
-				 WLZ_INTERPOLATION_NEAREST, NULL);
-    WlzFreeAffineTransform(trans);
+    if( trans = WlzAffineTransformFromSpinSqueeze(spX, spY, theta,
+						  scale*x_scale,
+						  scale*y_scale, &errNum) ){
+      obj1 = WlzAffineTransformObj(overlayObj, trans,
+				   WLZ_INTERPOLATION_NEAREST, &errNum);
+      WlzFreeAffineTransform(trans);
+    }
   }
+
   /* translate to the centre */
-  if( obj1 ){
+  if( (errNum == WLZ_ERR_NONE) && obj1 ){
     obj1 = WlzAssignObject(obj1, NULL);
     tx = (view_struct->ximage->width * wlzViewStr->scale -
 	  obj1->domain.i->lastkl -
@@ -140,12 +143,18 @@ void realignSetOverlay(
     ty = (view_struct->ximage->height  * wlzViewStr->scale -
 	  obj1->domain.i->lastln -
 	  obj1->domain.i->line1) / 2 + y_shift * wlzViewStr->scale;
-    obj2 = WlzShiftObject(obj1, tx, ty, 0, NULL);
-    WlzFreeObj(obj1);
-    obj1 = WlzAssignObject(obj2, NULL);
+    if( obj2 = WlzShiftObject(obj1, tx, ty, 0, &errNum) ){
+      WlzFreeObj(obj1);
+      obj1 = WlzAssignObject(obj2, NULL);
+    }
+    else {
+      WlzFreeObj(obj1);
+      obj1 = NULL;
+    }
   }
+
   /* generate the object to be displayed */
-  if( obj1 ){
+  if( (errNum == WLZ_ERR_NONE) && obj1 ){
     switch( overlayType ){
     default:
     case MAREALIGN_DITHERED_TYPE:
@@ -154,11 +163,14 @@ void realignSetOverlay(
       if( ovlyObj ){
 	WlzFreeObj(ovlyObj);
       }
-      ovlyObj = WlzAssignObject(WlzObjToBoundary(obj1, 1, NULL), NULL);
+      ovlyObj = WlzAssignObject(WlzObjToBoundary(obj1, 1, &errNum), NULL);
       break;
     }
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "realignSetOverlay", errNum);
+  }
   return;
 }
 
@@ -406,7 +418,7 @@ void realignReadOverlayCb(
     (XmFileSelectionBoxCallbackStruct *) call_data;
   String		fileStr;
   FILE			*fp;
-  WlzErrorNum		errNum;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
   WlzObject		*obj;
 
   /* check we can open the file and save the filename */
@@ -444,6 +456,9 @@ void realignReadOverlayCb(
     }
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "realignReadOverlayCb", errNum);
+  }
   return;
 }
 
@@ -471,6 +486,8 @@ void realignReadOverlayPopupCb(
 		  PopdownCallback, NULL);
     XtAddCallback(realign_read_ovly_dialog, XmNcancelCallback, 
 		  PopdownCallback, NULL);
+    XtAddCallback(realign_read_ovly_dialog, XmNmapCallback,
+		  FSBPopupCallback, NULL);
   }
 
   XtManageChild(realign_read_ovly_dialog);
@@ -664,78 +681,102 @@ WlzObject *WlzAffineTransformObj3D(
   int		p, nPlanes;
   WlzObject	*obj1, *obj2;
 
-  /* make the new object */
-  domain.p = WlzMakePlaneDomain(obj->domain.p->type,
-				obj->domain.p->plane1,
-				obj->domain.p->lastpl,
-				obj->domain.p->line1,
-				obj->domain.p->lastln,
-				obj->domain.p->kol1,
-				obj->domain.p->lastkl,
-				&errNum);
-  for(p=0; p < 3; p++){
-    domain.p->voxel_size[p] = obj->domain.p->voxel_size[p];
+  /* check the objects */
+  if( (obj == NULL) || (transObj == NULL) ){
+    errNum = WLZ_ERR_OBJECT_NULL;
+  }
+  if((obj->type != WLZ_3D_DOMAINOBJ) || 
+     (transObj->type != WLZ_3D_DOMAINOBJ)){
+    errNum = WLZ_ERR_OBJECT_TYPE;
+  }
+  if((obj->domain.p == NULL) ||
+     (transObj->domain.p == NULL)){
+    errNum = WLZ_ERR_DOMAIN_NULL;
+  }
+  if((obj->domain.p->type != WLZ_PLANEDOMAIN_DOMAIN) ||
+     (transObj->domain.p->type != WLZ_PLANEDOMAIN_AFFINE)){
+    errNum = WLZ_ERR_DOMAIN_TYPE;
   }
 
-  if( obj->values.core ){
-    values.vox = WlzMakeVoxelValueTb(obj->values.vox->type,
-				     obj->values.vox->plane1,
-				     obj->values.vox->lastpl,
-				     obj->values.vox->bckgrnd,
-				     NULL, &errNum);
+  /* make the new object */
+  if( errNum == WLZ_ERR_NONE ){
+    if( domain.p = WlzMakePlaneDomain(obj->domain.p->type,
+				      obj->domain.p->plane1,
+				      obj->domain.p->lastpl,
+				      obj->domain.p->line1,
+				      obj->domain.p->lastln,
+				      obj->domain.p->kol1,
+				      obj->domain.p->lastkl,
+				      &errNum) ){
+      for(p=0; p < 3; p++){
+	domain.p->voxel_size[p] = obj->domain.p->voxel_size[p];
+      }
+
+      if( obj->values.core ){
+	values.vox = WlzMakeVoxelValueTb(obj->values.vox->type,
+					 obj->values.vox->plane1,
+					 obj->values.vox->lastpl,
+					 obj->values.vox->bckgrnd,
+					 NULL, &errNum);
+      }
+      else {
+	values.vox = NULL;
+      }
+      rtnObj = WlzMakeMain(origRefObj->type, domain, values,
+			 NULL, NULL, &errNum);
+    }
   }
-  else {
-    values.vox = NULL;
-  }
-  rtnObj = WlzMakeMain(origRefObj->type, domain, values,
-		       NULL, NULL, &errNum);
 
   /* apply the transform plane by plane */
-  nPlanes = obj->domain.p->lastpl - obj->domain.p->plane1 + 1;
-  for(p=0; p < nPlanes; p++){
-    /* check if the reference object has empty domains */
-    if((obj->domain.p->domains[p].core == NULL) ||
-       (obj->domain.p->domains[p].core->type == WLZ_EMPTY_OBJ) ||
-       (obj->domain.p->domains[p].core->type == WLZ_EMPTY_DOMAIN)){
-      rtnObj->domain.p->domains[p].core = NULL;
-      continue;
-    }
+  if( errNum == WLZ_ERR_NONE ){
+    nPlanes = obj->domain.p->lastpl - obj->domain.p->plane1 + 1;
+    for(p=0; p < nPlanes; p++){
+      /* check if the reference object has empty domains */
+      if((obj->domain.p->domains[p].core == NULL) ||
+	 (obj->domain.p->domains[p].core->type == WLZ_EMPTY_OBJ) ||
+	 (obj->domain.p->domains[p].core->type == WLZ_EMPTY_DOMAIN)){
+	rtnObj->domain.p->domains[p].core = NULL;
+	continue;
+      }
       
-    /* get the plane to be transformed */
-    if( obj->values.core ){
-      obj1 = WlzMakeMain(WLZ_2D_DOMAINOBJ,
-			 obj->domain.p->domains[p],
-			 obj->values.vox->values[p],
-			 NULL, NULL, NULL);
-    }
-    else {
-      obj1 = WlzMakeMain(WLZ_2D_DOMAINOBJ,
-			 obj->domain.p->domains[p],
-			 obj->values,
-			 NULL, NULL, NULL);
-    }
-    obj1 = WlzAssignObject(obj1, NULL);
+      /* get the plane to be transformed */
+      if( obj->values.core ){
+	obj1 = WlzMakeMain(WLZ_2D_DOMAINOBJ,
+			   obj->domain.p->domains[p],
+			   obj->values.vox->values[p],
+			   NULL, NULL, NULL);
+      }
+      else {
+	obj1 = WlzMakeMain(WLZ_2D_DOMAINOBJ,
+			   obj->domain.p->domains[p],
+			   obj->values,
+			   NULL, NULL, NULL);
+      }
+      obj1 = WlzAssignObject(obj1, NULL);
 
-    /* now transform it */
-    if(((p + obj->domain.p->plane1) >= transObj->domain.p->plane1) &&
-       ((p + obj->domain.p->plane1) <= transObj->domain.p->lastpl) &&
-       (transObj->domain.p->domains[p]).t ){
-      obj2 = WlzAffineTransformObj(obj1,
-				   (transObj->domain.p->domains[p]).t,
-				   WLZ_INTERPOLATION_NEAREST, NULL);
-      rtnObj->domain.p->domains[p] = WlzAssignDomain(obj2->domain, NULL);
-      rtnObj->values.vox->values[p] = WlzAssignValues(obj2->values, NULL);
-      WlzFreeObj(obj2);
+      /* now transform it */
+      if(((p + obj->domain.p->plane1) >= transObj->domain.p->plane1) &&
+	 ((p + obj->domain.p->plane1) <= transObj->domain.p->lastpl) &&
+	 (transObj->domain.p->domains[p]).t ){
+	obj2 = WlzAffineTransformObj(obj1,
+				     (transObj->domain.p->domains[p]).t,
+				     WLZ_INTERPOLATION_NEAREST, NULL);
+	rtnObj->domain.p->domains[p] = WlzAssignDomain(obj2->domain, NULL);
+	rtnObj->values.vox->values[p] = WlzAssignValues(obj2->values, NULL);
+	WlzFreeObj(obj2);
+      }
+      else {
+	rtnObj->domain.p->domains[p] = WlzAssignDomain(obj1->domain, NULL);
+	rtnObj->values.vox->values[p] = WlzAssignValues(obj1->values, NULL);
+      }
+      WlzFreeObj(obj1);
     }
-    else {
-      rtnObj->domain.p->domains[p] = WlzAssignDomain(obj1->domain, NULL);
-      rtnObj->values.vox->values[p] = WlzAssignValues(obj1->values, NULL);
-    }
-    WlzFreeObj(obj1);
   }
 
   /* standardise the plane domain and voxel table */
-   WlzStandardPlaneDomain(rtnObj->domain.p, rtnObj->values.vox);
+  if( errNum == WLZ_ERR_NONE ){
+    WlzStandardPlaneDomain(rtnObj->domain.p, rtnObj->values.vox);
+  }
 
   if( dstErr ){
     *dstErr = errNum;
@@ -765,8 +806,10 @@ WlzObject *WlzMakeTransformObj3D(
       domain.p->voxel_size[i] = obj->domain.p->voxel_size[i];
     }
     values.core = NULL;
-    rtnObj = WlzMakeMain(WLZ_3D_DOMAINOBJ,
-			 domain, values, NULL, NULL, NULL);
+    if( !(rtnObj = WlzMakeMain(WLZ_3D_DOMAINOBJ,
+			       domain, values, NULL, NULL, &errNum)) ){
+      WlzFreeDomain(domain);
+    }
   }
 
   if( dstErr ){
@@ -811,6 +854,7 @@ static void realignUpdateTransformsObj(
   double	kol1, kol2, line1, line2;
   int		plane1, plane2;
   WlzAffineTransform	*newTrans, *tmpTrans;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* fill transforms as required */
   for(i=0; i < nPlanes; i++){
@@ -844,28 +888,41 @@ static void realignUpdateTransformsObj(
 		      XmDIALOG_FULL_APPLICATION_MODAL);
       return;
     }
-    newTrans = WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
-					  kol2 - kol1,
-					  line2 - line1,
-					  0.0, 1.0, 0.0, 0.0,
-					  0.0, 0.0, 0.0, 0, NULL);
+    if( newTrans = WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
+					      kol2 - kol1,
+					      line2 - line1,
+					      0.0, 1.0, 0.0, 0.0,
+					      0.0, 0.0, 0.0, 0, &errNum)){
 
-    /* apply to existing transform */
-    p = plane1 - transformsObj->domain.p->plane1;
-    if( (transformsObj->domain.p->domains[p]).t ){
-      tmpTrans = WlzAffineTransformProduct((transformsObj->domain.p->domains[p]).t,
-					   newTrans, NULL);
-      WlzFreeAffineTransform((transformsObj->domain.p->domains[p]).t);
-      WlzFreeAffineTransform(newTrans);
-      (transformsObj->domain.p->domains[p]).t =
-	WlzAssignAffineTransform(tmpTrans, NULL);
+      /* apply to existing transform */
+      p = plane1 - transformsObj->domain.p->plane1;
+      if( (transformsObj->domain.p->domains[p]).t ){
+	if( tmpTrans = WlzAffineTransformProduct((transformsObj->
+						  domain.p->domains[p]).t,
+						 newTrans, &errNum) ){
+
+	  WlzFreeAffineTransform((transformsObj->domain.p->domains[p]).t);
+	  WlzFreeAffineTransform(newTrans);
+	  (transformsObj->domain.p->domains[p]).t =
+	    WlzAssignAffineTransform(tmpTrans, NULL);
+	}
+	else {
+	  break;
+	}
+      }
+      else {
+	(transformsObj->domain.p->domains[p]).t =
+	  WlzAssignAffineTransform(newTrans, NULL);
+      }
     }
     else {
-      (transformsObj->domain.p->domains[p]).t =
-	WlzAssignAffineTransform(newTrans, NULL);
+      break;
     }
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "realignUpdateTransformsObj", errNum);
+  }
   return;
 }
 
@@ -880,8 +937,9 @@ void applyRealignTransCb(
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   XmPushButtonCallbackStruct	*cbs = 
     (XmPushButtonCallbackStruct *) call_data;
-  WlzObject	*newOrigObj, *newObj;
-  Widget	widget;
+  WlzObject		*newOrigObj, *newObj;
+  Widget		widget;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check for transforms obj */
   if( transformsObj == NULL ){
@@ -920,40 +978,48 @@ void applyRealignTransCb(
   }
 
   /* make a new reference object and painted volume */
-  newOrigObj = WlzAffineTransformObj3D(origRefObj, transformsObj, NULL);
-  newObj = WlzAffineTransformObj3D(origObj, transformsObj, NULL);
+  if( newOrigObj = WlzAffineTransformObj3D(origRefObj, transformsObj, &errNum) ){
+    if( !(newObj = WlzAffineTransformObj3D(origObj, transformsObj, &errNum)) ){
+      WlzFreeObj(newOrigObj);
+      newOrigObj = NULL;
+    }
+  }
 
   /* install the new reference object and painted image */
-  if( globals.orig_obj != NULL ){
-    WlzFreeObj( globals.orig_obj );
-  }
-  globals.orig_obj = WlzAssignObject(newOrigObj, NULL);
+  if( errNum == WLZ_ERR_NONE ){
+    if( globals.orig_obj != NULL ){
+      WlzFreeObj( globals.orig_obj );
+    }
+    globals.orig_obj = WlzAssignObject(newOrigObj, NULL);
 
-  if( globals.obj != NULL ){
-    WlzFreeObj( globals.obj );
-  }
-  globals.obj = WlzAssignObject(newObj, NULL);
+    if( globals.obj != NULL ){
+      WlzFreeObj( globals.obj );
+    }
+    globals.obj = WlzAssignObject(newObj, NULL);
   
-  /* reset  displays */
-  setup_ref_display_list_cb(NULL, NULL, NULL);
-  setup_obj_props_cb(NULL, NULL, NULL);
+    /* reset  displays */
+    setup_ref_display_list_cb(NULL, NULL, NULL);
+    setup_obj_props_cb(NULL, NULL, NULL);
     
-  /* reset realignment controls */
-  if( widget = XtNameToWidget(view_struct->dialog,
-			      "*.realignment_frame_title") ){
-    XmToggleButtonCallbackStruct tmpcbs;
+    /* reset realignment controls */
+    if( widget = XtNameToWidget(view_struct->dialog,
+				"*.realignment_frame_title") ){
+      XmToggleButtonCallbackStruct tmpcbs;
 
-    XtVaSetValues(widget, XmNset, False, NULL);
-    tmpcbs.set = False;
-    tmpcbs.event = cbs->event;
-    XtCallCallbacks(widget, XmNvalueChangedCallback, (XtPointer) &tmpcbs);
+      XtVaSetValues(widget, XmNset, False, NULL);
+      tmpcbs.set = False;
+      tmpcbs.event = cbs->event;
+      XtCallCallbacks(widget, XmNvalueChangedCallback, (XtPointer) &tmpcbs);
+    }
   }
 
   /* unset hour glass */
   HGU_XmUnsetHourGlassCursor(globals.topl);
   HGU_XmUnsetHourGlassCursor(XtParent(view_struct->dialog));
-/*  realignResetTransformsObj();*/
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "applyRealignTransCb", errNum);
+  }
   return;
 }
 
@@ -1227,6 +1293,7 @@ void readRealignTransCb(
   BibFileError		bibFileErr=BIBFILE_ER_NONE;
   double		tx=0.0, ty=0.0, theta=0.0;
   WlzAffineTransform	*inTrans, *tmpTrans;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* get a bib-file filename */
   if( fileStr =
@@ -1286,7 +1353,7 @@ void readRealignTransCb(
      In this version assume the bibfile is from MAPaint therefore a 
      set of absolute transforms */
   bibFileErr = BibFileRecordRead(&bibfileRecord, &errMsg, fp);
-  while( bibFileErr == BIBFILE_ER_NONE ) 
+  while((errNum == WLZ_ERR_NONE) && (bibFileErr == BIBFILE_ER_NONE)) 
   {
     /* should check what type of bibfile here */
     if( strncmp(bibfileRecord->name, "Section", 7) ){
@@ -1312,25 +1379,27 @@ void readRealignTransCb(
 	 NULL);
 
       /* make the transform for this record */
-      inTrans = WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
-					   tx, ty, 0.0, 1.0,
-					   theta, 0.0, 0.0, 0.0, 0.0, 0, NULL);
+      if( inTrans = WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
+					       tx, ty, 0.0, 1.0,
+					       theta, 0.0, 0.0, 0.0, 0.0, 0,
+					       &errNum) ){
 
-      /* if concatenate with the existing transforms */
-      if( transformsObj->domain.p->domains[p].t ){
-	tmpTrans =
-	  WlzAffineTransformProduct(transformsObj->domain.p->domains[p].t,
-				    inTrans, NULL);
-	WlzFreeAffineTransform(transformsObj->domain.p->domains[p].t);
-	WlzFreeAffineTransform(inTrans);
-	transformsObj->domain.p->domains[p].t =
-	  WlzAssignAffineTransform(tmpTrans, NULL);
+	/* if concatenate with the existing transforms */
+	if( transformsObj->domain.p->domains[p].t ){
+	  if( tmpTrans =
+	     WlzAffineTransformProduct(transformsObj->domain.p->domains[p].t,
+				       inTrans, &errNum) ){
+	    WlzFreeAffineTransform(transformsObj->domain.p->domains[p].t);
+	    WlzFreeAffineTransform(inTrans);
+	    transformsObj->domain.p->domains[p].t =
+	      WlzAssignAffineTransform(tmpTrans, NULL);
+	  }
+	}	
+	else {
+	  transformsObj->domain.p->domains[p].t =
+	    WlzAssignAffineTransform(inTrans, NULL);
+	}
       }
-      else {
-	transformsObj->domain.p->domains[p].t =
-	  WlzAssignAffineTransform(inTrans, NULL);
-      }
-
       BibFileRecordFree(&bibfileRecord);
     }
     bibFileErr = BibFileRecordRead(&bibfileRecord, &errMsg, fp);
@@ -1341,12 +1410,16 @@ void readRealignTransCb(
      image to change since resetting the source and destination lines might
      be too painful because each transform would have to projected into
      translations othogonal and parallel to the current view. */
-  HGU_XmUnsetHourGlassCursor(globals.topl);
-  HGU_XmUnsetHourGlassCursor(XtParent(view_struct->dialog));
-  transformsUpdatedFlg = 1;
-  applyRealignTransCb(w, client_data, call_data);
-  transformsUpdatedFlg = 0;
-
+  if( errNum == WLZ_ERR_NONE ){
+    HGU_XmUnsetHourGlassCursor(globals.topl);
+    HGU_XmUnsetHourGlassCursor(XtParent(view_struct->dialog));
+    transformsUpdatedFlg = 1;
+    applyRealignTransCb(w, client_data, call_data);
+    transformsUpdatedFlg = 0;
+  }
+  else {
+    MAPaintReportWlzError(globals.topl, "readRealignTransCb", errNum);
+  }
   return;
 }
 
@@ -1550,6 +1623,7 @@ static void realignment_setup_cb(
   WlzIBox2	newSize;
   int		width, height;
   int		i;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check if painting */
   if( paint_key && (paint_key != view_struct) ){
@@ -1572,7 +1646,7 @@ static void realignment_setup_cb(
     width = newSize.xMax - newSize.xMin + 1;
     height = newSize.yMax - newSize.yMin + 1;
     obj = WlzCutObjToBox2D(view_struct->painted_object, newSize,
-			   WLZ_GREY_UBYTE, 0, 0.0, 0.0, NULL);
+			   WLZ_GREY_UBYTE, 0, 0.0, 0.0, &errNum);
     origPaintedObject = WlzAssignObject(view_struct->painted_object, NULL);
     WlzFreeObj(view_struct->painted_object);
     view_struct->painted_object = WlzAssignObject(obj, NULL);

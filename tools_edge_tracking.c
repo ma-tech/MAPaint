@@ -43,51 +43,64 @@ void imageEdgeTrackDomain(
   PMSnakeLCParams		LCParams;
   PMSnakeNLCParams		snakeParams;
   PMEdgeSnakeNLCParams		NLCParams;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* get the reference image and domain */
   ref_domain = WlzMakeMain(WLZ_2D_DOMAINOBJ, domain->domain,
-			   domain->values, NULL, NULL, NULL);
+			   domain->values, NULL, NULL, &errNum);
     
-  /* set up the search control parameters */
-  searchParams.spacing = HGU_XmGetSliderValue( spacing_slider );
-  searchParams.range = HGU_XmGetSliderValue( range_slider );
+  if( errNum == WLZ_ERR_NONE ){
+    /* set up the search control parameters */
+    searchParams.spacing = HGU_XmGetSliderValue( spacing_slider );
+    searchParams.range = HGU_XmGetSliderValue( range_slider );
 
-  /* set up the image cost parameters */
-  costParams.width = HGU_XmGetSliderValue( size_slider );
-  costParams.gradient = HGU_XmGetSliderValue( gradient_slider );
-  costParams.LCParams = &LCParams;
-  costParams.NLCParams = &NLCParams;
+    /* set up the image cost parameters */
+    costParams.width = HGU_XmGetSliderValue( size_slider );
+    costParams.gradient = HGU_XmGetSliderValue( gradient_slider );
+    costParams.LCParams = &LCParams;
+    costParams.NLCParams = &NLCParams;
 
   /* now the local and non-local snake costs */
-  LCParams.nu_dist = HGU_XmGetSliderValue(dist_slider);
-  NLCParams.snakeParams = &snakeParams;
-  NLCParams.snakeParams->nu_alpha = HGU_XmGetSliderValue(alpha_slider);
-  NLCParams.snakeParams->nu_kappa = HGU_XmGetSliderValue(kappa_slider);
-  NLCParams.nu_direction = HGU_XmGetSliderValue(direction_slider);
+    LCParams.nu_dist = HGU_XmGetSliderValue(dist_slider);
+    NLCParams.snakeParams = &snakeParams;
+    NLCParams.snakeParams->nu_alpha = HGU_XmGetSliderValue(alpha_slider);
+    NLCParams.snakeParams->nu_kappa = HGU_XmGetSliderValue(kappa_slider);
+    NLCParams.nu_direction = HGU_XmGetSliderValue(direction_slider);
 
-  /* get the current image and new domain by tracking */
-  if( view_struct->view_object == NULL ){
-    view_struct->view_object =
-      WlzGetSectionFromObject(globals.orig_obj,
-			      view_struct->wlzViewStr,
-			      NULL);
+    /* get the current image and new domain by tracking */
+    if( view_struct->view_object == NULL ){
+      if( obj = WlzGetSectionFromObject(globals.orig_obj,
+					view_struct->wlzViewStr,
+					&errNum) ){
+	view_struct->view_object = WlzAssignObject(obj, NULL);
+      }
+      else {
+	MAPaintReportWlzError(globals.topl, "imageEdgeTrackDomain", errNum);
+	return;
+      }
+    }
   }
 
-  new_domain = HGU_TrackDomain(view_struct->view_object,
-			       view_struct->view_object, ref_domain,
-			       MATRACK_PMSNAKE_SEARCH_METHOD,
-			       &searchParams,
-			       MATRACK_EDGE_COST_TYPE,
-			       (MATrackDomainCostParams *) &costParams,
-			       NULL);
-  WlzFreeObj( ref_domain );
+  if( errNum == WLZ_ERR_NONE ){
+    new_domain = HGU_TrackDomain(view_struct->view_object,
+				 view_struct->view_object, ref_domain,
+				 MATRACK_PMSNAKE_SEARCH_METHOD,
+				 &searchParams,
+				 MATRACK_EDGE_COST_TYPE,
+				 (MATrackDomainCostParams *) &costParams,
+				 &errNum);
+    WlzFreeObj( ref_domain );
 
-  /* increment the current domain */
-  if( new_domain ){
-    setDomainIncrement(new_domain, view_struct, selDomain, 0);
-    WlzFreeObj( new_domain );
+    /* increment the current domain */
+    if( new_domain ){
+      setDomainIncrement(new_domain, view_struct, selDomain, 0);
+      WlzFreeObj( new_domain );
+    }
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "imageEdgeTrackDomain", errNum);
+  }
   return;
 }
 
@@ -98,16 +111,20 @@ void   imageEdgeTrackCurrentDomainCb(
 {
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
   WlzObject		*domain;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* get the current domain */
   if(view_struct->curr_domain[globals.current_domain] &&
-     (WlzArea(view_struct->curr_domain[globals.current_domain], NULL) > 0)){
+     (WlzArea(view_struct->curr_domain[globals.current_domain], &errNum) > 0)){
     domain = WlzAssignObject(view_struct->curr_domain[globals.current_domain],
 			     NULL);
     imageEdgeTrackDomain(view_struct, globals.current_domain, domain);
     WlzFreeObj(domain);
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "imageEdgeTrackCurrentDomainCb", errNum);
+  }
   return;
 }
 

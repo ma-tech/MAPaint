@@ -96,102 +96,116 @@ WlzObject *warpTransformObj(
 
   /* get transformation options */
   /* take gradient */
-  if(winStruct->popup){
-    switch(ovlyIndex){
-    default:
-    case -1:
-      toggle = XtNameToWidget(winStruct->popup, "*.gradient");
-      break;
-    case 0:
-      toggle = XtNameToWidget(winStruct->popup, "*.gradient dest-image");
-      break;
-    case 1:
-      toggle = XtNameToWidget(winStruct->popup, "*.gradient src-image");
-      break;
-    }
-    if( toggle ){
-      toggleFlg = XmToggleButtonGetState(toggle);
+  if( errNum == WLZ_ERR_NONE ){
+    if(winStruct->popup){
+      switch(ovlyIndex){
+      default:
+      case -1:
+	toggle = XtNameToWidget(winStruct->popup, "*.gradient");
+	break;
+      case 0:
+	toggle = XtNameToWidget(winStruct->popup, "*.gradient dest-image");
+	break;
+      case 1:
+	toggle = XtNameToWidget(winStruct->popup, "*.gradient src-image");
+	break;
+      }
+      if( toggle ){
+	toggleFlg = XmToggleButtonGetState(toggle);
+      }
+      else {
+	toggleFlg = False;
+      }
     }
     else {
       toggleFlg = False;
     }
-  }
-  else {
-    toggleFlg = False;
-  }
-  if( toggleFlg ){
-    rtnObj = WlzAssignObject(rtnObj, NULL);
-    tmpObj = WlzGreyModGradient(rtnObj, 3.0, &errNum);
-    WlzFreeObj(rtnObj);
-    rtnObj = tmpObj;
-    errNum = WlzGreyNormalise(rtnObj);
+    if( toggleFlg ){
+      rtnObj = WlzAssignObject(rtnObj, NULL);
+      if( tmpObj = WlzGreyModGradient(rtnObj, 3.0, &errNum) ){
+	WlzFreeObj(rtnObj);
+	rtnObj = tmpObj;
+	errNum = WlzGreyNormalise(rtnObj);
+      }
+    }
   }
 
   /* inversion */
-  if(winStruct->popup){
-    switch(ovlyIndex){
-    default:
-    case -1:
-      toggle = XtNameToWidget(winStruct->popup, "*.invert");
-      break;
-    case 0:
-      toggle = XtNameToWidget(winStruct->popup, "*.invert dest-image");
-      break;
-    case 1:
-      toggle = XtNameToWidget(winStruct->popup, "*.invert src-image");
-      break;
-    }
-    if( toggle ){
-      toggleFlg = XmToggleButtonGetState(toggle);
+  if( errNum == WLZ_ERR_NONE ){
+    if(winStruct->popup){
+      switch(ovlyIndex){
+      default:
+      case -1:
+	toggle = XtNameToWidget(winStruct->popup, "*.invert");
+	break;
+      case 0:
+	toggle = XtNameToWidget(winStruct->popup, "*.invert dest-image");
+	break;
+      case 1:
+	toggle = XtNameToWidget(winStruct->popup, "*.invert src-image");
+	break;
+      }
+      if( toggle ){
+	toggleFlg = XmToggleButtonGetState(toggle);
+      }
+      else {
+	toggleFlg = False;
+      }
     }
     else {
-      toggleFlg = False;
+      toggleFlg = winStruct->grey_invert;
     }
-  }
-  else {
-    toggleFlg = winStruct->grey_invert;
-  }
-  if( toggleFlg ){
-    WlzPixelV	min, max;
+    if( toggleFlg ){
+      WlzPixelV	min, max;
 
-    WlzGreyRange(rtnObj, &min, &max);
-    WlzValueConvertPixel(&min, min, WLZ_GREY_INT);
-    WlzValueConvertPixel(&max, max, WLZ_GREY_INT);
-    if( (min.v.inv >= 0) && (max.v.inv <= 255) ){
-      min.v.inv = 0;
-      max.v.inv = 255;
+      WlzGreyRange(rtnObj, &min, &max);
+      WlzValueConvertPixel(&min, min, WLZ_GREY_INT);
+      WlzValueConvertPixel(&max, max, WLZ_GREY_INT);
+      if( (min.v.inv >= 0) && (max.v.inv <= 255) ){
+	min.v.inv = 0;
+	max.v.inv = 255;
+      }
+      errNum = WlzGreyInvertMinMax(rtnObj, min, max);
     }
-    errNum = WlzGreyInvertMinMax(rtnObj, min, max);
   }
 
   /* normalise  - note gradient operation normalises anyway */
-  if(winStruct->popup){
-    switch(ovlyIndex){
-    default:
-    case -1:
-      toggle = XtNameToWidget(winStruct->popup, "*.normalise");
-      break;
-    case 0:
-      toggle = XtNameToWidget(winStruct->popup, "*.normalise dest-image");
-      break;
-    case 1:
-      toggle = XtNameToWidget(winStruct->popup, "*.normalise src-image");
-      break;
-    }
-    if( toggle ){
-      toggleFlg = XmToggleButtonGetState(toggle);
+  if( errNum == WLZ_ERR_NONE ){
+    if(winStruct->popup){
+      switch(ovlyIndex){
+      default:
+      case -1:
+	toggle = XtNameToWidget(winStruct->popup, "*.normalise");
+	break;
+      case 0:
+	toggle = XtNameToWidget(winStruct->popup, "*.normalise dest-image");
+	break;
+      case 1:
+	toggle = XtNameToWidget(winStruct->popup, "*.normalise src-image");
+	break;
+      }
+      if( toggle ){
+	toggleFlg = XmToggleButtonGetState(toggle);
+      }
+      else {
+	toggleFlg = False;
+      }
     }
     else {
       toggleFlg = False;
     }
-  }
-  else {
-    toggleFlg = False;
-  }
-  if( toggleFlg ){
-    errNum = WlzGreyNormalise(rtnObj);
+    if( toggleFlg ){
+      errNum = WlzGreyNormalise(rtnObj);
+    }
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "warpTransformObj", errNum);
+    if( rtnObj ){
+      WlzFreeObj(rtnObj);
+      rtnObj = NULL;
+    }
+  }
   return rtnObj;
 }
 
@@ -236,67 +250,77 @@ XImage	*warpCreateXImage(
     height = src_height*winStruct->mag;
   }
 
-  XtResizeWidget(winStruct->canvas, width, height, 0);
-/*  XtVaSetValues(winStruct->canvas,
+  /*  XtResizeWidget(winStruct->canvas, width, height, 0);*/
+  XtVaSetValues(winStruct->canvas,
 		XmNwidth, width,
 		XmNheight, height,
-		NULL);*/
+		NULL);
 
-  gVWSp = WlzGreyValueMakeWSp(obj, NULL);
-  dst_data = (UBYTE *) AlcMalloc(((win_att.depth == 8)?1:4)
-			     *width*height*sizeof(char));
-  data = dst_data;
-
-  /* set up the gamma LUT */
-  gammaLUT[0] = 0;
-  for(i=1; i < 256; i++){
-    double	val;
-    val = i;
-    gammaLUT[i] = (int) (pow(val/255, winStruct->gamma) * 255);
-  }
-
-  /* fill in the values */
-  for(j=0; j < height; j++){
-    for(i=0; i < width; i++, data++){
-      WlzDVertex2 vtx1, vtx2;
-      vtx1.vtX = i;
-      vtx1.vtY = j;
-      vtx2 = warpDisplayTransBack(vtx1, winStruct);
-      WlzGreyValueGet(gVWSp, 0,
-		      vtx2.vtY + lOffset,
-		      vtx2.vtX + kOffset);
-      switch( gVWSp->gType ){
-      default:
-      case WLZ_GREY_INT:
-	*data = *(gVWSp->gPtr[0].inp);
-	break;
-      case WLZ_GREY_SHORT:
-	*data = *(gVWSp->gPtr[0].shp);
-	break;
-      case WLZ_GREY_UBYTE:
-	*data = *(gVWSp->gPtr[0].ubp);
-	break;
-      case WLZ_GREY_FLOAT:
-	*data = *(gVWSp->gPtr[0].flp);
-	break;
-      case WLZ_GREY_DOUBLE:
-	*data = *(gVWSp->gPtr[0].dbp);
-	break;
+  if( gVWSp = WlzGreyValueMakeWSp(obj, &errNum) ){
+    if( dst_data = (UBYTE *) AlcMalloc(((win_att.depth == 8)?1:4)
+				       *width*height*sizeof(char)) ){
+      data = dst_data;
+      
+      /* set up the gamma LUT */
+      gammaLUT[0] = 0;
+      for(i=1; i < 256; i++){
+	double	val;
+	val = i;
+	gammaLUT[i] = (int) (pow(val/255, winStruct->gamma) * 255);
       }
-      if( win_att.depth == 24 ){
-	data[1] = gammaLUT[data[0]];
-	data[2] = gammaLUT[data[0]];
-	data[3] = gammaLUT[data[0]];
-	data += 3;
+
+      /* fill in the values */
+      for(j=0; j < height; j++){
+	for(i=0; i < width; i++, data++){
+	  WlzDVertex2 vtx1, vtx2;
+	  vtx1.vtX = i;
+	  vtx1.vtY = j;
+	  vtx2 = warpDisplayTransBack(vtx1, winStruct);
+	  WlzGreyValueGet(gVWSp, 0,
+			  vtx2.vtY + lOffset,
+			  vtx2.vtX + kOffset);
+	  switch( gVWSp->gType ){
+	  default:
+	  case WLZ_GREY_INT:
+	    *data = *(gVWSp->gPtr[0].inp);
+	    break;
+	  case WLZ_GREY_SHORT:
+	    *data = *(gVWSp->gPtr[0].shp);
+	    break;
+	  case WLZ_GREY_UBYTE:
+	    *data = *(gVWSp->gPtr[0].ubp);
+	    break;
+	  case WLZ_GREY_FLOAT:
+	    *data = *(gVWSp->gPtr[0].flp);
+	    break;
+	  case WLZ_GREY_DOUBLE:
+	    *data = *(gVWSp->gPtr[0].dbp);
+	    break;
+	  }
+	  if( win_att.depth == 24 ){
+	    data[1] = gammaLUT[data[0]];
+	    data[2] = gammaLUT[data[0]];
+	    data[3] = gammaLUT[data[0]];
+	    data += 3;
+	  }
+	}
       }
     }
+    else {
+      errNum = WLZ_ERR_MEM_ALLOC;
+    }
+    WlzGreyValueFreeWSp(gVWSp);
   }
-  WlzGreyValueFreeWSp(gVWSp);
 
-  rtnImage = XCreateImage(XtDisplay(winStruct->canvas),
-				   win_att.visual, win_att.depth,
-				   ZPixmap, 0, (char *) dst_data,
-				   width, height, 8, 0);
+  if( errNum == WLZ_ERR_NONE ){
+    rtnImage = XCreateImage(XtDisplay(winStruct->canvas),
+			    win_att.visual, win_att.depth,
+			    ZPixmap, 0, (char *) dst_data,
+			    width, height, 8, 0);
+  }
+  else {
+    MAPaintReportWlzError(globals.topl, "warpCreateXImage", errNum);
+  }
   return rtnImage;
 }
 
@@ -337,14 +361,15 @@ void warpSetXImage(
     case WLZ_COMPOUND_ARR_2:
       cobj = (WlzCompoundArray *) winStruct->obj;
       if( cobj->n > 0 ){
-	cobj1 = WlzMakeCompoundArray(cobj->type, 1, cobj->n,
-				     NULL, cobj->otype, &errNum);
-	for(i=0; i < cobj->n; i++){
-	  cobj1->o[i] = WlzAssignObject(warpTransformObj((cobj->o)[i],
-							 winStruct, -1),
-					NULL);
+	if(cobj1 = WlzMakeCompoundArray(cobj->type, 1, cobj->n,
+					NULL, cobj->otype, &errNum) ){
+	  for(i=0; i < cobj->n; i++){
+	    cobj1->o[i] = WlzAssignObject(warpTransformObj((cobj->o)[i],
+							   winStruct, -1),
+					  NULL);
+	  }
+	  obj = WlzAssignObject(cobj1->o[0], NULL);
 	}
-	obj = WlzAssignObject(cobj1->o[0], NULL);
       }
       break;
 
@@ -352,22 +377,25 @@ void warpSetXImage(
       return;
     }
   }
-  if( obj == NULL ){
-    return;
+
+  if( obj ){
+
+    if( cobj1 ){
+      winStruct->ximage = warpCreateXImage(obj, obj, winStruct);
+    }
+    else {
+      winStruct->ximage = warpCreateXImage(obj, NULL, winStruct);
+    }
+
+    WlzFreeObj(obj);
+    if( cobj1 ){
+      WlzFreeObj((WlzObject *) cobj1);
+    }
   }
 
-  if( cobj1 ){
-    winStruct->ximage = warpCreateXImage(obj, obj, winStruct);
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "warpSetXImage", errNum);
   }
-  else {
-    winStruct->ximage = warpCreateXImage(obj, NULL, winStruct);
-  }
-
-  WlzFreeObj(obj);
-  if( cobj1 ){
-    WlzFreeObj((WlzObject *) cobj1);
-  }
-
   return;
 }
 
@@ -933,6 +961,7 @@ void warpDisplayDomain(
   Dimension	width, height;
   WlzDVertex2	vtx, vtx1, vtx2;
   WlzIntervalWSpace	iwsp;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check there is a displayed image */
   if(!winStruct->obj || !winStruct->ximage || !obj){
@@ -952,8 +981,9 @@ void warpDisplayDomain(
   gc = warpGlobals.yellow_gc;
 
   /* get the opposite vertices of the bounding box of each interval */
-  WlzInitRasterScan(obj, &iwsp, WLZ_RASTERDIR_ILIC);
-  while(WlzNextInterval(&iwsp) == WLZ_ERR_NONE){
+  errNum = WlzInitRasterScan(obj, &iwsp, WLZ_RASTERDIR_ILIC);
+  while((errNum == WLZ_ERR_NONE) &&
+	((errNum = WlzNextInterval(&iwsp)) == WLZ_ERR_NONE) ){
     vtx.vtX = iwsp.lftpos;
     vtx.vtY = iwsp.linpos;
     vtx.vtX -= winStruct->obj->domain.i->kol1;
@@ -983,8 +1013,14 @@ void warpDisplayDomain(
 		width, height);
     }
   }
+  if( errNum == WLZ_ERR_EOO ){
+    errNum = WLZ_ERR_NONE;
+  }
 
   XFlush(dpy);
   
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "warpDisplayDomain", errNum);
+  }
   return;
 }

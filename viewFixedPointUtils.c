@@ -172,14 +172,19 @@ void HGU_XmAttachTimeDelayPulldown(
   String	name;
 
   /* create the menu */
-  name = (String) AlcMalloc(strlen(XtName(widget)) + 12);
-  sprintf(name, "%s_td_popup", XtName(widget));
-  menu = HGU_XmBuildMenu(XtParent(widget), XmMENU_POPUP, name, '\0',
-			 tear_off_model, menuItems);
+  if( name = (String) AlcMalloc(strlen(XtName(widget)) + 12) ){
+    sprintf(name, "%s_td_popup", XtName(widget));
+    menu = HGU_XmBuildMenu(XtParent(widget), XmMENU_POPUP, name, '\0',
+			   tear_off_model, menuItems);
 
-  /* attach an arm callback with timeout to post the menu */
-  XtAddCallback(widget, XmNarmCallback, HGU_XmTimeDelayPulldownCb,
-		(XtPointer) menu);
+    /* attach an arm callback with timeout to post the menu */
+    XtAddCallback(widget, XmNarmCallback, HGU_XmTimeDelayPulldownCb,
+		  (XtPointer) menu);
+  }
+  else {
+    MAPaintReportWlzError(globals.topl, "HGU_XmAttachTimeDelayPulldown",
+			  WLZ_ERR_MEM_ALLOC);
+  }
 
   return;
 }
@@ -229,10 +234,13 @@ void fixed_1_text_in_cb(
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   String		fixedPointStr, defFPStr;
   WlzDVertex3		vtx;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
+ 
 
   /* get a new fixed point and set the distance to zero */
   if( (defFPStr = (String) AlcMalloc(64)) == NULL ){
-    /* display some error here */
+    MAPaintReportWlzError(globals.topl, "fixed_1_text_in_cb",
+			  WLZ_ERR_MEM_ALLOC);
     return;
   }
   (void) sprintf(defFPStr, "%.1f, %.1f, %.1f", wlzViewStr->fixed.vtX,
@@ -471,9 +479,11 @@ void fixed_1_cb(
   unsigned int	widthp, heightp;
   HGU_XInteractCallbacks	callbacks;
 
-  if( !wlzViewStr->initialised )
-    if( init_view_struct( view_struct ) )
+  if( !wlzViewStr->initialised ){
+    if( init_view_struct( view_struct ) ){
       return;
+    }
+  }
 
   /* get the new fixed point */
   callbacks.window_func = NULL;
@@ -482,8 +492,9 @@ void fixed_1_cb(
   callbacks.non_window_data = NULL;
   callbacks.help_func = NULL;
   callbacks.help_data = NULL;
-  if( (vtx = HGU_XGetVtx(dpy, win, 0, &callbacks, NULL)) == NULL )
+  if( (vtx = HGU_XGetVtx(dpy, win, 0, &callbacks, NULL)) == NULL ){
     return;
+  }
 
   /* get coord limits */
   widthp  = wlzViewStr->maxvals.vtX - wlzViewStr->minvals.vtX + 1;
@@ -563,6 +574,7 @@ void fixed_2_cb(
   float			x, y, z, s;
   WlzPolygonDomain	*startPoly, *poly;
   HGU_XInteractCallbacks	callbacks;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   if( !wlzViewStr->initialised ){
     if( init_view_struct( view_struct ) )
@@ -573,17 +585,29 @@ void fixed_2_cb(
      equal to the existing fixed point if the distance is zero */
   if( WLZ_NINT(wlzViewStr->dist) == 0 ){
     if( view_struct->view_object == NULL ){
-      view_struct->view_object = WlzGetSectionFromObject(globals.orig_obj,
-							 wlzViewStr,
-							 NULL);
+      WlzObject	*tmpObj;
+      if( tmpObj = WlzGetSectionFromObject(globals.orig_obj,
+					   wlzViewStr, &errNum) ){
+	view_struct->view_object = WlzAssignObject(tmpObj, NULL);
+      }
+      else {
+	MAPaintReportWlzError(globals.topl, "fixed_2_cb", errNum);
+	return;
+      }
     }
     fpVtx.vtX = (0 - view_struct->view_object->domain.i->kol1)
       * wlzViewStr->scale;
     fpVtx.vtY = (0 - view_struct->view_object->domain.i->line1)
       * wlzViewStr->scale;
-    startPoly = WlzAssignPolygonDomain(
-      WlzMakePolyDmn(WLZ_POLYGON_FLOAT, (WlzIVertex2 *) &fpVtx,
-		     1, 1, 1, NULL), NULL);
+    if( startPoly = WlzMakePolyDmn(WLZ_POLYGON_FLOAT,
+				   (WlzIVertex2 *) &fpVtx,
+				   1, 1, 1, &errNum) ){
+      startPoly = WlzAssignPolygonDomain(startPoly, NULL);
+    }
+    else {
+      MAPaintReportWlzError(globals.topl, "fixed_2_cb", errNum);
+      return;
+    }
   }
   else {
     startPoly = NULL;

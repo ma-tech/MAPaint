@@ -120,6 +120,7 @@ static void set_review_region_flashing(void)
   WlzObject	*obj1, *obj2, *obj3;
   int		dx, dy;
   WlzDVertex3	vtx;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   if( current_region == NULL ){
     return;
@@ -132,65 +133,77 @@ static void set_review_region_flashing(void)
   flashing_region_visibleFlg = 0;
 
   /* test the size in case it would be difficult to see */
-  if( WlzArea(current_region, NULL) < 30 ){
+  if( WlzArea(current_region, &errNum) < 30 ){
     double x, y, r;
 
-    x = (current_region->domain.i->lastkl +
-	 current_region->domain.i->kol1)/2.0;
-    y = (current_region->domain.i->lastln +
-	 current_region->domain.i->line1)/2.0;
-    r = WLZ_MAX(
-      current_region->domain.i->lastkl - current_region->domain.i->kol1,
-      current_region->domain.i->lastln - current_region->domain.i->line1);
-    r = WLZ_MAX(r+4.0, 20.0);
+    if( errNum == WLZ_ERR_NONE ){
+      x = (current_region->domain.i->lastkl +
+	   current_region->domain.i->kol1)/2.0;
+      y = (current_region->domain.i->lastln +
+	   current_region->domain.i->line1)/2.0;
+      r = WLZ_MAX(
+	current_region->domain.i->lastkl - current_region->domain.i->kol1,
+	current_region->domain.i->lastln - current_region->domain.i->line1);
+      r = WLZ_MAX(r+4.0, 20.0);
 
-    obj1 = WlzMakeCircleObject(r, x, y, NULL);
-    obj2 = WlzMakeCircleObject(r-2.0, x, y, NULL);
-    obj3 = WlzDiffDomain(obj1, obj2, NULL);
-    WlzFreeObj(obj1);
-    WlzFreeObj(obj2);
-    obj1 = WlzUnion2(obj3, current_region, NULL);
-    WlzFreeObj( obj3 );
+      if((obj1 = WlzMakeCircleObject(r, x, y, &errNum)) &&
+	 (obj2 = WlzMakeCircleObject(r-2.0, x, y, NULL))){
+	obj3 = WlzDiffDomain(obj1, obj2, &errNum);
+	WlzFreeObj(obj1);
+	WlzFreeObj(obj2);
+	if( errNum == WLZ_ERR_NONE ){
+	  obj1 = WlzUnion2(obj3, current_region, &errNum);
+	  WlzFreeObj( obj3 );
+	}
+      }
+    }
   }
   else {
     obj1 = WlzMakeMain(current_region->type, current_region->domain,
-		       current_region->values, NULL, NULL, NULL);
+		       current_region->values, NULL, NULL, &errNum);
   }
 
   /* if review domain is 3D then transform to painted image coords */
-  if( reviewDomain->type == WLZ_3D_DOMAINOBJ ){
-    vtx.vtX = 0.0;
-    vtx.vtY = 0.0;
-    vtx.vtZ = (double) current_region_plane;
-    Wlz3DSectionTransformVtx(&vtx, reviewViewStr->wlzViewStr);
-    dx = (int) vtx.vtX;
-    dy = (int) vtx.vtY;
-  }
-  else {
-    dx = 0;
-    dy = 0;
-  }
-  /* now to screen coords */
-  dx -= reviewViewStr->painted_object->domain.i->kol1;
-  dy -= reviewViewStr->painted_object->domain.i->line1;
-  obj2 = WlzShiftObject(obj1, dx, dy, 0, NULL);
+  if( errNum == WLZ_ERR_NONE ){
+    if( reviewDomain->type == WLZ_3D_DOMAINOBJ ){
+      vtx.vtX = 0.0;
+      vtx.vtY = 0.0;
+      vtx.vtZ = (double) current_region_plane;
+      Wlz3DSectionTransformVtx(&vtx, reviewViewStr->wlzViewStr);
+      dx = (int) vtx.vtX;
+      dy = (int) vtx.vtY;
+    }
+    else {
+      dx = 0;
+      dy = 0;
+    }
+    /* now to screen coords */
+    dx -= reviewViewStr->painted_object->domain.i->kol1;
+    dy -= reviewViewStr->painted_object->domain.i->line1;
+    if( obj2 = WlzShiftObject(obj1, dx, dy, 0, &errNum) ){
 
-  if( reviewViewStr->wlzViewStr->scale > 0.95 ){
-    obj3 = WlzIntRescaleObj(obj2, WLZ_NINT(reviewViewStr->wlzViewStr->scale),
-			    1, NULL);
-  }
-  else {
-    float invScale = 1.0 / reviewViewStr->wlzViewStr->scale;
-    obj3 = WlzIntRescaleObj(obj2, WLZ_NINT(invScale), 0, NULL);
+      if( reviewViewStr->wlzViewStr->scale > 0.95 ){
+	obj3 = WlzIntRescaleObj(obj2, WLZ_NINT(reviewViewStr->wlzViewStr->scale),
+				1, &errNum);
+      }
+      else {
+	float invScale = 1.0 / reviewViewStr->wlzViewStr->scale;
+	obj3 = WlzIntRescaleObj(obj2, WLZ_NINT(invScale), 0, &errNum);
+      }
+    }
   }
 
   /* create the flashing boundary */
+  if( errNum == WLZ_ERR_NONE ){
   flashing_region = WlzAssignObject(obj3, NULL);
   WlzFreeObj(obj1);
   WlzFreeObj(obj2);
     
   flashing_region_timeout_proc(NULL, (XtIntervalId *) NULL);
-
+  }
+  else {
+    MAPaintReportWlzError(globals.topl, "set_review_region_flashing", errNum);
+  }
   return;
 }
 
@@ -235,6 +248,7 @@ XtPointer	call_data)
   char			str_buf[32];
   Widget		toggle;
   Boolean		segDomainFlg=False, segPlanesFlg=False;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* do nothing if review not in progress */
   if( !reviewInProgressFlg ){
@@ -243,7 +257,7 @@ XtPointer	call_data)
 
   /* clear the old */
   if( current_region ){
-    WlzFreeObj( current_region );
+    errNum = WlzFreeObj( current_region );
     current_region = NULL;
   }
 
@@ -253,74 +267,78 @@ XtPointer	call_data)
     return;
   }
 
-  /* get the 2D object to be viewed
-     - currently ignore the segment planes toggle */
-  switch( reviewDomain->type ){
-  case WLZ_2D_DOMAINOBJ:
-    obj1 = WlzAssignObject(reviewDomain, NULL);
-    break;
+  /* get the 2D object to be viewed */
+  if( errNum == WLZ_ERR_NONE ){
+    switch( reviewDomain->type ){
+    case WLZ_2D_DOMAINOBJ:
+      obj1 = WlzAssignObject(reviewDomain, &errNum);
+      break;
 
-  case WLZ_3D_DOMAINOBJ:
-    /* check current plane else find next non-empty plane */
-    planedmn = reviewDomain->domain.p;
-    plane1 = planedmn->plane1;
-    p = current_region_plane;
+    case WLZ_3D_DOMAINOBJ:
+      /* check current plane else find next non-empty plane */
+      if( (planedmn = reviewDomain->domain.p) == NULL ){
+	errNum = WLZ_ERR_DOMAIN_NULL;
+	break;
+      }
+      plane1 = planedmn->plane1;
+      p = current_region_plane;
 
-    /* find the next non-empty plane */
-    while((p <= planedmn->lastpl) &&
-	  ((planedmn->domains[p-plane1].core == NULL) ||
-	   (planedmn->domains[p-plane1].core->type == WLZ_EMPTY_OBJ) ||
-	   (planedmn->domains[p-plane1].core->type == WLZ_EMPTY_DOMAIN))
-      ){
-      /* desensitize the plane button */
-      desensitizePlaneButton(p);
-      p++;
-    }
+      /* find the next non-empty plane */
+      while((p <= planedmn->lastpl) &&
+	    ((planedmn->domains[p-plane1].core == NULL) ||
+	     (planedmn->domains[p-plane1].core->type == WLZ_EMPTY_OBJ) ||
+	     (planedmn->domains[p-plane1].core->type == WLZ_EMPTY_DOMAIN))
+	){
+	/* desensitize the plane button */
+	desensitizePlaneButton(p);
+	p++;
+      }
 
-    /* if at the end then stop - note passed over planes
-       can be gotten by restarting the review */
-    if( p > planedmn->lastpl ){
+      /* if at the end then stop - note passed over planes
+	 can be gotten by restarting the review */
+      if( p > planedmn->lastpl ){
+	stopReviewCb(w, client_data, call_data);
+	return;
+      }
+
+      /* set the current plane and reset the view */
+      if( current_region_plane != p ){
+	installViewDomains(reviewViewStr);
+	current_region_plane = p;
+	reviewViewStr->wlzViewStr->fixed.vtZ = current_region_plane;
+	reviewViewStr->wlzViewStr->dist = 0.0;
+	reset_view_struct( reviewViewStr );
+	display_view_cb(w, (XtPointer) reviewViewStr, call_data);
+	view_feedback_cb(w, (XtPointer) reviewViewStr, NULL);
+	getViewDomains(reviewViewStr);
+      }
+      sprintf(str_buf, "Current review plane = %d", current_region_plane);
+      XtVaSetValues(reviewViewStr->text, XmNvalue, str_buf, NULL);
+
+      /* get the plane object */
+      values.core = NULL;
+      if( obj1 = WlzMakeMain(WLZ_2D_DOMAINOBJ, planedmn->domains[p-plane1],
+			     values, NULL, NULL, &errNum) ){
+	obj1 = WlzAssignObject(obj1, &errNum);
+      }
+      break;
+
+    case WLZ_EMPTY_OBJ:
+    default:
       stopReviewCb(w, client_data, call_data);
       return;
     }
-
-    /* set the current plane and reset the view */
-    if( current_region_plane != p ){
-      installViewDomains(reviewViewStr);
-      current_region_plane = p;
-      reviewViewStr->wlzViewStr->fixed.vtZ = current_region_plane;
-      reviewViewStr->wlzViewStr->dist = 0.0;
-      reset_view_struct( reviewViewStr );
-      display_view_cb(w, (XtPointer) reviewViewStr, call_data);
-      view_feedback_cb(w, (XtPointer) reviewViewStr, NULL);
-      getViewDomains(reviewViewStr);
-    }
-    sprintf(str_buf, "Current review plane = %d", current_region_plane);
-    XtVaSetValues(reviewViewStr->text, XmNvalue, str_buf, NULL);
-
-    /* get the plane object */
-    values.core = NULL;
-    obj1 = WlzMakeMain(WLZ_2D_DOMAINOBJ, planedmn->domains[p-plane1],
-		       values, NULL, NULL, NULL);
-    obj1 = WlzAssignObject(obj1, NULL);
-    
-    break;
-
-  case WLZ_EMPTY_OBJ:
-  default:
-    stopReviewCb(w, client_data, call_data);
-    return;
   }
 
-  /* segment if required - don't bother for now */
+  /* segment if required */
   if( toggle = XtNameToWidget(reviewDialog, "*segment_domain") ){
     XtVaGetValues(toggle, XmNset, &segDomainFlg, NULL);
   }
-  if( segDomainFlg ){
+  if( (errNum == WLZ_ERR_NONE) && segDomainFlg ){
     WlzObject	**objs;
     int		nobjs, i;
 
-    if( WlzLabel(obj1, &nobjs, &objs, 256, 0, WLZ_4_CONNECTED)
+    if( (errNum = WlzLabel(obj1, &nobjs, &objs, 256, 0, WLZ_4_CONNECTED))
        == WLZ_ERR_NONE ){
       if( nobjs ){
 	WlzFreeObj(obj1);
@@ -334,9 +352,14 @@ XtPointer	call_data)
   }
     
   /* assign the current review region */
-  current_region = WlzAssignObject(obj1, NULL);
-  WlzFreeObj(obj1);
-
+  if( errNum == WLZ_ERR_NONE ){
+    current_region = WlzAssignObject(obj1, NULL);
+    WlzFreeObj(obj1);
+  }
+  else {
+    current_region = NULL;
+    MAPaintReportWlzError(globals.topl, "getNextReviewRegion", errNum);
+  }
   return;
 }
 
@@ -397,10 +420,11 @@ static WlzErrorNum installReviewDomain(
   WlzPlaneDomain	*planedmn;
   int		i, p;
   char		str_buf[16];
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* remove old domain */
   if( reviewDomain ){
-    WlzFreeObj(reviewDomain);
+    errNum = WlzFreeObj(reviewDomain);
     reviewDomain = NULL;
   }
 
@@ -429,20 +453,21 @@ static WlzErrorNum installReviewDomain(
     switch( obj->type ){
     case WLZ_2D_DOMAINOBJ:
       values.core = NULL;
-      reviewDomain = WlzMakeMain(obj->type, obj->domain, values,
-				 NULL, NULL, NULL);
-      reviewDomain = WlzAssignObject(reviewDomain, NULL);
+      if( reviewDomain = WlzMakeMain(obj->type, obj->domain, values,
+				     NULL, NULL, &errNum) ){
+	reviewDomain = WlzAssignObject(reviewDomain, &errNum);
+      }
       break;
 
     case WLZ_3D_DOMAINOBJ:
       /* get intersection with the reference object */
-      if( (reviewDomain = WlzIntersect2(globals.obj, obj, NULL)) == NULL ){
+      if( (reviewDomain = WlzIntersect2(globals.obj, obj, &errNum)) == NULL ){
 	break;
       }
       if( reviewDomain->type == WLZ_EMPTY_OBJ ){
 	break;
       }
-      reviewDomain = WlzAssignObject(reviewDomain, NULL);
+      reviewDomain = WlzAssignObject(reviewDomain, &errNum);
 
       /* reset planes frame
 	 create a button for each plane with a non-NULL domain */
@@ -482,7 +507,7 @@ static WlzErrorNum installReviewDomain(
   XtVaSetValues(shell, XmNheight, shellHeight, NULL);
   XtManageChild(rowcolumn);
   
-  return WLZ_ERR_NONE;
+  return errNum;
 }
 
 void readReviewObjectCb(
@@ -494,6 +519,7 @@ XtPointer	call_data)
     (XmFileSelectionBoxCallbackStruct *) call_data;
   WlzObject	*obj;
   FILE		*fp;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* get the file pointer */
   if( (fp = HGU_XmGetFilePointer(globals.topl, cbs->value,
@@ -503,16 +529,19 @@ XtPointer	call_data)
   }
 
   /* read the new review object */
-  obj = WlzReadObj(fp, NULL);
+  obj = WlzReadObj(fp, &errNum);
   (void) fclose( fp );
 
   /* install it */
   if( obj ){
     obj = WlzAssignObject(obj, NULL);
-    installReviewDomain(obj);
+    errNum = installReviewDomain(obj);
     WlzFreeObj(obj);
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "readReviewObjectCb", errNum);
+  }
   return;
 }
 
@@ -551,6 +580,7 @@ XtPointer		client_data,
 XtPointer		call_data)
 {
   WlzObject	*srcDomainObj=NULL;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* set the source domain for future reference */
   sourceDomain = (DomainSelection) client_data;
@@ -559,8 +589,11 @@ XtPointer		call_data)
   srcDomainObj = get_domain_from_object(globals.obj, sourceDomain);
 
   /* reset the planes frame */
-  installReviewDomain(srcDomainObj);
+  errNum = installReviewDomain(srcDomainObj);
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "sourceDomainCb", errNum);
+  }
   return;
 }
 
@@ -571,6 +604,7 @@ XtPointer		call_data)
 {
   PaintDomainSourceType	domSrc = (PaintDomainSourceType) client_data;
   Widget	option, button;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   reviewSrc = domSrc;
   option = XtNameToWidget(reviewDialog, "*src_domain");
@@ -584,7 +618,7 @@ XtPointer		call_data)
     if( button ){
       XtSetSensitive(button, False);
     }
-    installReviewDomain(globals.review_domain_obj);
+    errNum = installReviewDomain(globals.review_domain_obj);
     break;
 
   case MAPAINT_DOMAIN_MAPAINT_OBJ:
@@ -604,10 +638,13 @@ XtPointer		call_data)
     if( button ){
       XtSetSensitive(button, True);
     }
-    installReviewDomain(NULL);
+    errNum = installReviewDomain(NULL);
     break;
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "domainSourceCb", errNum);
+  }
   return;
 }
 
@@ -624,6 +661,7 @@ void reviewDestDomainCb(
   int			p, plane1;
   Widget		widget;
   Boolean		overrideFlg;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* stop the flashing object */
   stop_review_region_flashing();
@@ -644,103 +682,115 @@ void reviewDestDomainCb(
     Wlz3DSectionTransformVtx(&vtx, reviewViewStr->wlzViewStr);
     dx = (int) vtx.vtX;
     dy = (int) vtx.vtY;
-    obj1 = WlzShiftObject(current_region, dx, dy, 0, NULL);
+    obj1 = WlzShiftObject(current_region, dx, dy, 0, &errNum);
   }
   else {
     obj1 = WlzMakeMain(current_region->type, current_region->domain,
-		       current_region->values, NULL, NULL, NULL);
+		       current_region->values, NULL, NULL, &errNum);
   }
-  switch( destDomain ){
-  case MASK_DOMAIN: /* do nothing */
-    break;
 
-  case GREYS_DOMAIN: /* return to greys */
-    setGreysIncrement(obj1, reviewViewStr);
-    break;
+  if( errNum == WLZ_ERR_NONE ){
+    switch( destDomain ){
+    case MASK_DOMAIN: /* do nothing */
+      break;
 
-  default: /* the rest */
-    overrideFlg = False;
-    if( widget = XtNameToWidget(reviewDialog,
-				"*dominance_override_toggle") ){
-      XtVaGetValues(widget, XmNset, &overrideFlg, NULL);
-    }
-    if( overrideFlg == False ){
-      setDomainIncrement(obj1, reviewViewStr, destDomain, 0);
-    }
-    else {
-      int domIdx = (int) destDomain;
-      if( domIdx > globals.cmapstruct->num_overlays )
-      {
-	set_grey_values_from_domain(obj1,
-				    reviewViewStr->painted_object,
-				    globals.cmapstruct->ovly_cols[domIdx],
-				    255);
+    case GREYS_DOMAIN: /* return to greys */
+      setGreysIncrement(obj1, reviewViewStr);
+      break;
+
+    default: /* the rest */
+      overrideFlg = False;
+      if( widget = XtNameToWidget(reviewDialog,
+				  "*dominance_override_toggle") ){
+	XtVaGetValues(widget, XmNset, &overrideFlg, NULL);
       }
-      else
-      {
-	setGreysIncrement(obj1, reviewViewStr);
-	set_grey_values_from_domain(obj1,
-				    reviewViewStr->painted_object,
-				    globals.cmapstruct->ovly_cols[domIdx],
-				    globals.cmapstruct->ovly_planes);
+      if( overrideFlg == False ){
+	setDomainIncrement(obj1, reviewViewStr, destDomain, 0);
       }
+      else {
+	int domIdx = (int) destDomain;
+	if( domIdx > globals.cmapstruct->num_overlays )
+	{
+	  set_grey_values_from_domain(obj1,
+				      reviewViewStr->painted_object,
+				      globals.cmapstruct->ovly_cols[domIdx],
+				      255);
+	}
+	else
+	{
+	  setGreysIncrement(obj1, reviewViewStr);
+	  set_grey_values_from_domain(obj1,
+				      reviewViewStr->painted_object,
+				      globals.cmapstruct->ovly_cols[domIdx],
+				      globals.cmapstruct->ovly_planes);
+	}
   
-      /* redisplay this view */
-      redisplay_view_cb(reviewViewStr->canvas, (XtPointer) reviewViewStr,
-			NULL);
+	/* redisplay this view */
+	redisplay_view_cb(reviewViewStr->canvas, (XtPointer) reviewViewStr,
+			  NULL);
       
+      }
+      break;
     }
-    break;
   }
 
   /* remove it from the review domain */
-  switch( reviewDomain->type ){
-  case WLZ_2D_DOMAINOBJ:
-    obj1 = WlzDiffDomain(reviewDomain, current_region, NULL);
-    WlzFreeObj(reviewDomain);
-    reviewDomain = NULL;
-    if( obj1 ){
-      if( WlzArea(obj1, NULL) <= 0 ){
-	WlzFreeObj(obj1);
+  if( errNum == WLZ_ERR_NONE ){
+    switch( reviewDomain->type ){
+    case WLZ_2D_DOMAINOBJ:
+      obj1 = WlzDiffDomain(reviewDomain, current_region, &errNum);
+      WlzFreeObj(reviewDomain);
+      reviewDomain = NULL;
+      if( errNum == WLZ_ERR_NONE ){
+	if( obj1 ){
+	  if( WlzArea(obj1, &errNum) <= 0 ){
+	    WlzFreeObj(obj1);
+	  }
+	  else {
+	    reviewDomain = WlzAssignObject(obj1, &errNum);
+	  }
+	}
       }
-      else {
-	reviewDomain = WlzAssignObject(obj1, NULL);
-      }
-    }
-    break;
+      break;
 
-  case WLZ_3D_DOMAINOBJ:
-    planedmn = reviewDomain->domain.p;
-    plane1 = planedmn->plane1;
-    p = current_region_plane;
-    values.core = NULL;
-    obj1 = WlzMakeMain(WLZ_2D_DOMAINOBJ, planedmn->domains[p-plane1],
-		       values, NULL, NULL, NULL);
-    obj2 = WlzDiffDomain(obj1, current_region, NULL);
-    WlzFreeObj(obj1);
-    WlzFreeDomain(planedmn->domains[p-plane1]);
-    if( obj2 ){
-      if( WlzArea(obj2, NULL) <= 0 ){
-	planedmn->domains[p-plane1].core = NULL;
+    case WLZ_3D_DOMAINOBJ:
+      planedmn = reviewDomain->domain.p;
+      plane1 = planedmn->plane1;
+      p = current_region_plane;
+      values.core = NULL;
+      if((obj1 = WlzMakeMain(WLZ_2D_DOMAINOBJ, planedmn->domains[p-plane1],
+			     values, NULL, NULL, &errNum)) ){
+	obj2 = WlzDiffDomain(obj1, current_region, &errNum);
+	WlzFreeObj(obj1);
+	WlzFreeDomain(planedmn->domains[p-plane1]);
+	if( obj2 ){
+	  if( WlzArea(obj2, &errNum) <= 0 ){
+	    planedmn->domains[p-plane1].core = NULL;
+	  }
+	  else {
+	    planedmn->domains[p-plane1] =
+	      WlzAssignDomain(obj2->domain, &errNum);
+	  }
+	  WlzFreeObj(obj2);
+	}
+	else {
+	  planedmn->domains[p-plane1].core = NULL;
+	}
       }
-      else {
-	planedmn->domains[p-plane1] =
-	  WlzAssignDomain(obj2->domain, NULL);
-      }
-      WlzFreeObj(obj2);
+      break;
     }
-    else {
-      planedmn->domains[p-plane1].core = NULL;
-    }
-    break;
   }
 
   /* get the next region */
-  getNextReviewRegion(w, client_data, call_data);
+  if( errNum == WLZ_ERR_NONE ){
+    getNextReviewRegion(w, client_data, call_data);
 
-  /* set it flashing */
-  set_review_region_flashing();
-
+    /* set it flashing */
+    set_review_region_flashing();
+  }
+  else {
+    MAPaintReportWlzError(globals.topl, "reviewDestDomainCb", errNum);
+  }
   return;
 }
 
@@ -771,6 +821,7 @@ void stopReviewCb(
   XtPointer	call_data)
 {
   Widget	button;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* stop the current region flashing */
   stop_review_region_flashing();
@@ -780,7 +831,7 @@ void stopReviewCb(
 
   /* clear the current region */
   if( current_region ){
-    WlzFreeObj(current_region);
+    errNum = WlzFreeObj(current_region);
     current_region = NULL;
   }
 
@@ -812,6 +863,9 @@ void stopReviewCb(
   button = XtNameToWidget(reviewDialog, "*src_domain_frame");
   XtSetSensitive(button, True);
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "stopReviewCb", errNum);
+  }
   return;
 }
 
@@ -1048,6 +1102,7 @@ Widget createDomainReviewDialog(
 		PopdownCallback, (XtPointer) NULL);
   XtAddCallback(readReviewObjDialog, XmNcancelCallback,
 		PopdownCallback, NULL);
+  XtAddCallback(readReviewObjDialog, XmNmapCallback, FSBPopupCallback, NULL);
 
 
   /* create buttons to select the planes */
@@ -1143,7 +1198,7 @@ Widget createDomainReviewDialog(
 
   for(i=1; i < 33; i++){
     Pixel	pixel;
-    String	domain_str;;
+    char	domainStrBuf[16];
 
     if( i > (globals.cmapstruct->num_overlays +
 	     globals.cmapstruct->num_solid_overlays) )
@@ -1151,12 +1206,11 @@ Widget createDomainReviewDialog(
       continue;
     }
 
-    domain_str = (String) AlcMalloc(strlen(globals.domain_name[i])+2);
-    (void) strcpy(domain_str, globals.domain_name[i]);
-    widget = XtVaCreateManagedWidget(domain_str,
+    sprintf(domainStrBuf, "domain %d", i);
+    widget = XtVaCreateManagedWidget(domainStrBuf,
 				     xmPushButtonWidgetClass,
 				     rowcolumn, NULL);
-    AlcFree((void *) domain_str);
+
     XtAddCallback(widget, XmNactivateCallback, reviewDestDomainCb,
 		  (XtPointer) i);
     pixel = globals.cmapstruct->ovly_cols[i] +

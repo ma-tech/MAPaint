@@ -27,8 +27,9 @@ WlzObject *get_domain_from_object(
   WlzObject		*obj,
   DomainSelection	domain)
 {
-  WlzObject	*obj1, *obj2;
+  WlzObject	*obj1, *obj2=NULL;
   WlzPixelV	low_thresh, high_thresh;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check the object */
   if((obj == NULL) ||
@@ -89,13 +90,17 @@ WlzObject *get_domain_from_object(
   }
 
   /* threshold below */
-  if( (obj1 = WlzThreshold( obj, low_thresh, WLZ_THRESH_HIGH, NULL )) == NULL )
-    return( NULL );
+  if( obj1 = WlzThreshold(obj, low_thresh, WLZ_THRESH_HIGH, &errNum) ){
 
-  /* threshold above */
-  obj1 = WlzAssignObject(obj1, NULL);
-  obj2 = WlzThreshold( obj1, high_thresh, WLZ_THRESH_LOW, NULL );
-  WlzFreeObj( obj1 );
+    /* threshold above */
+    obj1 = WlzAssignObject(obj1, NULL);
+    obj2 = WlzThreshold( obj1, high_thresh, WLZ_THRESH_LOW, &errNum );
+    WlzFreeObj( obj1 );
+  }
+
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "get_domain_from_object", errNum);
+  }
   return( obj2 );
 }
 
@@ -149,6 +154,7 @@ void setGreyValuesFromObject(
   WlzGreyWSpace		gwsp1, gwsp2;
   int			x, y, z, i, l, k, p;
   WlzPixelV		min, max, Min, Max;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check the objects */
   if( destObj == NULL || srcObj == NULL ){
@@ -179,63 +185,69 @@ void setGreyValuesFromObject(
   Max.v.ubv = globals.cmapstruct->gmax;
 
   /* scan through the intersection */
-  obj1 = WlzIntersect2(destObj, srcObj, NULL);
+  obj1 = WlzIntersect2(destObj, srcObj, &errNum);
   if( obj1 ){
     obj1 = WlzAssignObject(obj1, NULL);
     obj1->values = WlzAssignValues(destObj->values, NULL);
-    obj2 = WlzMakeMain(obj1->type, obj1->domain, srcObj->values,
-		       NULL, NULL, NULL);
-  }
-  else {
-    return;
-  }
-  WlzInitGreyScan( obj1, &iwsp1, &gwsp1 );
-  WlzInitGreyScan( obj2, &iwsp2, &gwsp2 );
-  while( WlzNextGreyInterval( &iwsp1 ) == WLZ_ERR_NONE &&
-	WlzNextGreyInterval( &iwsp2 ) == WLZ_ERR_NONE )
-  {
-    switch( gwsp2.pixeltype ){
-    case WLZ_GREY_LONG:
-      for(i=0; i < iwsp1.colrmn; i++){
-	gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.lnp[i]);
-      }
-      break;
+    if( obj2 = WlzMakeMain(obj1->type, obj1->domain, srcObj->values,
+			   NULL, NULL, &errNum) ){
 
-    case WLZ_GREY_INT:
-      for(i=0; i < iwsp1.colrmn; i++){
-	gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.inp[i]);
-      }
-      break;
+      errNum = WlzInitGreyScan( obj1, &iwsp1, &gwsp1 );
+      WlzInitGreyScan( obj2, &iwsp2, &gwsp2 );
+      while((errNum == WLZ_ERR_NONE) &&
+	    ((errNum = WlzNextGreyInterval(&iwsp1)) == WLZ_ERR_NONE) &&
+	    (WlzNextGreyInterval(&iwsp2) == WLZ_ERR_NONE) )
+      {
+	switch( gwsp2.pixeltype ){
+	case WLZ_GREY_LONG:
+	  for(i=0; i < iwsp1.colrmn; i++){
+	    gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.lnp[i]);
+	  }
+	  break;
 
-    case WLZ_GREY_SHORT:
-      for(i=0; i < iwsp1.colrmn; i++){
-	gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.shp[i]);
-      }
-      break;
+	case WLZ_GREY_INT:
+	  for(i=0; i < iwsp1.colrmn; i++){
+	    gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.inp[i]);
+	  }
+	  break;
 
-    case WLZ_GREY_UBYTE:
-      memcpy((void *) gwsp1.u_grintptr.ubp,
-	     (const void *) gwsp2.u_grintptr.ubp,
-	     (size_t) (iwsp1.rgtpos - iwsp1.lftpos + 1));
-      break;
+	case WLZ_GREY_SHORT:
+	  for(i=0; i < iwsp1.colrmn; i++){
+	    gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.shp[i]);
+	  }
+	  break;
 
-    case WLZ_GREY_FLOAT:
-      for(i=0; i < iwsp1.colrmn; i++){
-	gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.flp[i]);
-      }
-      break;
+	case WLZ_GREY_UBYTE:
+	  memcpy((void *) gwsp1.u_grintptr.ubp,
+		 (const void *) gwsp2.u_grintptr.ubp,
+		 (size_t) (iwsp1.rgtpos - iwsp1.lftpos + 1));
+	  break;
 
-    case WLZ_GREY_DOUBLE:
-      for(i=0; i < iwsp1.colrmn; i++){
-	gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.dbp[i]);
+	case WLZ_GREY_FLOAT:
+	  for(i=0; i < iwsp1.colrmn; i++){
+	    gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.flp[i]);
+	  }
+	  break;
+
+	case WLZ_GREY_DOUBLE:
+	  for(i=0; i < iwsp1.colrmn; i++){
+	    gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.dbp[i]);
+	  }
+	  break;
+	}
       }
-      break;
+      if( errNum == WLZ_ERR_EOO ){
+	errNum = WLZ_ERR_NONE;
+      }
+      WlzFreeObj( obj2 );
     }
+    WlzGreySetRange(obj1, min, max, Min, Max);
+    WlzFreeObj( obj1 );
   }
-  WlzGreySetRange(obj1, min, max, Min, Max);
-  WlzFreeObj( obj1 );
-  WlzFreeObj( obj2 );
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "setGreyValuesFromObject", errNum);
+  }
   return;
 }
 
@@ -245,40 +257,52 @@ void setGreysIncrement(
 {
   WlzObject	*obj1;
   int		i, numOverlays;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check the object */
-  if( obj == NULL || WlzArea(obj, NULL) <= 0 )
-    return;
-
-  /* check the view object */
-  if( view_struct->view_object == NULL ){
-    view_struct->view_object = WlzGetSectionFromObject(globals.orig_obj,
-						       view_struct->wlzViewStr,
-						       NULL);
+  if( obj == NULL ){
+    errNum = WLZ_ERR_OBJECT_NULL;
   }
+  else if( WlzArea(obj, &errNum) > 0 ){
+
+    /* check the view object */
+    if( view_struct->view_object == NULL ){
+      if( obj1 = WlzGetSectionFromObject(globals.orig_obj,
+					 view_struct->wlzViewStr,
+					 &errNum) ){
+	view_struct->view_object = WlzAssignObject(obj1, NULL);
+      }
+    }
     
-  /* delete from the painted object */
-  obj1 = WlzMakeMain(obj->type, obj->domain, view_struct->view_object->values,
-		     NULL, NULL, NULL);
-  setGreyValuesFromObject(view_struct->painted_object, obj1);
-  WlzFreeObj(obj1);
-  redisplay_view_cb(view_struct->canvas, (XtPointer) view_struct,
-		    NULL);
+    /* delete from the painted object */
+    if( errNum == WLZ_ERR_NONE ){
+      if( obj1 = WlzMakeMain(obj->type, obj->domain, view_struct->view_object->values,
+			     NULL, NULL, &errNum) ){
+	setGreyValuesFromObject(view_struct->painted_object, obj1);
+	WlzFreeObj(obj1);
+	redisplay_view_cb(view_struct->canvas, (XtPointer) view_struct,
+			  NULL);
 
-  /* subtract it from existing domains */
-  numOverlays = globals.cmapstruct->num_overlays +
-    globals.cmapstruct->num_solid_overlays;
-  for(i=1; i < numOverlays; i++){
-    obj1 = WlzDiffDomain(view_struct->curr_domain[i], obj, NULL);
-    WlzFreeObj(view_struct->curr_domain[i]);
-    if( obj1 ){
-      view_struct->curr_domain[i] = WlzAssignObject(obj1, NULL);
-    }
-    else {
-      view_struct->curr_domain[i] = NULL;
+	/* subtract it from existing domains */
+	numOverlays = globals.cmapstruct->num_overlays +
+	  globals.cmapstruct->num_solid_overlays;
+	for(i=1; (errNum == WLZ_ERR_NONE) && (i < numOverlays); i++){
+	  obj1 = WlzDiffDomain(view_struct->curr_domain[i], obj, &errNum);
+	  WlzFreeObj(view_struct->curr_domain[i]);
+	  if( obj1 ){
+	    view_struct->curr_domain[i] = WlzAssignObject(obj1, NULL);
+	  }
+	  else {
+	    view_struct->curr_domain[i] = NULL;
+	  }
+	}
+      }
     }
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "setGreysIncrement", errNum);
+  }
   return;
 }
 
@@ -291,7 +315,7 @@ void setDomainIncrement(
   WlzObject	*obj1, *obj2;
   int		i, j, numOverlays;
   int		dominanceFlag;
-  WlzErrorNum	wlzErr;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check the object */
   if( obj == NULL || WlzArea(obj, NULL) <= 0 )
@@ -299,25 +323,26 @@ void setDomainIncrement(
 
   /* check the view object */
   if( view_struct->view_object == NULL ){
-    view_struct->view_object =
-      WlzGetSectionFromObject(globals.orig_obj,
-			      view_struct->wlzViewStr,
-			      NULL);
+    if( obj1 = WlzGetSectionFromObject(globals.orig_obj,
+				       view_struct->wlzViewStr,
+				       &errNum) ){
+      view_struct->view_object = WlzAssignObject(obj1, NULL);
+    }
   }
     
   /* if delete then remove intersection with the existing region */
-  if( delFlag ){
-    obj1 = WlzIntersect2(obj, view_struct->curr_domain[domain], NULL);
+  if( (errNum == WLZ_ERR_NONE) && delFlag ){
+    obj1 = WlzIntersect2(obj, view_struct->curr_domain[domain], &errNum);
     if( obj1 ){
       obj1->values = WlzAssignValues(view_struct->view_object->values,
-				     &wlzErr);
+				     &errNum);
       setGreyValuesFromObject(view_struct->painted_object, obj1);
       WlzFreeObj(obj1);
       redisplay_view_cb(view_struct->canvas, (XtPointer) view_struct,
 			NULL);
 
       /* subtract it from the existing domain */
-      obj1 = WlzDiffDomain(view_struct->curr_domain[domain], obj, NULL);
+      obj1 = WlzDiffDomain(view_struct->curr_domain[domain], obj, &errNum);
       WlzFreeObj(view_struct->curr_domain[domain]);
       if( obj1 ){
 	view_struct->curr_domain[domain] = WlzAssignObject(obj1, NULL);
@@ -330,33 +355,39 @@ void setDomainIncrement(
       globals.domain_changed_since_saved[domain] = 1;
     }
 
+    if( errNum != WLZ_ERR_NONE ){
+      MAPaintReportWlzError(globals.topl, "setDomainIncrement", errNum);
+    }
     return;
   }
 
   /* if increment then check dominance */
-  numOverlays = globals.cmapstruct->num_overlays +
-    globals.cmapstruct->num_solid_overlays;
-  obj1 = WlzMakeMain(obj->type, obj->domain, obj->values, NULL, NULL, NULL);
-  obj1 = WlzAssignObject(obj1, NULL);
-  dominanceFlag = 1;
-  for(j=1; j <= numOverlays; j++){
+  if( errNum == WLZ_ERR_NONE ){
+    numOverlays = globals.cmapstruct->num_overlays +
+      globals.cmapstruct->num_solid_overlays;
+    obj1 = WlzMakeMain(obj->type, obj->domain, obj->values, NULL, NULL, NULL);
+    obj1 = WlzAssignObject(obj1, NULL);
+    dominanceFlag = 1;
+  }
+
+  for(j=1;(errNum == WLZ_ERR_NONE) && (j <= numOverlays); j++){
     i = globals.priority_to_domain_lut[j];
 
     /* if current domain */
     if( i == (int) domain ){
       /* clear to greys here to get rid of solid colours */
       obj1->values =
-	WlzAssignValues(view_struct->view_object->values, &wlzErr);
+	WlzAssignValues(view_struct->view_object->values, &errNum);
       setGreyValuesFromObject(view_struct->painted_object, obj1);
 
       if( view_struct->curr_domain[i] ){
 	obj2 = WlzAssignObject(WlzUnion2(view_struct->curr_domain[i],
-					 obj1, NULL), NULL);
+					 obj1, &errNum), NULL);
 	WlzFreeObj(view_struct->curr_domain[i]);
 	view_struct->curr_domain[i] = obj2;
       }
       else {
-	view_struct->curr_domain[i] = WlzAssignObject(obj1, NULL);
+	view_struct->curr_domain[i] = WlzAssignObject(obj1, &errNum);
       }
       dominanceFlag = 0;
       globals.domain_changed_since_saved[i] = 1;
@@ -365,13 +396,17 @@ void setDomainIncrement(
 
     /* if dominant to current domain */
     if( view_struct->curr_domain[i] && dominanceFlag ){
-      obj2 = WlzDiffDomain(obj1, view_struct->curr_domain[i], NULL);
+      obj2 = WlzDiffDomain(obj1, view_struct->curr_domain[i], &errNum);
       WlzFreeObj(obj1);
-      if( obj2 && (WlzArea(obj2, NULL) > 0) ){
-	obj1 = WlzAssignObject(obj2, NULL);
-      }
-      else {
-	return;
+      obj1 = NULL;
+      if( obj2 ){
+	if( WlzArea(obj2, &errNum) > 0 ){
+	  obj1 = WlzAssignObject(obj2, NULL);
+	}
+	else {
+	  WlzFreeObj(obj2);
+	  return;
+	}
       }
     }
 
@@ -420,5 +455,8 @@ void setDomainIncrement(
   redisplay_view_cb(view_struct->canvas, (XtPointer) view_struct,
 		    NULL);
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "setDomainIncrement", errNum);
+  }
   return;
 }

@@ -27,6 +27,26 @@
 
 #include <MAPaint.h>
 
+static char *theilerStrings[] = {
+  "ts01", "ts02", "ts03", "ts04", "ts05", "ts06", "ts07", "ts08", "ts09",
+  "ts10", "ts11", "ts12", "ts13", "ts14", "ts15", "ts16", "ts17", "ts18", "ts19",
+  "ts20", "ts21", "ts22", "ts23", "ts24", "ts25", "ts26", NULL};
+
+char *theilerString(
+  char	*str)
+{
+  int	i;
+
+  while( theilerStrings[i] ){
+    if( strstr(str, theilerStrings[i]) ){
+      return theilerStrings[i];
+    }
+    i++;
+  }
+      
+  return NULL;
+}
+
 void theiler_stage_setup_cb(
   Widget	w,
   XtPointer	client_data,
@@ -74,6 +94,7 @@ void set_theiler_stage_cb(
   String	theilerName=(String) client_data;
   FILE		*fp;
   WlzObject	*obj;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
   
   /* set up current theiler stage global */
   if( globals.theiler_stage ){
@@ -83,43 +104,54 @@ void set_theiler_stage_cb(
     sprintf(globals.theiler_stage, "%s", theilerName);
   }
   else {
-    return;
+    errNum = WLZ_ERR_MEM_ALLOC;
   }
 
   /* attempt to read the theiler stage object */
-  file_str = (String)
-    AlcMalloc(strlen(globals.base_theiler_dir) +
-	      strlen(globals.theiler_stage)*2 + 10);
-  sprintf(file_str, "%s/%s/%s.wlz", globals.base_theiler_dir,
-	  globals.theiler_stage, globals.theiler_stage);
-  if( (fp = fopen(file_str, "r")) ){
-    if( obj = WlzReadObj( fp, NULL ) ){
-      install_paint_reference_object( obj );
-      set_topl_title(globals.theiler_stage);
-    }
-    (void) fclose( fp );
-  }
-
-  /* check for a theiler stage feedback object */
-  sprintf(file_str, "%s/%s/%s_fb.wlz", globals.base_theiler_dir,
-	  globals.theiler_stage, globals.theiler_stage);
-
-  /* open the domain object file and put it in as a 3D feedback option */
-  if( (fp = fopen(file_str, "r")) ){
-    if( obj = WlzReadObj( fp, NULL ) ){
-      if( globals.fb_obj ){
-	WlzFreeObj( globals.fb_obj );
+  if((errNum == WLZ_ERR_NONE) && 
+     (file_str = (String) AlcMalloc(strlen(globals.base_theiler_dir) +
+				    strlen(globals.theiler_stage)*2 + 10)) ){
+    sprintf(file_str, "%s/%s/%s.wlz", globals.base_theiler_dir,
+	    globals.theiler_stage, globals.theiler_stage);
+    if( (fp = fopen(file_str, "r")) ){
+      if( obj = WlzReadObj( fp, &errNum ) ){
+	install_paint_reference_object( obj );
+	set_topl_title(globals.theiler_stage);
       }
-      globals.fb_obj = obj;
+      (void) fclose( fp );
     }
-    (void) fclose( fp );
   }
-  AlcFree((void *) file_str);
-  setup_ref_display_list_cb(w, NULL, NULL);
+  else {
+    errNum = WLZ_ERR_MEM_ALLOC;
+  }
+
+  if( errNum == WLZ_ERR_NONE ){
+    /* check for a theiler stage feedback object */
+    if( globals.fb_obj ){
+      WlzFreeObj( globals.fb_obj );
+      globals.fb_obj = NULL;
+    }
+    sprintf(file_str, "%s/%s/%s_fb.wlz", globals.base_theiler_dir,
+	    globals.theiler_stage, globals.theiler_stage);
+
+    /* open the domain object file and put it in as a 3D feedback option */
+    if( (fp = fopen(file_str, "r")) ){
+      if( obj = WlzReadObj( fp, &errNum ) ){
+	globals.fb_obj = WlzAssignObject(obj, &errNum);
+      }
+      (void) fclose( fp );
+    }
+
+    AlcFree((void *) file_str);
+    setup_ref_display_list_cb(w, NULL, NULL);
+  }
 
   /* setup the anatomy menus */
   set_anatomy_menu(globals.topl);
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "set_theiler_stage_cb", errNum);
+  }
   return;
 }
 

@@ -140,44 +140,43 @@ void save_domains(void)
 }
 
 int XNonFatalErrorHandler(
-Display		*dpy,
-XErrorEvent	*err_event)
+  Display		*dpy,
+  XErrorEvent	*err_event)
 {
-    if( HGU_XmUserConfirm(globals.topl,
-			  "An X11 error has occurred, do\n"
-			  "you want to try and save domains\n"
-			  "before attempting to continue?",
-			  "Yes", "No", 1) ){
+  if( HGU_XmUserConfirm(globals.topl,
+			"An X11 error has occurred, do\n"
+			"you want to try and save domains\n"
+			"before attempting to continue?",
+			"Yes", "No", 1) ){
+    autosave_all_domains();
+    save_domains();
+  }
 
-	save_domains();
-	clear_autosave();
-    }
-
-    return( 0 );
+  return( 0 );
 }
 
 /* Warning - this is not consistent with the Xlib manual but
    as defined in Xlib.h
    */
 int	XFatalErrorHandler(
-Display		*dpy)
+  Display		*dpy)
 {
-    if( HGU_XmUserConfirm(globals.topl,
-			  "A fatal X11 error has occurred, do\n"
-			  "you want to try and save domains\n"
-			  "before quitting?",
-			  "Yes", "No", 1) ){
+  if( HGU_XmUserConfirm(globals.topl,
+			"A fatal X11 error has occurred, do\n"
+			"you want to try and save domains\n"
+			"before quitting?",
+			"Yes", "No", 1) ){
+    autosave_all_domains();
+    save_domains();
+    clear_autosave();
+  }
 
-	save_domains();
-	clear_autosave();
-    }
+  /* kill the help viewer */
+  HGU_XmHelpDestroyViewer();
 
-    /* kill the help viewer */
-    HGU_XmHelpDestroyViewer();
-
-    XtDestroyWidget( globals.topl );
-    exit( 1 );
-    return( 0 );
+  XtDestroyWidget( globals.topl );
+  exit( 1 );
+  return( 0 );
 }
 
 void non_abort_signal_handler(int sig)
@@ -190,21 +189,23 @@ void non_abort_signal_handler(int sig)
 
 void abort_signal_handler(int sig)
 {
-    if( HGU_XmUserConfirm(globals.topl,
-			  "Signal SIGSEGV (fatal) received,\n"
-			  "do you want to try and save domains?",
-			  "Yes", "No", 1) )
-    {
-	save_domains();
-	clear_autosave();
-    }
 
-    if( HGU_XmUserConfirm(globals.topl,
-			  "Save a core file?",
-			  "Yes", "No", 1) )
-	abort(); 
+  if( HGU_XmUserConfirm(globals.topl,
+			"Signal SIGSEGV (fatal) received,\n"
+			"do you want to try and save domains?",
+			"Yes", "No", 1) )
+  {
+    autosave_all_domains();
+    save_domains();
+    clear_autosave();
+  }
+
+  if( HGU_XmUserConfirm(globals.topl,
+			"Save a core file?",
+			"Yes", "No", 1) )
+    abort(); 
 	
-    exit( 1 );
+  exit( 1 );
 }
 
 static XtActionsRec actions[] = {
@@ -220,6 +221,8 @@ static XrmOptionDescRec mapaint_options[] = {
   {"-realign",	"*options_menu*realignment.sensitive",
    XrmoptionNoArg, "True"},
   {"-listen",	"*view_dialog*listen.sensitive",
+   XrmoptionNoArg, "True"},
+  {"-help",	"*help_menu.sensitive",
    XrmoptionNoArg, "True"},
 };
 

@@ -37,6 +37,7 @@ void geomObjectCb(
   int		radius;
   WlzDomain	geomDom;
   WlzValues	geomVals;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   geomObjectType = (PaintGeometryObjectType) client_data;
 
@@ -55,14 +56,14 @@ void geomObjectCb(
   switch( geomObjectType ){
   case MAPAINT_GEOMETRY_OBJ_FCIRCLE:
   case MAPAINT_GEOMETRY_OBJ_VCIRCLE:
-    geomObj = WlzMakeCircleObject((double) radius + 0.3, 0.0, 0.0, NULL);
+    geomObj = WlzMakeCircleObject((double) radius + 0.3, 0.0, 0.0, &errNum);
     break;
 
   case MAPAINT_GEOMETRY_OBJ_FSQUARE:
   case MAPAINT_GEOMETRY_OBJ_VSQUARE:
     geomDom.i = WlzMakeIntervalDomain(WLZ_INTERVALDOMAIN_RECT,
-					-radius, radius, -radius, radius,
-					NULL);
+				      -radius, radius, -radius, radius,
+				      &errNum);
     geomVals.core = NULL;
     geomObj = WlzMakeMain(WLZ_2D_DOMAINOBJ, geomDom, geomVals,
 			    NULL, NULL, NULL);
@@ -74,16 +75,21 @@ void geomObjectCb(
   }
 
   /* create the cursor */
-  geomCursor = HGU_XCreateObjectCursor(XtDisplayOfObject(w),
-				       XtWindowOfObject(w), geomObj, 0);
+  if( errNum == WLZ_ERR_NONE ){
+    geomCursor = HGU_XCreateObjectCursor(XtDisplayOfObject(w),
+					 XtWindowOfObject(w), geomObj, 0);
 
-  /* if geometry painting then define it for the window */
-  if((paint_key) &&
-     (globals.currentPaintAction == MAPAINT_GEOMETRY_OBJ_2D)){
-    XUndefineCursor(XtDisplay(paint_key->canvas),
-		    XtWindow(paint_key->canvas));
-    XDefineCursor(XtDisplay(paint_key->canvas),
-		  XtWindow(paint_key->canvas), geomCursor);
+    /* if geometry painting then define it for the window */
+    if((paint_key) &&
+       (globals.currentPaintAction == MAPAINT_GEOMETRY_OBJ_2D)){
+      XUndefineCursor(XtDisplay(paint_key->canvas),
+		      XtWindow(paint_key->canvas));
+      XDefineCursor(XtDisplay(paint_key->canvas),
+		    XtWindow(paint_key->canvas), geomCursor);
+    }
+  }
+  else {
+    MAPaintReportWlzError(globals.topl, "geomObjectCb", errNum);
   }
 
   return;
@@ -170,6 +176,7 @@ void MAPaintGeom2DCb(
   int			delFlag;
   WlzObject		*obj, *obj1;
   Widget		slider;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   switch( cbs->event->type ){
 
@@ -192,23 +199,30 @@ void MAPaintGeom2DCb(
       /* use the cursor object to increment the domain */
       delX = (int) cbs->event->xbutton.x - 1;
       delY = (int) cbs->event->xbutton.y - 1;
-      obj = WlzAssignObject(WlzShiftObject(geomObj, delX, delY,
-					   0, NULL), NULL);
+      if( obj = WlzAssignObject(WlzShiftObject(geomObj, delX, delY,
+					       0, &errNum), NULL) ){
 					   
-      if( wlzViewStr->scale > 0.95 ){
-	obj1 = WlzIntRescaleObj(obj, WLZ_NINT(wlzViewStr->scale), 0, NULL);
+	if( wlzViewStr->scale > 0.95 ){
+	  obj1 = WlzIntRescaleObj(obj, WLZ_NINT(wlzViewStr->scale), 0, &errNum);
+	}
+	else {
+	  float invScale = 1.0 / wlzViewStr->scale;
+	  obj1 = WlzIntRescaleObj(obj, WLZ_NINT(invScale), 1, &errNum);
+	}
+	obj1 = WlzAssignObject(obj1, NULL);
+	WlzFreeObj(obj);
+
+	if( obj1 ){
+	  delX =  wlzViewStr->minvals.vtX;
+	  delY =  wlzViewStr->minvals.vtY;
+	  obj = WlzAssignObject(WlzShiftObject(obj1, delX, delY,
+					       0, &errNum), NULL);
+	  WlzFreeObj(obj1);
+	}
+	else {
+	  obj = NULL;
+	}
       }
-      else {
-	float invScale = 1.0 / wlzViewStr->scale;
-	obj1 = WlzIntRescaleObj(obj, WLZ_NINT(invScale), 1, NULL);
-      }
-      obj1 = WlzAssignObject(obj1, NULL);
-      WlzFreeObj(obj);
-      delX =  wlzViewStr->minvals.vtX;
-      delY =  wlzViewStr->minvals.vtY;
-      obj = WlzAssignObject(WlzShiftObject(obj1, delX, delY,
-					   0, NULL), NULL);
-      WlzFreeObj(obj1);
 
       /* reset the painted object and redisplay */
       if( obj ){
@@ -262,6 +276,9 @@ void MAPaintGeom2DCb(
     break;
   }
 
+  if( errNum != WLZ_ERR_NONE ){
+    MAPaintReportWlzError(globals.topl, "MAPaintGeom2DCb", errNum);
+  }
   return;
 }
 
