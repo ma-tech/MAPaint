@@ -60,7 +60,7 @@ static MenuItem interact_tool_itemsP[] = {	/* select menu items */
    select_interact_tool_cb, (XtPointer) MAPAINT_EDGE_TRACKING_2D,
    NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
-#ifndef LINUX2
+#if !defined (LINUX2) && !defined (DARWIN)
   {"Tablet", &xmToggleButtonGadgetClass, 0, NULL, NULL, False,
    select_interact_tool_cb, (XtPointer) MAPAINT_TABLET_2D,
    NULL, NULL,
@@ -355,7 +355,7 @@ XtPointer	call_data)
       globals.currentPaintActionQuitFunc = MAPaintEdgeTracking2DQuit;
       newForm = form[6];
       break;
-#ifndef LINUX2
+#if !defined (LINUX2) && !defined (__ppc)
     case MAPAINT_TABLET_2D:
       globals.currentPaintActionCbFunc = MAPaintTabletCb;
       globals.currentPaintActionInitFunc = MAPaintTabletInit;
@@ -416,7 +416,7 @@ static Widget create_tool_controls_dialog(
     (void) CreateAffineControls( control );
     (void) CreateTracking2DControls( control );
     (void) CreateEdgeTracking2DControls( control );
-#ifndef LINUX2
+#if !defined (LINUX2) && !defined (__ppc)
     (void) CreateTabletControls( control );
 #endif /* LINUX2 */
 

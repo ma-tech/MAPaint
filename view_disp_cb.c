@@ -65,6 +65,17 @@ void HGU_XPutImage8To24(
     }
   }
   else {
+#if defined (__ppc)
+    for(j=0; j < height; j++){
+      dstOff = (srcY+j) * ximage->bytes_per_line + srcX;
+      for(i=0; i < width; i++, dstOff++){
+	newdata[srcOff++] = 0;
+	newdata[srcOff++] = colormap[0][data[dstOff]];
+	newdata[srcOff++] = colormap[1][data[dstOff]];
+	newdata[srcOff++] = colormap[2][data[dstOff]];
+      }
+    }
+#else
     for(j=0; j < height; j++){
       dstOff = (srcY+j) * ximage->bytes_per_line + srcX;
       for(i=0; i < width; i++, dstOff++){
@@ -74,6 +85,7 @@ void HGU_XPutImage8To24(
 	newdata[srcOff++] = 0;
       }
     }
+#endif /* __ppc */
   }
 
   /* display the image and clear allocated memory */

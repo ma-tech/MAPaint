@@ -1509,14 +1509,14 @@ void file_menu_init(
       struct hostent 	*hstnt;
       fprintf(stderr, "MAPaint: logging enabled to %s\n", globals.logfile);
       MAPaintLogData("User", getenv("USER"), 0, NULL);
-#ifdef LINUX2
+#if defined (LINUX2) || defined (__ppc)
       strcpy(timeBuf, "00/00/00");
 #else
       tmpTime = time(NULL);
       cftime(timeBuf, "%d/%m/%Y", &tmpTime);
 #endif /* LINUX2 */
       MAPaintLogData("Date", timeBuf, 0, NULL);
-#ifdef LINUX2
+#if defined (LINUX2) || defined (__ppc)
       strcpy(timeBuf, "00.00");
 #else
       cftime(timeBuf, "%H.%M", &tmpTime);

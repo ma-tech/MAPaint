@@ -14,7 +14,9 @@
 *************************************************************/
 #include <stdio.h>
 #include <math.h>
+#ifndef __ppc
 #include <values.h>
+#endif
 
 #include <MAPaint.h>
 

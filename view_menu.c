@@ -11,7 +11,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
+#ifndef __ppc
 #include <values.h>
+#endif
 
 #include <MAPaint.h>
 
