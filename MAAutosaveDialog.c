@@ -1,0 +1,580 @@
+#pragma ident "MRC HGU $Id$"
+/************************************************************************
+*   Copyright  :   1994 Medical Research Council, UK.                   *
+*                  All rights reserved.                                 *
+*************************************************************************
+*   Address    :   MRC Human Genetics Unit,                             *
+*                  Western General Hospital,                            *
+*                  Edinburgh, EH4 2XU, UK.                              *
+*************************************************************************
+*   Project    :   							*
+*   File       :   MAAutosaveDialog.c					*
+*************************************************************************
+*   Author Name :  Richard Baldock					*
+*   Author Login:  richard@hgu.mrc.ac.uk				*
+*   Date        :  Fri Mar  6 10:23:32 1998				*
+*   Synopsis    : 							*
+*************************************************************************
+*   Maintenance :  date - name - comments (Last changes at the top)	*
+************************************************************************/
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <MAPaint.h>
+
+Widget	autosave_dialog=NULL;
+
+void autosave_opts_cb(
+  Widget			w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  /* put up the autosave dialog */
+  PopupCallback(w, (XtPointer) XtParent(autosave_dialog), NULL);
+
+  return;
+}
+
+static void autosave_all_domains(void)
+{
+  FILE		*fp;
+  WlzErrorNum	errNum=WLZ_ERR_NONE;
+
+  /* get the autosave file */
+  if( (fp = fopen(globals.autosave_file, "w")) != NULL )
+  {
+
+    /* save supplementary information */
+
+    /* save the object data  - this could be more efficient */
+    if( (errNum = WlzWriteObj(fp, globals.obj)) != WLZ_ERR_NONE ){
+      char		*errstr;
+      const char	*errMsg;
+      (void )WlzStringFromErrorNum(errNum, &errMsg);
+      errstr = (char *) AlcMalloc(strlen(errMsg) + 128);
+      sprintf(errstr,
+	      "Write Autosave File:\n"
+	      "    woolz error detected:\n"
+	      "    %s\n"
+	      "    WARNING: data not saved\n"
+	      "    - please check disc space or quotas",
+	      errMsg);
+      HGU_XmUserError(globals.topl, errstr,
+		      XmDIALOG_FULL_APPLICATION_MODAL);
+      AlcFree( (void *) errstr );
+    }
+      
+    if( fclose( fp ) == EOF ){
+      HGU_XmUserError(globals.topl,
+		      "Write Autosave File:\n"
+		      "    Error closing autosave file\n"
+		      "    please check disc space or quotas\n"
+		      "    WARNING: data not saved",
+		      XmDIALOG_FULL_APPLICATION_MODAL);
+    }
+
+  }
+  else
+  {
+    HGU_XmUserError(globals.topl,
+		    "Autosave:\n"
+		    "    Couldn't open the autosave file\n"
+		    "     - please check pathname or permissions\n",
+		    XmDIALOG_FULL_APPLICATION_MODAL);
+  }
+
+  return;
+}
+
+void autosavetimeout_cb(
+  XtPointer		client_data,
+  XtIntervalId	*id)
+{
+  Widget		dialog;
+  XmString		xmstr1, xmstr2;
+  XEvent		event;
+  int			i, save_required = 0, finished;
+
+  /* check object */
+  if( (*id != globals.autosavetimeoutID) ){
+    fprintf(stderr, "autosavetimeout_cb: wrong Id\n");
+    return;
+  }
+
+  /* check if save required */
+  for(i=1; i < 33; i++){
+    save_required |= globals.domain_changed_since_saved[i];
+  }
+
+  if( save_required ){
+
+    /* dump the current object */
+    dialog = XmCreateWorkingDialog(globals.topl, "autosave_working_dialog",
+				   NULL, 0);
+
+    XtUnmanageChild(XmMessageBoxGetChild(dialog,
+					 XmDIALOG_OK_BUTTON));
+    XtUnmanageChild(XmMessageBoxGetChild(dialog,
+					 XmDIALOG_CANCEL_BUTTON));
+    XtUnmanageChild(XmMessageBoxGetChild(dialog,
+					 XmDIALOG_HELP_BUTTON));
+    xmstr1 = XmStringCreateSimple("Autosave - please wait.");
+    xmstr2 = XmStringCreateSimple("Autosave");
+    XtVaSetValues(dialog,
+		  XmNmessageString, xmstr1,
+		  XmNdialogTitle, xmstr2,
+		  XmNdialogStyle, XmDIALOG_FULL_APPLICATION_MODAL,
+		  NULL);
+    XmStringFree( xmstr1 );
+    XmStringFree( xmstr2 );
+
+    XtManageChild( dialog );
+
+    /* popup widget and process events until fully exposed */
+    PopupCallback( XtParent(dialog), (XtPointer) XtParent(dialog), NULL );
+    finished = 0;
+    while( !finished ){
+      XtAppNextEvent( globals.app_con, &event );
+      XtDispatchEvent( &event );
+      XSync( XtDisplay(dialog), 0 );
+      if( event.xany.type == Expose
+	 && event.xany.window == XtWindow(dialog) )
+      {
+	finished = 1;
+      }
+    }
+
+    autosave_all_domains();
+ 
+    /* remove dialog, flush display and destroy resources */
+    PopdownCallback(XtParent(dialog), (XtPointer)XtParent(dialog), NULL);
+    XSync(XtDisplay(dialog), 0);
+    XmUpdateDisplay(dialog);
+ 
+    XtDestroyWidget(dialog);
+
+  }
+
+  /* set the next timeout */
+  globals.autosavetimeoutID =
+    XtAppAddTimeOut(globals.app_con, globals.autosave_time*1000,
+		    autosavetimeout_cb, NULL);
+
+  return;
+}
+
+static void autosave_on_cb(
+  Widget			w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  Widget	control, dialog = (Widget) client_data;
+
+  /* make the controls sensitive */
+  if( (control = XtNameToWidget(dialog, "*.autosave_time")) )
+  {
+    XtSetSensitive(control, True);
+  }
+  if( (control = XtNameToWidget(dialog, "*.autosave_file")) )
+  {
+    XtSetSensitive(control, True);
+  }
+
+  /* kill the existing timeout */
+  if( globals.autosavetimeoutID )
+  {
+    XtRemoveTimeOut( globals.autosavetimeoutID );
+  }
+
+  /* set the next timeout */
+  globals.autosavetimeoutID =
+    XtAppAddTimeOut(globals.app_con, globals.autosave_time*1000,
+		    autosavetimeout_cb, NULL);
+
+  return;
+}
+  
+static void autosave_off_cb(
+  Widget			w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  Widget	control, dialog = (Widget) client_data;
+
+  /* kill the existing timeout */
+  if( globals.autosavetimeoutID )
+  {
+    XtRemoveTimeOut( globals.autosavetimeoutID );
+  }
+  globals.autosavetimeoutID = 0;
+
+  /* make the controls insensitive */
+  if( (control = XtNameToWidget(dialog, "*.autosave_time")) )
+  {
+    XtSetSensitive(control, False);
+  }
+  if( (control = XtNameToWidget(dialog, "*.autosave_file")) )
+  {
+    XtSetSensitive(control, False);
+  }
+
+  return;
+}
+  
+static void autosave_time_cb(
+  Widget			w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  Widget	slider, dialog = (Widget) client_data;
+
+  if( (slider = XtNameToWidget(dialog, "*.autosave_time")) == NULL )
+    return;
+
+  globals.autosave_time = (unsigned long) HGU_XmGetSliderValue( slider );
+
+  autosave_on_cb(w, client_data, call_data);
+  return;
+}
+
+static void autosave_file_cb(
+  Widget			w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  Widget	widget, dialog = (Widget) client_data;
+
+  if( (widget = XtNameToWidget(dialog, "*.autosave_file")) == NULL )
+    return;
+
+  globals.autosave_file = HGU_XmGetTextLineValue( widget );
+  return;
+}
+
+static void autosave_recover_install_cb(
+  Widget			w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  Widget	widget, dialog = (Widget) client_data;
+  Widget	toggle=NULL;
+  WlzObject	*domain;
+
+  /* get the selected recovered domain */
+  if( (widget = XtNameToWidget(dialog, "*.control")) == NULL )
+    return;
+
+  XtVaGetValues(widget, XmNmenuHistory, &toggle, NULL);
+  if( toggle == NULL )
+    return;
+
+  XtVaGetValues(toggle, XmNuserData, &domain, NULL);
+
+  /* add to the current domain */
+  switch( globals.current_domain ){
+  case DOMAIN_1:
+  case DOMAIN_2:
+  case DOMAIN_3:
+  case DOMAIN_4:
+  case DOMAIN_5:
+    set_grey_values_from_domain(domain, globals.obj,
+				globals.current_col,
+				globals.cmapstruct->ovly_planes );
+    break;
+  case MASK_DOMAIN:
+  case GREYS_DOMAIN:
+  default:
+    break;
+  }
+
+  return;
+}
+
+static ActionAreaItem   autosave_recover_dialog_actions[] = {
+  {"Install",		NULL,		NULL},
+  {"Cancel",		PopdownCallback,		NULL},
+  {"Help",        	NULL,           NULL},
+};
+
+static Widget create_autosave_domains_dialog(
+  Widget	topl,
+  WlzObject	**domains,
+  String	*domain_names)
+{
+  Widget	dialog, control, toggle, install, cancel;
+  String	name;
+  int		i;
+
+  dialog = HGU_XmCreateStdDialog(topl, "autosave_domains_dialog",
+				 xmRowColumnWidgetClass,
+				 autosave_recover_dialog_actions, 3);
+
+  if( (install = XtNameToWidget(dialog, "*.Install")) != NULL ){
+    XtAddCallback(install, XmNactivateCallback, autosave_recover_install_cb,
+		  dialog);
+    XtAddCallback(install, XmNactivateCallback, display_all_views_cb,
+		  NULL);
+  }
+
+  control = XtNameToWidget( dialog, "*.control" );
+  XtVaSetValues(control,
+		XmNradioBehavior,	True,
+		XmNradioAlwaysOne,	True,
+		NULL);
+		  
+  /* create the toggles */
+  for(i=1; i < 33; i++)
+  {
+    if( domain_names[i] )
+    {
+      name = domain_names[i];
+    }
+    else
+    {
+      name = globals.domain_name[i];
+    }
+    toggle = XtVaCreateManagedWidget(name, xmToggleButtonWidgetClass,
+				     control,
+				     XmNuserData, (XtPointer) domains[i],
+				     NULL);
+
+    XtSetSensitive(toggle, (domains[i]==NULL)?False:True);
+  }
+				       
+  return( dialog );
+}
+
+static Boolean	autosave_recover_flag=False;
+
+static void autosave_recover_cb(
+  Widget			w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  WlzObject		*obj;
+  WlzPlaneDomain	*new_pdom, *old_pdom;
+  FILE			*fp;
+  int			i;
+  WlzObject		*new_domains[33];
+  String		new_domain_names[33];
+  int			domain;
+  Widget		widget, dialog = (Widget) client_data;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
+
+
+  /* check if an autosave is in progress - to catch double clicks */
+  if( autosave_recover_flag == True )
+  {
+    return;
+  }
+  else
+  {
+    autosave_recover_flag = True;
+  }
+
+  /* get the file pointer */
+  if( (widget = XtNameToWidget(dialog, "*.autosave_recover_file")) == NULL )
+  {
+    autosave_recover_flag = False;
+    return;
+  }
+
+  if( (fp = fopen(HGU_XmGetTextLineValue( widget ), "r")) == NULL )
+  {
+    HGU_XmUserError(globals.topl,
+		    "Autosave recover:\n"
+		    "    Couldn't open the autosave file\n"
+		    "     - please check pathname or permissions\n",
+		    XmDIALOG_FULL_APPLICATION_MODAL);
+    autosave_recover_flag = False;
+    return;
+  }
+
+  /* read the save information and domain names */
+  for(i=0; i < 33; i++)
+  {
+    new_domain_names[i] = NULL;
+  }
+
+  /* read the required object */
+  if( (obj = WlzReadObj(fp, &errNum)) == NULL )
+  {
+    char	*errstr;
+    const char	*errMsg;
+    (void )WlzStringFromErrorNum(errNum, &errMsg);
+    errstr = (char *) AlcMalloc(strlen(errMsg) + 128);
+    sprintf(errstr,
+	    "Read Autosave File:\n"
+	    "    woolz error detected:\n"
+	    "    %s\n"
+	    "    Please try an alternative file",
+	    errMsg);
+    HGU_XmUserError(globals.topl, errstr,
+		    XmDIALOG_FULL_APPLICATION_MODAL);
+    AlcFree( (void *) errstr );
+    (void) fclose( fp );
+    autosave_recover_flag = False;
+    return;
+  }
+  (void) fclose( fp );
+
+  /* check the object */
+  if((obj->type != WLZ_3D_DOMAINOBJ) ||
+     (obj->domain.core == NULL) ||
+     (obj->domain.i->type != WLZ_PLANEDOMAIN_DOMAIN) ||
+     (obj->values.core == NULL) )
+  {
+    HGU_XmUserError(globals.topl,
+		    "Autosave recover:\n"
+		    "    Wrong object type or NULL\n"
+		    "    domain or valuetable\n"
+		    "     - please check the filename",
+		    XmDIALOG_FULL_APPLICATION_MODAL);
+    WlzFreeObj( obj );
+    autosave_recover_flag = False;
+    return;
+  }
+    
+
+  /* check bounding box */
+  new_pdom = obj->domain.p;
+  old_pdom = globals.obj->domain.p;
+  if( new_pdom->plane1 != old_pdom->plane1 ||
+     new_pdom->lastpl != old_pdom->lastpl ||
+     new_pdom->line1  != old_pdom->line1 ||
+     new_pdom->lastln != old_pdom->lastln ||
+     new_pdom->kol1   != old_pdom->kol1 ||
+     new_pdom->lastkl != old_pdom->lastkl )
+  {
+    HGU_XmUserError(globals.topl,
+		    "Autosave recover:\n"
+		    "    Inconsistent bounding box\n"
+		    "    in the the autosave object\n"
+		    "     - please check the filename",
+		    XmDIALOG_FULL_APPLICATION_MODAL);
+    WlzFreeObj( obj );
+    autosave_recover_flag = False;
+    return;
+  }
+
+  /* extract domains and add as required,
+     this could be much more efficient - threshold incrementally
+     and diff domain afterwards */
+  for(i=1; i < 33; i++)
+  {
+    domain = globals.priority_to_domain_lut[i];
+    new_domains[i] = get_domain_from_object(obj, domain);
+    if( WlzVolume(new_domains[i], NULL) <= 0 )
+    {
+      WlzFreeObj( new_domains[i] );
+      new_domains[i] = NULL;
+    }
+  }
+
+  dialog = create_autosave_domains_dialog(globals.topl, new_domains,
+					  new_domain_names);
+
+  /* make the button insensitive */
+  XtSetSensitive(w, False);
+
+  (void) HGU_XmDialogConfirm(dialog, XtNameToWidget(dialog, "*.Cancel"),
+			     XtNameToWidget(dialog, "*.Cancel"), 0);
+  XtDestroyWidget(dialog);
+
+  /* make the button sensitive */
+  XtSetSensitive(w, True);
+
+  for(i=1; i < 33; i++)
+  {
+    if( new_domains[i] )
+    {
+      WlzFreeObj(new_domains[i]);
+    }
+
+    if( new_domain_names[i] )
+    {
+      AlcFree((void *) new_domain_names[i]);
+    }
+  }
+
+  WlzFreeObj( obj );
+  autosave_recover_flag = False;
+  return;
+}
+
+static ActionAreaItem   autosave_dialog_actions[] = {
+  {"On",		NULL,		NULL},
+  {"Off",		NULL,		NULL},
+  {"Recover",	NULL,		NULL},
+  {"Dismiss",     NULL,           NULL},
+  {"Help",        NULL,           NULL},
+};
+
+Widget create_autosave_dialog(
+  Widget	topl)
+{
+  Widget	dialog, control, slider, text_line, widget;
+  float		val, minval, maxval;
+
+  dialog = HGU_XmCreateStdDialog(topl, "autosave_dialog", xmFormWidgetClass,
+				 autosave_dialog_actions, 5);
+
+  if( (widget = XtNameToWidget(dialog, "*.On")) != NULL ){
+    XtAddCallback(widget, XmNactivateCallback, autosave_on_cb,
+		  XtParent(dialog));
+  }
+
+  if( (widget = XtNameToWidget(dialog, "*.Off")) != NULL ){
+    XtAddCallback(widget, XmNactivateCallback, autosave_off_cb,
+		  XtParent(dialog));
+  }
+
+  if( (widget = XtNameToWidget(dialog, "*.Recover")) != NULL ){
+    XtAddCallback(widget, XmNactivateCallback, autosave_recover_cb,
+		  XtParent(dialog));
+  }
+
+  if( (widget = XtNameToWidget(dialog, "*.Dismiss")) != NULL ){
+    XtAddCallback(widget, XmNactivateCallback, PopdownCallback,
+		  XtParent(dialog));
+  }
+
+  control = XtNameToWidget( dialog, "*.control" );
+
+  val = globals.autosave_time;
+  minval = 5.0;
+  maxval = 1000.0;
+  slider = HGU_XmCreateHorizontalSlider("autosave_time", control,
+					val, minval, maxval, 0,
+					autosave_time_cb,
+					(XtPointer) dialog);
+  XtVaSetValues(slider,
+		XmNtopAttachment,     XmATTACH_FORM,
+		XmNleftAttachment,    XmATTACH_FORM,
+		XmNrightAttachment,  	XmATTACH_FORM,
+		NULL);
+
+  text_line = HGU_XmCreateTextLine("autosave_file", control,
+				   globals.autosave_file,
+				   autosave_file_cb, (XtPointer) dialog);
+  XtVaSetValues(text_line,
+		XmNtopAttachment,     XmATTACH_WIDGET,
+		XmNtopWidget,		slider,
+		XmNleftAttachment,    XmATTACH_FORM,
+		XmNrightAttachment,  	XmATTACH_FORM,
+		NULL);
+  widget = text_line;
+		  
+  text_line = HGU_XmCreateTextLine("autosave_recover_file", control,
+				   globals.autosave_file, NULL, NULL);
+  XtVaSetValues(text_line,
+		XmNtopAttachment,     XmATTACH_WIDGET,
+		XmNtopWidget,		widget,
+		XmNleftAttachment,    XmATTACH_FORM,
+		XmNrightAttachment,  	XmATTACH_FORM,
+		NULL);
+		  
+
+  return( dialog );
+}

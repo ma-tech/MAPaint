@@ -1,0 +1,380 @@
+#pragma ident "MRC HGU $Id$"
+/*****************************************************************************
+* Copyright   :    1994 Medical Research Council, UK.                        *
+*                  All rights reserved.                                      *
+******************************************************************************
+* Address     :    MRC Human Genetics Unit,                                  *
+*                  Western General Hospital,                                 *
+*                  Edinburgh, EH4 2XU, UK.                                   *
+******************************************************************************
+* Project     :    Mouse Atlas Project					     *
+* File        :    tools_tracking.c					     *
+******************************************************************************
+* Author Name :    Richard Baldock					     *
+* Author Login:    richard@hgu.mrc.ac.uk				     *
+* Date        :    Mon Oct 16 16:55:10 1995				     *
+* Synopsis    : 							     *
+*****************************************************************************/
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+#include <MAPaint.h>
+
+static Widget	spacing_slider, range_slider, size_slider;
+static Widget	dist_slider, alpha_slider, kappa_slider;
+
+void imageTrackCurrentDomain(
+  ThreeDViewStruct	*view_struct,
+  DomainSelection	domain)
+{
+  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
+  WlzObject		*new_obj, *ref_obj, *new_domain, *ref_domain;
+  WlzObject		*obj;
+  double		dist;
+  int			spacing, range, size;
+  MATrackDomainSearchParams	searchParams;
+  MATrackDomainCostParams	costParams;
+  PMSnakeLCParams		LCParams;
+  PMSnakeNLCParams		NLCParams;
+
+  /* check there is a previous object for this domain */
+  if((view_struct->prev_domain[domain] == NULL) ||
+     (WlzArea(view_struct->prev_domain[domain], NULL) <= 0))
+  {
+    return;
+  }
+
+  /* if there is an existing object then ask for confirmation before
+     continuing */
+  if(view_struct->curr_domain[domain] &&
+     (WlzArea(view_struct->curr_domain[domain], NULL) > 0)){
+    /* get confirmation */
+    if( !HGU_XmUserConfirm(globals.topl,
+			   "Image Track:\n"
+			   "    Tracking may change the existing\n"
+			   "    domain on this section.\n"
+			   "Press quit to abandon tracking",
+			   "continue", "quit", 0) )
+    {
+      return;
+    }
+  }
+
+  /* get the reference image and domain */
+  ref_obj = WlzAssignObject(view_struct->prev_view_obj, NULL);
+  ref_domain = WlzMakeMain(WLZ_2D_DOMAINOBJ,
+			   view_struct->prev_domain[domain]->domain,
+			   view_struct->prev_domain[domain]->values,
+			   NULL, NULL, NULL);
+    
+  /* set up the search control parameters */
+  searchParams.spacing = HGU_XmGetSliderValue( spacing_slider );
+  searchParams.range = HGU_XmGetSliderValue( range_slider );
+
+  /* set up the image cost parameters */
+  costParams.size = HGU_XmGetSliderValue( size_slider );
+  costParams.LCParams = &LCParams;
+  costParams.NLCParams = &NLCParams;
+
+  /* now the local and non-local snake costs */
+  LCParams.nu_dist = HGU_XmGetSliderValue(dist_slider);
+  NLCParams.nu_alpha = HGU_XmGetSliderValue(alpha_slider);
+  NLCParams.nu_kappa = HGU_XmGetSliderValue(kappa_slider);
+
+  /* get the current image and new domain by tracking */
+  if( view_struct->view_object == NULL ){
+    view_struct->view_object =
+      WlzGetSectionFromObject(globals.orig_obj,
+			      view_struct->wlzViewStr,
+			      NULL);
+  }
+
+  new_domain = HGU_TrackDomain(ref_obj, view_struct->view_object, ref_domain,
+			       MATRACK_PMSNAKE_SEARCH_METHOD,
+			       &searchParams,
+			       MATRACK_CORRELATION_COST_TYPE,
+			       &costParams,
+			       NULL);
+  WlzFreeObj( ref_obj );
+  WlzFreeObj( ref_domain );
+
+  /* increment the current domain */
+  if( new_domain ){
+    setDomainIncrement(new_domain, view_struct, domain, 0);
+    WlzFreeObj( new_domain );
+  }
+
+  return;
+}
+
+void   imageTrackCurrentDomainCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  imageTrackCurrentDomain((ThreeDViewStruct *) client_data,
+			  globals.current_domain);
+
+  return;
+}
+
+void MAPaintTracking2DInit(
+  ThreeDViewStruct	*view_struct)
+{
+  /* add a callback to each domain select toggle button */
+  addSelectDomainCallback(imageTrackCurrentDomainCb,
+			  (XtPointer) view_struct);
+
+  /* track the current domain */
+  imageTrackCurrentDomain(view_struct, globals.current_domain);
+
+  /* initialise the paint ball callback */
+  MAPaintPaintBall2DInit(view_struct);
+  
+  return;
+}
+
+void MAPaintTracking2DQuit(
+  ThreeDViewStruct	*view_struct)
+{
+  /* quit the paint ball callback */
+  MAPaintPaintBall2DQuit(view_struct);
+
+  /* remove the callback from each domain select button */
+  removeSelectDomainCallback(imageTrackCurrentDomainCb,
+			      (XtPointer) view_struct);
+
+  return;
+}
+
+void MAPaintTracking2DCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
+  XmAnyCallbackStruct	*cbs = (XmAnyCallbackStruct *) call_data;
+  int		sectFlg=0;
+
+  /* process events */
+  switch( cbs->event->type ){
+
+  case ButtonPress:
+    switch( cbs->event->xbutton.button ){
+
+    case Button1:
+    case Button2:
+      /* do nothing if shift pressed - magnify option */
+      if( cbs->event->xbutton.state & ButtonStateIgnoreMask ){
+	break;
+      }
+      break;
+
+    default:
+      break;
+
+    }
+    break;
+
+  case ButtonRelease:
+    break;
+
+  case MotionNotify:
+    break;
+
+  case KeyPress:
+    switch( XLookupKeysym(&(cbs->event->xkey), 0) ){
+    case XK_Right:
+    case XK_f:
+    case XK_Left:
+    case XK_b:
+      /* section changed */
+      sectFlg = 1;
+      break;
+
+    default:
+      break;
+    }
+    break;
+
+  default:
+    break;
+  }
+
+  /* pass events to the the draw callback */
+  MAPaintPaintBall2DCb(w, client_data, call_data);
+
+  /* check for section increment */
+  if( sectFlg ){
+    imageTrackCurrentDomain(view_struct, globals.current_domain);
+  }
+  
+  return;
+}
+
+
+Widget	CreateTracking2DControls(
+  Widget	parent)
+{
+  Widget	form, label, form1, slider, frame, widget;
+
+  /* create a parent form to hold all the tracking controls */
+  form = XtVaCreateWidget("tracking_controls_form", xmFormWidgetClass,
+			  parent,
+			  XmNtopAttachment,     XmATTACH_FORM,
+			  XmNbottomAttachment,	XmATTACH_FORM,
+			  XmNleftAttachment,    XmATTACH_FORM,
+			  XmNrightAttachment,  	XmATTACH_FORM,
+			  NULL);
+
+  /* create frame, form and label for the tracking parameters */
+  frame = XtVaCreateManagedWidget("tracking_frame1", xmFrameWidgetClass,
+				  form,
+				  XmNtopAttachment,     XmATTACH_FORM,
+				  XmNleftAttachment,    XmATTACH_FORM,
+				  XmNrightAttachment,  	XmATTACH_FORM,
+				  NULL);
+
+  form1 = XtVaCreateWidget("tracking_form1", xmFormWidgetClass,
+			   frame,
+			   XmNtopAttachment,	XmATTACH_FORM,
+			   XmNbottomAttachment,	XmATTACH_FORM,
+			   XmNleftAttachment,	XmATTACH_FORM,
+			   XmNrightAttachment,	XmATTACH_FORM,
+			   NULL);
+
+  label = XtVaCreateManagedWidget("tracking_parameters", xmLabelWidgetClass,
+				  frame,
+				  XmNchildType,		XmFRAME_TITLE_CHILD,
+				  XmNborderWidth,	0,
+				  NULL);
+
+  /* create sliders for the parameter values */
+  slider = HGU_XmCreateHorizontalSlider("spacing", form1,
+					5.0, 3.0, 20.0, 0,
+					NULL, NULL);
+  XtVaSetValues(slider,
+		XmNtopAttachment,	XmATTACH_FORM,
+		XmNleftAttachment,	XmATTACH_FORM,
+		XmNrightAttachment,	XmATTACH_FORM,
+		NULL);
+  widget = slider;
+  spacing_slider = slider;
+
+  slider = HGU_XmCreateHorizontalSlider("range", form1,
+					5.0, 3.0, 20.0, 0,
+					NULL, NULL);
+  XtVaSetValues(slider,
+		XmNtopAttachment,	XmATTACH_WIDGET,
+		XmNtopWidget,		widget,
+		XmNleftAttachment,	XmATTACH_FORM,
+		XmNrightAttachment,	XmATTACH_FORM,
+		NULL);
+  widget = slider;
+  range_slider = slider;
+
+  XtManageChild( form1 );
+
+  /* create frame, form and label for the snake cost parameters */
+  frame = XtVaCreateManagedWidget("tracking_frame2", xmFrameWidgetClass,
+				  form,
+				  XmNtopAttachment,     XmATTACH_WIDGET,
+				  XmNtopWidget,		frame,
+				  XmNleftAttachment,    XmATTACH_FORM,
+				  XmNrightAttachment,  	XmATTACH_FORM,
+				  NULL);
+
+  form1 = XtVaCreateWidget("tracking_form2", xmFormWidgetClass,
+			   frame,
+			   XmNtopAttachment,	XmATTACH_FORM,
+			   XmNbottomAttachment,	XmATTACH_FORM,
+			   XmNleftAttachment,	XmATTACH_FORM,
+			   XmNrightAttachment,	XmATTACH_FORM,
+			   NULL);
+
+  label = XtVaCreateManagedWidget("snake_cost_parameters", xmLabelWidgetClass,
+				  frame,
+				  XmNchildType,		XmFRAME_TITLE_CHILD,
+				  XmNborderWidth,	0,
+				  NULL);
+
+  /* create sliders for the parameter values */
+  slider = HGU_XmCreateHorizontalSlider("nu_dist", form1,
+					0.5, 0.0, 5.0, 2,
+					NULL, NULL);
+  XtVaSetValues(slider,
+		XmNtopAttachment,	XmATTACH_FORM,
+		XmNleftAttachment,	XmATTACH_FORM,
+		XmNrightAttachment,	XmATTACH_FORM,
+		NULL);
+  widget = slider;
+  dist_slider = slider;
+
+  slider = HGU_XmCreateHorizontalSlider("nu_alpha", form1,
+					0.0, 0.0, 5.0, 2,
+					NULL, NULL);
+  XtVaSetValues(slider,
+		XmNtopAttachment,	XmATTACH_WIDGET,
+		XmNtopWidget,		widget,
+		XmNleftAttachment,	XmATTACH_FORM,
+		XmNrightAttachment,	XmATTACH_FORM,
+		NULL);
+  widget = slider;
+  alpha_slider = slider;
+
+  slider = HGU_XmCreateHorizontalSlider("nu_kappa", form1,
+					0.1, 0.0, 10.0, 2,
+					NULL, NULL);
+  XtVaSetValues(slider,
+		XmNtopAttachment,	XmATTACH_WIDGET,
+		XmNtopWidget,		widget,
+		XmNleftAttachment,	XmATTACH_FORM,
+		XmNrightAttachment,	XmATTACH_FORM,
+		NULL);
+  widget = slider;
+  kappa_slider = slider;
+
+  XtManageChild( form1 );
+
+  /* create frame, form and label for the image cost parameters */
+  frame = XtVaCreateManagedWidget("tracking_frame3", xmFrameWidgetClass,
+				  form,
+				  XmNtopAttachment,     XmATTACH_WIDGET,
+				  XmNtopWidget,		frame,
+				  XmNleftAttachment,    XmATTACH_FORM,
+				  XmNrightAttachment,  	XmATTACH_FORM,
+				  NULL);
+
+  form1 = XtVaCreateWidget("tracking_form3", xmFormWidgetClass,
+			   frame,
+			   XmNtopAttachment,	XmATTACH_FORM,
+			   XmNbottomAttachment,	XmATTACH_FORM,
+			   XmNleftAttachment,	XmATTACH_FORM,
+			   XmNrightAttachment,	XmATTACH_FORM,
+			   NULL);
+
+  label = XtVaCreateManagedWidget("image_cost_parameters", xmLabelWidgetClass,
+				  frame,
+				  XmNchildType,		XmFRAME_TITLE_CHILD,
+				  XmNborderWidth,	0,
+				  NULL);
+
+  /* create sliders for the parameter values */
+  slider = HGU_XmCreateHorizontalSlider("size", form1,
+					4.0, 0.0, 10.0, 0,
+					NULL, NULL);
+  XtVaSetValues(slider,
+		XmNtopAttachment,	XmATTACH_FORM,
+		XmNtopWidget,		widget,
+		XmNleftAttachment,	XmATTACH_FORM,
+		XmNrightAttachment,	XmATTACH_FORM,
+		NULL);
+  widget = slider;
+  size_slider = slider;
+
+  XtManageChild( form1 );
+
+  return( form );
+}
