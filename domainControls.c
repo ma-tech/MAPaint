@@ -42,6 +42,7 @@ static double emageContrast[]={0.0,0.25,0.45,0.25,0.25,0.25};
 static int emagePriority[]={1,6,2,3,4,5};
 static char *emageName[]={
   "Not Examined",
+  "Moderate Expression",
   "Weak Expression",
   "Possible Expression",
   "Not Detected",
