@@ -42,6 +42,68 @@ void warpSgnlDomainCanvasExposeCb(
   return;
 }
 
+WlzErrorNum warpResetSignalObj(
+  WlzObject		*obj)
+{
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
+
+  /* set the source object */
+  if( warpGlobals.sgnl.obj ){
+    WlzFreeObj(warpGlobals.sgnl.obj);
+  }
+  warpGlobals.sgnl.obj = WlzAssignObject(obj, &errNum);
+  warpSetXImage(&(warpGlobals.sgnl));
+  warpCanvasExposeCb(warpGlobals.sgnl.canvas,
+		     (XtPointer) &(warpGlobals.sgnl),
+		     NULL);
+
+  /* reset the processed object and signal domain */
+  if( warpGlobals.sgnlProcObj ){
+    WlzFreeObj( warpGlobals.sgnlProcObj );
+    warpGlobals.sgnlProcObj = NULL;
+  }
+  if( warpGlobals.sgnlThreshObj ){
+    WlzFreeObj(warpGlobals.sgnlThreshObj);
+    warpGlobals.sgnlThreshObj = NULL;
+  }
+  if( warpGlobals.sgnlObj ){
+    warpCanvasExposeCb(globals.topl, (XtPointer) &(warpGlobals.sgnl), NULL);
+  }
+
+  /* note need to cancel any local thresholding */
+  warpGlobals.globalThreshVtx.vtX = -10000;
+  warpGlobals.globalThreshVtx.vtY = -10000;
+
+  /* increment if requested? - new object switch off and clear */
+  warpSwitchIncrementDomain(0);
+  sgnlIncrClear();
+  warpSetSignalDomain(NULL);
+  if( warpGlobals.sgnlObj ){
+    warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
+  }
+
+  /* set threshold button sensitivities */
+  if( WlzGreyTypeFromObj(obj, NULL) == WLZ_GREY_RGBA ){
+    Widget option_menu, option;
+    warpSetThreshColorTypeSensitive( True );
+    if( option_menu = 
+       XtNameToWidget(globals.topl,
+		      "*warp_sgnl_controls_form*color_space") ){
+      XtVaGetValues(option_menu, XmNmenuHistory, &option, NULL);
+      XtCallCallbacks(option, XmNactivateCallback, NULL);
+    }
+  }
+  else {
+    warpSetThreshColorTypeSensitive( False );
+    warpGlobals.threshRGBSpace = WLZ_RGBA_SPACE_GREY;
+  }
+
+  /* if colour image and grey channel reset sliders */
+  warpResetThresholdSliderRange();
+
+  return errNum;
+}
+
 void warpReadSignalCb(
   Widget		w,
   XtPointer		client_data,
@@ -51,8 +113,6 @@ void warpReadSignalCb(
     (XmFileSelectionBoxCallbackStruct *) call_data;
   ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
   WlzObject		*obj;
-  FILE			*fp;
-  Widget		slider;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check we can get the object */
@@ -69,63 +129,16 @@ void warpReadSignalCb(
 				 cbs->dir);
 
   /* check the object */
+  /* if read incomplete or 3D may wish to try anyway */
+  if( errNum == WLZ_ERR_READ_INCOMPLETE ){
+    errNum = WLZ_ERR_NONE;
+  }
   if( errNum == WLZ_ERR_NONE ){
     if( obj ){
       switch( obj->type ){
       case WLZ_2D_DOMAINOBJ:
 	/* set the source object */
-	if( warpGlobals.sgnl.obj ){
-	  WlzFreeObj(warpGlobals.sgnl.obj);
-	}
-	warpGlobals.sgnl.obj = WlzAssignObject(obj, &errNum);
-	warpSetXImage(&(warpGlobals.sgnl));
-	warpCanvasExposeCb(warpGlobals.sgnl.canvas,
-			   (XtPointer) &(warpGlobals.sgnl),
-			   call_data);
-
-	/* reset the processed object and signal domain */
-	if( warpGlobals.sgnlProcObj ){
-	  WlzFreeObj( warpGlobals.sgnlProcObj );
-	  warpGlobals.sgnlProcObj = NULL;
-	}
-	if( warpGlobals.sgnlThreshObj ){
-	  WlzFreeObj(warpGlobals.sgnlThreshObj);
-	  warpGlobals.sgnlThreshObj = NULL;
-	}
-	if( warpGlobals.sgnlObj ){
-	  warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
-	}
-
-	/* note need to cancel any local thresholding */
-	warpGlobals.globalThreshVtx.vtX = -10000;
-	warpGlobals.globalThreshVtx.vtY = -10000;
-
-	/* increment if requested? - new object switch off and clear */
-	warpSwitchIncrementDomain(0);
-	sgnlIncrClear();
-	warpSetSignalDomain(NULL);
-	if( warpGlobals.sgnlObj ){
-	  warpDisplayDomain(&(warpGlobals.sgnl), warpGlobals.sgnlObj, 1);
-	}
-
-	/* set threshold button sensitivities */
-	if( WlzGreyTypeFromObj(obj, NULL) == WLZ_GREY_RGBA ){
-	  Widget option_menu, option;
-	  warpSetThreshColorTypeSensitive( True );
-	  if( option_menu = 
-	     XtNameToWidget(globals.topl,
-			    "*warp_sgnl_controls_form*color_space") ){
-	    XtVaGetValues(option_menu, XmNmenuHistory, &option, NULL);
-	    XtCallCallbacks(option, XmNactivateCallback, NULL);
-	  }
-	}
-	else {
-	  warpSetThreshColorTypeSensitive( False );
-	  warpGlobals.threshRGBSpace = WLZ_RGBA_SPACE_GREY;
-	}
-
-	/* if colour image and grey channel reset sliders */
-	warpResetThresholdSliderRange();
+	errNum = warpResetSignalObj(obj);
 	break;
 
       default:

@@ -50,6 +50,7 @@ CSOURCES		= \
 			MAWarpInput2DDialog.c \
 			MAWarpInputUtils.c \
 			MAWarpInputInteractUtils.c \
+			MAWarpInputPages.c \
 			MAWarpInputPaintingCb.c \
 			MAWarpInputXUtils.c \
 			MAWarpSignalAutoPage.c \
@@ -110,6 +111,7 @@ CSOURCES		= \
 			MAWarpInput2DDialog.c \
 			MAWarpInputUtils.c \
 			MAWarpInputInteractUtils.c \
+			MAWarpInputPages.c \
 			MAWarpInputPaintingCb.c \
 			MAWarpInputXUtils.c \
 			MAWarpSignalAutoPage.c \
@@ -169,6 +171,7 @@ CSOURCES		= \
 			MAWarpInput2DDialog.c \
 			MAWarpInputUtils.c \
 			MAWarpInputInteractUtils.c \
+			MAWarpInputPages.c \
 			MAWarpInputPaintingCb.c \
 			MAWarpInputXUtils.c \
 			MAWarpSignalAutoPage.c \

@@ -121,8 +121,9 @@ void warpSetOvlyObject(void)
     dstVtxs[i].vtX += warpGlobals.dst.obj->domain.i->kol1;
     dstVtxs[i].vtY += warpGlobals.dst.obj->domain.i->line1;
   }
-  if( (trans = WlzAffineTransformLSq2D(warpGlobals.num_vtxs, srcVtxs,
-				       warpGlobals.num_vtxs, dstVtxs,
+  if( (trans = WlzAffineTransformLSq2D(warpGlobals.num_vtxs, dstVtxs,
+				       warpGlobals.num_vtxs, srcVtxs,
+				       0, NULL,
 				       warpGlobals.affineType,
 				       &errNum)) == NULL ){
     (void) WlzStringFromErrorNum(errNum, &warpErrStr);
@@ -433,15 +434,12 @@ void warpInput2DDestroyCb(
   return;
 }
 
-void warpIOWrite(
-  Widget		w,
-  XtPointer	client_data,
-  XtPointer	call_data)
+void warpBibfileWrite(
+  FILE	*fp,
+  ThreeDViewStruct	*view_struct)
 {
-  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   String		fileStr;
-  FILE			*fp;
   int			i;
   BibFileRecord		*bibfileRecord;
   static char		unknownS[] = "unknown";
@@ -458,6 +456,216 @@ void warpIOWrite(
   Boolean		normFlg=0, histoFlg=0, shadeFlg=0, gaussFlg=0;
   double		width=1.0;
   WlzEffBibWarpInputThresholdParamsStruct	threshParamStr;
+
+
+  /* write some sort of identifier */
+  bibfileRecord = 
+    BibFileRecordMake("Ident", "0",
+		      BibFileFieldMakeVa("Text",
+					 "MAPaint 2D warp input parameters",
+					 "Version",	"1",
+					 NULL));
+  BibFileRecordWrite(fp, NULL, bibfileRecord);
+  BibFileRecordFree(&bibfileRecord);
+
+  /* now a comment with user, machine, date etc. */
+  tmpS = getenv("USER");
+  (void )sprintf(tmpBuf, "User: %s", tmpS?tmpS:unknownS);
+  userS = AlcStrDup(tmpBuf);
+
+  tmpTime = time(NULL);
+  tmpS = ctime(&tmpTime);
+  *(tmpS + strlen(tmpS) - 1) = '\0';
+  (void )sprintf(tmpBuf, "Date: %s", tmpS?tmpS:unknownS);
+  dateS = AlcStrDup(tmpBuf);
+
+  tmpS = getenv("HOST");
+  (void )sprintf(tmpBuf, "Host: %s", tmpS?tmpS:unknownS);
+  hostS = AlcStrDup(tmpBuf);
+
+  (void )sprintf(tmpBuf, "RefFile: %s", globals.file?globals.file:unknownS);
+  refFileS = AlcStrDup(tmpBuf);
+
+  (void )sprintf(tmpBuf, "SrcFile: %s",
+		 warpGlobals.srcFile?warpGlobals.srcFile:unknownS);
+  srcFileS = AlcStrDup(tmpBuf);
+
+  (void )sprintf(tmpBuf, "SignalFile: %s",
+		 warpGlobals.sgnlFile?warpGlobals.sgnlFile:unknownS);
+  sgnlFileS = AlcStrDup(tmpBuf);
+
+  bibfileRecord = 
+    BibFileRecordMake("Comment", "0",
+		      BibFileFieldMakeVa("Text", userS,
+					 "Text", dateS,
+					 "Text", hostS,
+					 "Text", refFileS,
+					 "Text", srcFileS,
+					 "Text", sgnlFileS,
+					 NULL));
+  BibFileRecordWrite(fp, NULL, bibfileRecord);
+  BibFileRecordFree(&bibfileRecord);
+
+  /* if write a file record for the reference file */
+  if( globals.file ){
+    WlzEffBibWriteFileRecord(fp, "MAPaintReferenceFile",
+			     globals.file,
+			     globals.origObjExtType);
+  }
+
+  /* if defined write a file record for the source */
+  if( warpGlobals.srcFile ){
+    WlzEffBibWriteFileRecord(fp, "MAPaintWarpInputSourceFile",
+			     warpGlobals.srcFile,
+			     warpGlobals.srcFileType);
+  }
+
+  /* if defined write a file record for the signal */
+  if( warpGlobals.sgnlFile ){
+    WlzEffBibWriteFileRecord(fp, "MAPaintWarpInputSignalFile",
+			     warpGlobals.sgnlFile,
+			     warpGlobals.sgnlFileType);
+  }
+
+
+  /* write the section data */
+  if( WlzEffBibWrite3DSectionViewParamsRecord(fp, "Wlz3DSectionViewParams", 
+					      wlzViewStr) != WLZ_ERR_NONE ){
+    HGU_XmUserError(globals.topl,
+		    "Save Warp Parameters:\n"
+		    "    Error in writing the bibfile\n"
+		    "    Please check disk space or quotas\n"
+		    "    Section parameters not saved",
+		    XmDIALOG_FULL_APPLICATION_MODAL);
+  }
+
+  /* write the warp transform parameters */
+  if( WlzEffBibWriteWarpTransformParamsRecord(fp, "WlzWarpTransformParams",
+					      warpGlobals.wlzFnType,
+					      warpGlobals.affineType,
+					      warpGlobals.meshMthd,
+					      warpGlobals.meshMinDst,
+					      warpGlobals.meshMaxDst)
+     != WLZ_ERR_NONE ){
+    HGU_XmUserError(globals.topl,
+		    "Save Warp Parameters:\n"
+		    "    Error in writing the bibfile\n"
+		    "    Please check disk space or quotas\n"
+		    "    Section parameters not saved",
+		    XmDIALOG_FULL_APPLICATION_MODAL);
+  }
+
+  /* write the signal pre-processing and filter transform parameters */
+  if( toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*normalise") ){
+    XtVaGetValues(toggle, XmNset, &normFlg, NULL);
+  }
+  if( toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*histo_equalise") ){
+    XtVaGetValues(toggle, XmNset, &histoFlg, NULL);
+  }
+  if( toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*shade_correction") ){
+    XtVaGetValues(toggle, XmNset, &shadeFlg, NULL);
+  }
+  if( toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*gauss_smooth") ){
+    XtVaGetValues(toggle, XmNset, &gaussFlg, NULL);
+  }
+  if( slider = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*gauss_width") ){
+    width = HGU_XmGetSliderValue(slider);
+  }
+  if( WlzEffBibWriteWarpInputSegmentationParamsRecord
+     (fp, "MAPaintWarpInputSegmentationParams",
+      normFlg==True?1:0,
+      histoFlg==True?1:0,
+      shadeFlg==True?1:0,
+      gaussFlg==True?1:0,
+      width) != WLZ_ERR_NONE ){
+    HGU_XmUserError(globals.topl,
+		    "Save Pre-Processing Parameters:\n"
+		    "    Error in writing the bibfile\n"
+		    "    Please check disk space or quotas\n"
+		    "    Section parameters not saved",
+		    XmDIALOG_FULL_APPLICATION_MODAL);
+  }
+
+  /* write the signal thresholding parameters */
+  threshParamStr.thresholdType = warpGlobals.thresholdType;
+  threshParamStr.threshRGBSpace = warpGlobals.threshRGBSpace;
+  threshParamStr.threshColorChannel = warpGlobals.threshColorChannel;
+  threshParamStr.threshRangeLow = warpGlobals.threshRangeLow;
+  threshParamStr.threshRangeHigh = warpGlobals.threshRangeHigh;
+  for(i=0; i < 3; i++){
+    threshParamStr.threshRangeRGBLow[i] = warpGlobals.threshRangeRGBLow[i];
+    threshParamStr.threshRangeRGBHigh[i] = warpGlobals.threshRangeRGBHigh[i];
+  }
+  threshParamStr.threshRGBCombination = warpGlobals.threshRGBCombination;
+  threshParamStr.lowRGBPoint = warpGlobals.lowRGBPoint;
+  threshParamStr.highRGBPoint = warpGlobals.highRGBPoint;
+  threshParamStr.colorEllipseEcc = warpGlobals.colorEllipseEcc;
+  threshParamStr.globalThreshFlg = warpGlobals.globalThreshFlg;
+  threshParamStr.globalThreshVtx = warpGlobals.globalThreshVtx;
+  threshParamStr.incrThreshFlg = warpGlobals.incrThreshFlg;
+  threshParamStr.pickThreshFlg = warpGlobals.pickThreshFlg;
+  threshParamStr.distanceThreshFlg = warpGlobals.distanceThreshFlg;
+  if( WlzEffBibWriteWarpInputThresholdParamsRecord
+     (fp, "MAPaintWarpInputThresholdParams",
+      &threshParamStr) != WLZ_ERR_NONE ){
+    HGU_XmUserError(globals.topl,
+		    "Save Threshold Parameters:\n"
+		    "    Error in writing the bibfile\n"
+		    "    Please check disk space or quotas\n"
+		    "    Section parameters not saved",
+		    XmDIALOG_FULL_APPLICATION_MODAL);
+  }
+
+  /* write the signal post-processing parameters */
+
+  /* write the tie points only if there is a src image */
+  if( warpGlobals.src.obj ){
+    for(i=0; i < warpGlobals.num_vtxs; i++){
+      WlzDVertex3	vtx1, vtx2;
+      vtx1.vtX = warpGlobals.dst_vtxs[i].vtX;
+      vtx1.vtY = warpGlobals.dst_vtxs[i].vtY;
+      vtx1.vtZ = 0.0;
+      if(warpGlobals.dst.obj != NULL){
+	vtx1.vtX += warpGlobals.dst.obj->domain.i->kol1;
+	vtx1.vtY += warpGlobals.dst.obj->domain.i->line1;
+      }
+      vtx2.vtX = warpGlobals.src_vtxs[i].vtX;
+      vtx2.vtY = warpGlobals.src_vtxs[i].vtY;
+      vtx2.vtZ = 0.0;
+      if(warpGlobals.src.obj != NULL){
+	vtx2.vtX -= warpGlobals.srcXOffset;
+	vtx2.vtY -= warpGlobals.srcYOffset;
+      }
+      if( WlzEffBibWriteTiePointVtxsRecord(fp, "WlzTiePointVtxs", i,
+					   vtx1, vtx2, 0)
+	 != WLZ_ERR_NONE ){
+	HGU_XmUserError(globals.topl,
+			"Save Warp Parameters:\n"
+			"    Error in writing the bibfile\n"
+			"    Please check disk space or quotas\n"
+			"    Section parameters not saved",
+			XmDIALOG_FULL_APPLICATION_MODAL);
+	break;
+      }
+    }
+  }
+
+  return;
+}
+
+void warpIOWrite(
+  Widget		w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  String		fileStr;
+  FILE			*fp;
 
   /* get a filename for the warp parameters */
   if( fileStr =
@@ -479,202 +687,8 @@ void warpIOWrite(
 	}
 	warpGlobals.warpBibFile = AlcStrDup(fileStr);
 
-	/* write some sort of identifier */
-	bibfileRecord = 
-	  BibFileRecordMake("Ident", "0",
-			    BibFileFieldMakeVa("Text",
-					       "MAPaint 2D warp input parameters",
-					       "Version",	"1",
-					       NULL));
-	BibFileRecordWrite(fp, NULL, bibfileRecord);
-	BibFileRecordFree(&bibfileRecord);
-
-	/* now a comment with user, machine, date etc. */
-	tmpS = getenv("USER");
-	(void )sprintf(tmpBuf, "User: %s", tmpS?tmpS:unknownS);
-	userS = AlcStrDup(tmpBuf);
-
-	tmpTime = time(NULL);
-	tmpS = ctime(&tmpTime);
-	*(tmpS + strlen(tmpS) - 1) = '\0';
-	(void )sprintf(tmpBuf, "Date: %s", tmpS?tmpS:unknownS);
-	dateS = AlcStrDup(tmpBuf);
-
-	tmpS = getenv("HOST");
-	(void )sprintf(tmpBuf, "Host: %s", tmpS?tmpS:unknownS);
-	hostS = AlcStrDup(tmpBuf);
-
-	(void )sprintf(tmpBuf, "RefFile: %s", globals.file?globals.file:unknownS);
-	refFileS = AlcStrDup(tmpBuf);
-
-	(void )sprintf(tmpBuf, "SrcFile: %s",
-		       warpGlobals.srcFile?warpGlobals.srcFile:unknownS);
-	srcFileS = AlcStrDup(tmpBuf);
-
-	(void )sprintf(tmpBuf, "SignalFile: %s",
-		       warpGlobals.sgnlFile?warpGlobals.sgnlFile:unknownS);
-	sgnlFileS = AlcStrDup(tmpBuf);
-
-	bibfileRecord = 
-	  BibFileRecordMake("Comment", "0",
-			    BibFileFieldMakeVa("Text", userS,
-					       "Text", dateS,
-					       "Text", hostS,
-					       "Text", refFileS,
-					       "Text", srcFileS,
-					       "Text", sgnlFileS,
-					       NULL));
-	BibFileRecordWrite(fp, NULL, bibfileRecord);
-	BibFileRecordFree(&bibfileRecord);
-
-	/* if write a file record for the reference file */
-	if( globals.file ){
-	  WlzEffBibWriteFileRecord(fp, "MAPaintReferenceFile",
-				   globals.file,
-				   globals.origObjExtType);
-	}
-
-	/* if defined write a file record for the source */
-	if( warpGlobals.srcFile ){
-	  WlzEffBibWriteFileRecord(fp, "MAPaintWarpInputSourceFile",
-				   warpGlobals.srcFile,
-				   warpGlobals.srcFileType);
-	}
-
-	/* if defined write a file record for the signal */
-	if( warpGlobals.sgnlFile ){
-	  WlzEffBibWriteFileRecord(fp, "MAPaintWarpInputSignalFile",
-				   warpGlobals.sgnlFile,
-				   warpGlobals.sgnlFileType);
-	}
-
-
-	/* write the section data */
-	if( WlzEffBibWrite3DSectionViewParamsRecord(fp, "Wlz3DSectionViewParams", 
-						    wlzViewStr) != WLZ_ERR_NONE ){
-	  HGU_XmUserError(globals.topl,
-			  "Save Warp Parameters:\n"
-			  "    Error in writing the bibfile\n"
-			  "    Please check disk space or quotas\n"
-			  "    Section parameters not saved",
-			  XmDIALOG_FULL_APPLICATION_MODAL);
-	}
-
-	/* write the warp transform parameters */
-	if( WlzEffBibWriteWarpTransformParamsRecord(fp, "WlzWarpTransformParams",
-						    warpGlobals.wlzFnType,
-						    warpGlobals.affineType,
-						    warpGlobals.meshMthd,
-						    warpGlobals.meshMinDst,
-						    warpGlobals.meshMaxDst)
-	   != WLZ_ERR_NONE ){
-	  HGU_XmUserError(globals.topl,
-			  "Save Warp Parameters:\n"
-			  "    Error in writing the bibfile\n"
-			  "    Please check disk space or quotas\n"
-			  "    Section parameters not saved",
-			  XmDIALOG_FULL_APPLICATION_MODAL);
-	}
-
-	/* write the signal pre-processing and filter transform parameters */
-	if( toggle = XtNameToWidget(globals.topl,
-				    "*warp_sgnl_controls_form*normalise") ){
-	  XtVaGetValues(toggle, XmNset, &normFlg, NULL);
-	}
-	if( toggle = XtNameToWidget(globals.topl,
-				    "*warp_sgnl_controls_form*histo_equalise") ){
-	  XtVaGetValues(toggle, XmNset, &histoFlg, NULL);
-	}
-	if( toggle = XtNameToWidget(globals.topl,
-				    "*warp_sgnl_controls_form*shade_correction") ){
-	  XtVaGetValues(toggle, XmNset, &shadeFlg, NULL);
-	}
-	if( toggle = XtNameToWidget(globals.topl,
-				    "*warp_sgnl_controls_form*gauss_smooth") ){
-	  XtVaGetValues(toggle, XmNset, &gaussFlg, NULL);
-	}
-	if( slider = XtNameToWidget(globals.topl,
-				    "*warp_sgnl_controls_form*gauss_width") ){
-	  width = HGU_XmGetSliderValue(slider);
-	}
-	if( WlzEffBibWriteWarpInputSegmentationParamsRecord
-	   (fp, "MAPaintWarpInputSegmentationParams",
-	    normFlg==True?1:0,
-	    histoFlg==True?1:0,
-	    shadeFlg==True?1:0,
-	    gaussFlg==True?1:0,
-	    width) != WLZ_ERR_NONE ){
-	  HGU_XmUserError(globals.topl,
-			  "Save Pre-Processing Parameters:\n"
-			  "    Error in writing the bibfile\n"
-			  "    Please check disk space or quotas\n"
-			  "    Section parameters not saved",
-			  XmDIALOG_FULL_APPLICATION_MODAL);
-	}
-
-	/* write the signal thresholding parameters */
-	threshParamStr.thresholdType = warpGlobals.thresholdType;
-	threshParamStr.threshRGBSpace = warpGlobals.threshRGBSpace;
-	threshParamStr.threshColorChannel = warpGlobals.threshColorChannel;
-	threshParamStr.threshRangeLow = warpGlobals.threshRangeLow;
-	threshParamStr.threshRangeHigh = warpGlobals.threshRangeHigh;
-	for(i=0; i < 3; i++){
-	  threshParamStr.threshRangeRGBLow[i] = warpGlobals.threshRangeRGBLow[i];
-	  threshParamStr.threshRangeRGBHigh[i] = warpGlobals.threshRangeRGBHigh[i];
-	}
-	threshParamStr.threshRGBCombination = warpGlobals.threshRGBCombination;
-	threshParamStr.lowRGBPoint = warpGlobals.lowRGBPoint;
-	threshParamStr.highRGBPoint = warpGlobals.highRGBPoint;
-	threshParamStr.colorEllipseEcc = warpGlobals.colorEllipseEcc;
-	threshParamStr.globalThreshFlg = warpGlobals.globalThreshFlg;
-	threshParamStr.globalThreshVtx = warpGlobals.globalThreshVtx;
-	threshParamStr.incrThreshFlg = warpGlobals.incrThreshFlg;
-	threshParamStr.pickThreshFlg = warpGlobals.pickThreshFlg;
-	threshParamStr.distanceThreshFlg = warpGlobals.distanceThreshFlg;
-	if( WlzEffBibWriteWarpInputThresholdParamsRecord
-	   (fp, "MAPaintWarpInputThresholdParams",
-	    &threshParamStr) != WLZ_ERR_NONE ){
-	  HGU_XmUserError(globals.topl,
-			  "Save Threshold Parameters:\n"
-			  "    Error in writing the bibfile\n"
-			  "    Please check disk space or quotas\n"
-			  "    Section parameters not saved",
-			  XmDIALOG_FULL_APPLICATION_MODAL);
-	}
-
-	/* write the signal post-processing parameters */
-
-	/* write the tie points only if there is a src image */
-	if( warpGlobals.src.obj ){
-	  for(i=0; i < warpGlobals.num_vtxs; i++){
-	    WlzDVertex3	vtx1, vtx2;
-	    vtx1.vtX = warpGlobals.dst_vtxs[i].vtX;
-	    vtx1.vtY = warpGlobals.dst_vtxs[i].vtY;
-	    vtx1.vtZ = 0.0;
-	    if(warpGlobals.dst.obj != NULL){
-	      vtx1.vtX += warpGlobals.dst.obj->domain.i->kol1;
-	      vtx1.vtY += warpGlobals.dst.obj->domain.i->line1;
-	    }
-	    vtx2.vtX = warpGlobals.src_vtxs[i].vtX;
-	    vtx2.vtY = warpGlobals.src_vtxs[i].vtY;
-	    vtx2.vtZ = 0.0;
-	    if(warpGlobals.src.obj != NULL){
-	      vtx2.vtX -= warpGlobals.srcXOffset;
-	      vtx2.vtY -= warpGlobals.srcYOffset;
-	    }
-	    if( WlzEffBibWriteTiePointVtxsRecord(fp, "WlzTiePointVtxs", i,
-						 vtx1, vtx2, 0)
-	       != WLZ_ERR_NONE ){
-	      HGU_XmUserError(globals.topl,
-			      "Save Warp Parameters:\n"
-			      "    Error in writing the bibfile\n"
-			      "    Please check disk space or quotas\n"
-			      "    Section parameters not saved",
-			      XmDIALOG_FULL_APPLICATION_MODAL);
-	      break;
-	    }
-	  }
-	}
+	/* write the bibfile */
+	warpBibfileWrite(fp, view_struct);
 
 	/* close the file */
 	if( fclose(fp) == EOF ){
@@ -1028,7 +1042,7 @@ void warpIORead(
 	  errNum = WlzEffBibParseFileRecord(bibfileRecord, &index,
 					    &fileStr, &fileType);
 	  if( errNum == WLZ_ERR_NONE ){
-	    if( strcmp(fileStr, globals.file) ){
+	    if( globals.file && strcmp(fileStr, globals.file) ){
 	      errMsg = (char *)
 		AlcMalloc(sizeof(char) *
 			  (strlen(fileStr) + strlen(globals.file) +
@@ -1047,6 +1061,7 @@ void warpIORead(
 	      }
 	      AlcFree(errMsg);
 	    }
+	    /* now read the new reference file */
 	  }
 	}
 
@@ -1117,6 +1132,10 @@ void warpIORead(
 	      WlzFreeObj(warpGlobals.sgnl.obj);
 	    }
 	    warpGlobals.sgnl.obj = WlzAssignObject(obj, &errNum);
+	    warpSetXImage(&(warpGlobals.sgnl));
+	    warpCanvasExposeCb(warpGlobals.sgnl.canvas,
+			       (XtPointer) &(warpGlobals.sgnl),
+			       call_data);
 	  }
 	}
 	  
@@ -1477,6 +1496,708 @@ void warpIORead(
       }
 
     }
+  }
+
+  return;
+}
+
+void warpRapidIORead(
+  String		fileStr,
+  ThreeDViewStruct	*view_struct)
+{
+  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
+  FILE			*fp;
+  double		oldScale, newScale, newZeta;
+  Display		*dpy = XtDisplay(view_struct->canvas);
+  Window		win  = XtWindow(view_struct->canvas);
+  Widget		option_menu, widget, slider;
+  WlzCompoundArray	*cobj;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
+  WlzObject		*obj;
+  WlzEffBibWarpInputThresholdParamsStruct	threshParamStr;
+  int			resetOvlyFlg=0;
+  Widget		w = view_struct->dialog;
+
+  /* open file */
+  if( fp = fopen(fileStr, "r") ){
+    BibFileRecord	*bibfileRecord;
+    BibFileError	bibFileErr;
+    char		*errMsg;
+
+    if( warpGlobals.warpBibFile ){
+      AlcFree( warpGlobals.warpBibFile );
+    }
+    warpGlobals.warpBibFile = AlcStrDup(fileStr);
+    warpGlobals.bibfileSavedFlg = 0;
+
+    /* read the bibfile */
+    bibFileErr = BibFileRecordRead(&bibfileRecord, &errMsg, fp);
+    while( bibFileErr == BIBFILE_ER_NONE ){
+      /* check for view parameters - reset dst image if necessary */
+      if( !strncmp(bibfileRecord->name, "Wlz3DSectionViewParams", 22) ){
+	oldScale = wlzViewStr->scale;
+
+	/* set everything without requesting confirm */
+	WlzEffBibParse3DSectionViewParamsRecord(bibfileRecord, wlzViewStr);
+	view_struct->controlFlag &= ~MAPAINT_FIXED_LINE_SET;
+
+	/* reset the sliders and mode control */
+	slider = XtNameToWidget(view_struct->dialog, "*.theta_slider");
+	HGU_XmSetSliderValue
+	  (slider, (float) (wlzViewStr->theta * 180.0 / WLZ_M_PI));
+	slider = XtNameToWidget(view_struct->dialog, "*.phi_slider");
+	HGU_XmSetSliderValue
+	  (slider, (float) (wlzViewStr->phi * 180.0 / WLZ_M_PI));
+	slider = XtNameToWidget(view_struct->dialog, "*.zeta_slider");
+	HGU_XmSetSliderValue
+	  (slider, (float) (wlzViewStr->zeta * 180.0 / WLZ_M_PI));
+
+	/* extract the scale and the mode to reset the GUI */
+	newScale = wlzViewStr->scale;
+	newZeta = wlzViewStr->zeta;
+	wlzViewStr->scale = oldScale;
+	setViewMode(view_struct, wlzViewStr->view_mode);
+	setViewScale(view_struct, newScale, 0, 0);
+
+	/* check the section transform - trap mode/zeta bug
+	   note setViewMode will reset zeta to whatever is
+	   appropriate for the mode */
+	if( fabs(newZeta - wlzViewStr->zeta) > 0.01 ){
+	  switch( wlzViewStr->view_mode ){
+	  case WLZ_UP_IS_UP_MODE:
+	  case WLZ_STATUE_MODE:
+	  default: /* set zeta mode - what else? */
+	    /* probably should have been in zeta-mode */
+	    wlzViewStr->view_mode = WLZ_ZETA_MODE;
+	    wlzViewStr->zeta = newZeta;
+	    break;
+
+	  case WLZ_ZETA_MODE:
+	    /* should not happen, silently just reset slider */
+	    break;
+	  }
+
+	  setViewMode(view_struct, wlzViewStr->view_mode);
+	  slider = XtNameToWidget(view_struct->dialog, "*.zeta_slider");
+	  HGU_XmSetSliderValue
+	    (slider, (float) (wlzViewStr->zeta * 180.0 / WLZ_M_PI));
+	  reset_view_struct( view_struct );
+	}
+
+
+	/* redisplay */
+	XClearWindow(dpy, win);
+	display_view_cb(w, (XtPointer) view_struct, NULL);
+	view_feedback_cb(w, (XtPointer) view_struct, NULL);
+
+	/* re-acquire the view domains for painting */
+	getViewDomains(view_struct);
+
+	/* clear previous domains */
+	view_struct_clear_prev_obj( view_struct );
+
+	/* reset the destination image */
+	/* set the destination object and reset the ximage */
+	if( warpGlobals.dst.obj ){
+	  WlzFreeObj(warpGlobals.dst.obj);
+	}
+	warpGlobals.dst.obj =
+	  WlzAssignObject(WlzGetSectionFromObject(globals.orig_obj,
+						  view_struct->wlzViewStr,
+						  WLZ_INTERPOLATION_NEAREST,
+						  NULL),
+			  NULL);
+	warpSetXImage(&(warpGlobals.dst));
+	XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback, NULL);
+
+	/* reset the overlay object */
+	resetOvlyFlg = 1;
+	cobj = (WlzCompoundArray *) warpGlobals.ovly.obj;
+	if( cobj->o[0] ){
+	  WlzFreeObj(cobj->o[0]);
+	}
+	cobj->o[0] = WlzAssignObject(warpGlobals.dst.obj, NULL);
+      }
+
+      /* check for warp transform parameters */
+      if( !strncmp(bibfileRecord->name, "WlzWarpTransformParams", 22) ){
+	WlzFnType		wlzFnType;
+	WlzMeshGenMethod	meshMthd;
+	int			meshMinDst;
+	int	 		meshMaxDst;
+	WlzTransformType	affineType;
+
+	WlzEffBibParseWarpTransformParamsRecord(bibfileRecord,
+						&wlzFnType,
+						&affineType,
+						&meshMthd,
+						&meshMinDst, &meshMaxDst);
+	/* set the parameters, note in this version the basisFnType 
+	   is not set  - now it is */
+	if( option_menu = XtNameToWidget(view_struct->dialog,
+					 "*.mesh_function") ){
+	  switch( wlzFnType ){
+	  default:
+	  case WLZ_FN_BASIS_2DMQ:
+	    if( widget = XtNameToWidget(option_menu, "*.multiquadric") ){
+	      XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
+	      XtCallCallbacks(widget, XmNactivateCallback, NULL);
+	    }
+	    break;
+
+	  case WLZ_FN_BASIS_2DTPS:
+	    if( widget = XtNameToWidget(option_menu, "*.thin-plate spline") ){
+	      XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
+	      XtCallCallbacks(widget, XmNactivateCallback, NULL);
+	    }
+	    break;
+
+	  case WLZ_FN_BASIS_2DPOLY:
+	    if( widget = XtNameToWidget(option_menu, "*.polynomial") ){
+	      XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
+	      XtCallCallbacks(widget, XmNactivateCallback, NULL);
+	    }
+	    break;
+
+	  }
+	}
+	
+	/* set the affine transform type */
+	if( option_menu = XtNameToWidget(view_struct->dialog,
+					 "*.affine_type") ){
+	  switch( affineType ){
+	  default:
+	  case WLZ_TRANSFORM_2D_NOSHEAR:
+	    if( widget = XtNameToWidget(option_menu, "*.noshear") ){
+	      XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
+	      XtCallCallbacks(widget, XmNactivateCallback, NULL);
+	    }
+	    break;
+
+	  case WLZ_TRANSFORM_2D_REG:
+	    if( widget = XtNameToWidget(option_menu, "*.rigid") ){
+	      XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
+	      XtCallCallbacks(widget, XmNactivateCallback, NULL);
+	    }
+	    break;
+
+	  case WLZ_TRANSFORM_2D_AFFINE:
+	    if( widget = XtNameToWidget(option_menu, "*.affine") ){
+	      XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
+	      XtCallCallbacks(widget, XmNactivateCallback, NULL);
+	    }
+	    break;
+
+	  }
+	}
+		
+	/* set the mesh generation method */
+	if( option_menu = XtNameToWidget(view_struct->dialog,
+					 "*.mesh_method") ){
+	  switch( meshMthd ){
+	  default:
+	  case WLZ_MESH_GENMETHOD_BLOCK:
+	    if( widget = XtNameToWidget(option_menu, "*.block") ){
+	      XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
+	      XtCallCallbacks(widget, XmNactivateCallback, NULL);
+	    }
+	    break;
+
+	  case WLZ_MESH_GENMETHOD_GRADIENT:
+	    if( widget = XtNameToWidget(option_menu, "*.gradient") ){
+	      XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
+	      XtCallCallbacks(widget, XmNactivateCallback, NULL);
+	    }
+	    break;
+	  }
+	}
+
+	if( slider = XtNameToWidget(view_struct->dialog,
+				    "*.mesh_min_dist") ){
+	  HGU_XmSetSliderValue(slider, (float) meshMinDst);
+	}
+	if( slider = XtNameToWidget(view_struct->dialog,
+				    "*.mesh_max_dist") ){
+	  HGU_XmSetSliderValue(slider, (float) meshMaxDst);
+	}
+	resetOvlyFlg = 1;
+      }
+
+      /* read tie-points */
+      if( !strncmp(bibfileRecord->name, "WlzTiePointVtxs", 15) ){
+	int		index;
+	WlzDVertex3	dstVtx;
+	WlzDVertex3	srcVtx;
+	int		relFlg;
+
+	WlzEffBibParseTiePointVtxsRecord(bibfileRecord, &index,
+					 &dstVtx, &srcVtx, &relFlg);
+	/* only add if there is a source image */
+	if( warpGlobals.src.obj ){
+	  if( !relFlg ){
+	    dstVtx.vtX -= warpGlobals.dst.obj->domain.i->kol1;
+	    dstVtx.vtY -= warpGlobals.dst.obj->domain.i->line1;
+	    srcVtx.vtX += warpGlobals.srcXOffset;
+	    srcVtx.vtY += warpGlobals.srcYOffset;
+	  }
+	  if( warpGlobals.num_vtxs < WARP_MAX_NUM_VTXS ){
+	    warpGlobals.dst_vtxs[warpGlobals.num_vtxs].vtX = dstVtx.vtX;
+	    warpGlobals.dst_vtxs[warpGlobals.num_vtxs].vtY = dstVtx.vtY;
+	    warpGlobals.src_vtxs[warpGlobals.num_vtxs].vtX = srcVtx.vtX;
+	    warpGlobals.src_vtxs[warpGlobals.num_vtxs].vtY = srcVtx.vtY;
+	    warpGlobals.num_vtxs++;
+	  }
+	}
+	resetOvlyFlg = 1;
+      }
+
+      /* read warp reference file - check against current
+	 and query continue if they are different */
+      if( !strncmp(bibfileRecord->name, "MAPaintReferenceFile", 20) ){
+	int		index;
+	char		*fileStr;
+	WlzEffFormat	fileType;
+	XmFileSelectionBoxCallbackStruct	cbs;
+
+	errNum = WlzEffBibParseFileRecord(bibfileRecord, &index,
+					  &fileStr, &fileType);
+	if( errNum == WLZ_ERR_NONE ){
+	  XmString	xmstr;
+	  /* install new reference file - no check */
+	  xmstr = XmStringCreateLtoR(fileStr, XmSTRING_DEFAULT_CHARSET);
+	  cbs.value = xmstr;
+	  cbs.dir = NULL;
+	  read_reference_object_cb(globals.topl, (XtPointer) fileType,
+				   &cbs);
+	  XmStringFree(xmstr);
+	}
+      }
+
+      /* read warp source file */
+      if( !strncmp(bibfileRecord->name, "MAPaintWarpInputSourceFile", 26) ){
+	int		index;
+	char		*fileStr;
+	WlzEffFormat	fileType;
+	WlzObject	*obj1;
+	WlzIBox2	cutBox;
+	WlzGreyType	greyType;
+
+	WlzEffBibParseFileRecord(bibfileRecord, &index,
+				 &fileStr, &fileType);
+
+	/* read the image and install */
+	if( obj = WlzEffReadObj(NULL, fileStr, fileType, 0, &errNum) ){
+	  if((obj->type == WLZ_2D_DOMAINOBJ) &&
+	     (obj->values.core != NULL)){
+	    warpGlobals.srcFile = fileStr;
+	    warpGlobals.srcFileType = fileType;
+	    if( warpGlobals.src.obj ){
+	      WlzFreeObj(warpGlobals.src.obj);
+	    }
+	    obj = WlzAssignObject(obj, &errNum);
+	    cutBox.xMin = obj->domain.i->kol1;
+	    cutBox.xMax = obj->domain.i->lastkl;
+	    cutBox.yMin = obj->domain.i->line1;
+	    cutBox.yMax = obj->domain.i->lastln;
+	    greyType = WlzGreyTableTypeToGreyType(obj->values.core->type,
+						  &errNum);
+	    obj1 = WlzCutObjToBox2D(obj, cutBox, greyType,
+				    0, 0.0, 0.0, &errNum);
+	    WlzFreeObj(obj);
+	    warpGlobals.srcXOffset = -obj1->domain.i->kol1;
+	    warpGlobals.srcYOffset = -obj1->domain.i->line1;
+	    obj = WlzAssignObject(obj1, &errNum);
+	    warpGlobals.src.obj =
+	      WlzAssignObject(WlzShiftObject(obj,
+					     warpGlobals.srcXOffset,
+					     warpGlobals.srcYOffset,
+					     0, &errNum), NULL);
+	    WlzFreeObj(obj);
+
+	    warpSetXImage(&(warpGlobals.src));
+	    warpCanvasExposeCb(warpGlobals.src.canvas,
+			       (XtPointer) &(warpGlobals.src),
+			       NULL);
+	  }
+	  resetOvlyFlg = 1;
+	}
+      }
+	  
+      /* read warp signal file */
+      if( !strncmp(bibfileRecord->name, "MAPaintWarpInputSignalFile", 26) ){
+	int		index;
+	char		*fileStr;
+	WlzEffFormat	fileType;
+
+	WlzEffBibParseFileRecord(bibfileRecord, &index,
+				 &fileStr, &fileType);
+
+	/* read the image and install */
+	if( obj = WlzEffReadObj(NULL, fileStr, fileType, 0, &errNum) ){
+	  if( obj->type == WLZ_2D_DOMAINOBJ ){
+	    warpGlobals.sgnlFile = fileStr;
+	    warpGlobals.sgnlFileType = fileType;
+	    errNum = warpResetSignalObj(obj);
+	  }
+	}
+      }
+	  
+      /* check for segmentation pre-processing transform parameters.
+	 Note redundantly get threshLow and threshHigh for
+	 backward compatibility, likewise old name for the record */
+      if( !strncmp(bibfileRecord->name,
+		   "MAPaintWarpInputSegmentationParams", 34) ){
+	/* basic input parameters with defaults set */
+	int 		normFlg=0, histoFlg=0, shadeFlg=0, gaussFlg=0;
+	int		threshLow=256, threshHigh=256;
+	double	width=5.0;
+	Widget	toggle, slider;
+
+	/* do not check number of fields read. Note threshLow and threshHigh,
+	   can be set but may be overriden by the following threshold
+	   parameters */
+	WlzEffBibParseWarpInputSegmentationParamsRecord(bibfileRecord,
+							&normFlg,
+							&histoFlg,
+							&shadeFlg,
+							&gaussFlg,
+							&width,
+							&threshLow,
+							&threshHigh);
+	if( toggle = XtNameToWidget(globals.topl,
+				    "*warp_sgnl_controls_form*normalise") ){
+	  XtVaSetValues(toggle, XmNset, normFlg, NULL);
+	}
+	if( toggle = XtNameToWidget(globals.topl,
+				    "*warp_sgnl_controls_form*histo_equalise") ){
+	  XtVaSetValues(toggle, XmNset, histoFlg, NULL);
+	}
+	if( toggle =
+	   XtNameToWidget(globals.topl,
+			  "*warp_sgnl_controls_form*shade_correction") ){
+	  XtVaSetValues(toggle, XmNset, shadeFlg, NULL);
+	}
+	if( toggle = XtNameToWidget(globals.topl,
+				    "*warp_sgnl_controls_form*gauss_smooth") ){
+	  XtVaSetValues(toggle, XmNset, gaussFlg, NULL);
+	}
+	if( slider = XtNameToWidget(globals.topl,
+				    "*warp_sgnl_controls_form*gauss_width") ){
+	  HGU_XmSetSliderValue(slider, width);
+	}
+	if( slider =
+	   XtNameToWidget(globals.topl,
+			  "*warp_sgnl_controls_form*thresh_range_low") ){
+	  HGU_XmSetSliderValue(slider, (float) threshLow);
+	  warpGlobals.threshRangeLow = threshLow;
+	}
+	if( slider =
+	   XtNameToWidget(globals.topl,
+			  "*warp_sgnl_controls_form*thresh_range_high") ){
+	  HGU_XmSetSliderValue(slider, (float) threshHigh);
+	  warpGlobals.threshRangeHigh = threshHigh;
+	}
+      }
+
+      /* check for signal thresholding parameters */
+      if( !strncmp(bibfileRecord->name,
+		   "MAPaintWarpInputThresholdParams", 31) ){
+	Widget	radio_box, toggle, slider;
+	Widget	notebook, option_menu, button;
+	char		*tmpStr;
+	int		i;
+	XmToggleButtonCallbackStruct cbs;
+
+	/* set defaults */
+	threshParamStr.thresholdType = WLZ_RGBA_THRESH_NONE;
+	threshParamStr.threshRGBSpace = WLZ_RGBA_SPACE_RGB;
+	threshParamStr.threshColorChannel = WLZ_RGBA_CHANNEL_GREY;
+	threshParamStr.threshRangeLow = 256;
+	threshParamStr.threshRangeHigh = 256;
+	for(i=0; i < 3; i++){
+	  threshParamStr.threshRangeRGBLow[i] = 256;
+	  threshParamStr.threshRangeRGBHigh[i] = 256;
+	}
+	threshParamStr.threshRGBCombination = 0x0;
+	threshParamStr.lowRGBPoint.type = WLZ_GREY_RGBA;
+	threshParamStr.lowRGBPoint.v.rgbv = 0xffffffff;
+	threshParamStr.highRGBPoint.type = WLZ_GREY_RGBA;
+	threshParamStr.highRGBPoint.v.rgbv = 0xffffffff;
+	threshParamStr.colorEllipseEcc = 1.0;
+	threshParamStr.globalThreshFlg = 1;
+	threshParamStr.globalThreshVtx.vtX = -10000;
+	threshParamStr.globalThreshVtx.vtY = -10000;
+	threshParamStr.incrThreshFlg = 0;
+	threshParamStr.pickThreshFlg = 0;
+	threshParamStr.distanceThreshFlg = 0;
+
+	/* do not check number of fields read */
+	WlzEffBibParseWarpInputThresholdParamsRecord(bibfileRecord,
+						     &threshParamStr);
+
+	/* now set values */
+	warpGlobals.threshRangeLow = threshParamStr.threshRangeLow;
+	warpGlobals.threshRangeHigh = threshParamStr.threshRangeHigh;
+	for(i=0; i < 3; i++){
+	  warpGlobals.threshRangeRGBLow[i] =
+	    threshParamStr.threshRangeRGBLow[i];
+	  warpGlobals.threshRangeRGBHigh[i] =
+	    threshParamStr.threshRangeRGBHigh[i];
+	}
+	warpGlobals.threshRGBCombination = threshParamStr.threshRGBCombination;
+	warpGlobals.lowRGBPoint = threshParamStr.lowRGBPoint;
+	warpGlobals.highRGBPoint = threshParamStr.highRGBPoint;
+	warpGlobals.colorEllipseEcc = threshParamStr.colorEllipseEcc;
+	warpGlobals.globalThreshVtx = threshParamStr.globalThreshVtx;
+
+	/* reset simple controls */
+	/* do modes before threshold controls */
+	if( toggle = XtNameToWidget(globals.topl,
+				    "*warp_sgnl_controls_form*global_thresh") ){
+	  XtVaSetValues(toggle, XmNset, threshParamStr.globalThreshFlg, NULL);
+	  cbs.set = threshParamStr.globalThreshFlg;
+	  XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
+	}
+	if( toggle = 
+	   XtNameToWidget(globals.topl,
+			  "*warp_sgnl_controls_form*incremental_thresh") ){
+	  XtVaSetValues(toggle, XmNset, threshParamStr.incrThreshFlg, NULL);
+	  cbs.set = threshParamStr.incrThreshFlg;
+	  XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
+	}
+	if( toggle =
+	   XtNameToWidget(globals.topl,
+			  "*warp_sgnl_controls_form*pick_mode_thresh") ){
+	  XtVaSetValues(toggle, XmNset, threshParamStr.pickThreshFlg, NULL);
+	  cbs.set = threshParamStr.pickThreshFlg;
+	  XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
+	}
+	if( toggle =
+	   XtNameToWidget(globals.topl,
+			  "*warp_sgnl_controls_form*distance_mode_thresh") ){
+	  XtVaSetValues(toggle, XmNset, threshParamStr.distanceThreshFlg, NULL);
+	  cbs.set = threshParamStr.distanceThreshFlg;
+	  XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
+	}
+  
+	/* reset the threshold and interact controls */
+	/* single colour mode */
+	if( slider =
+	   XtNameToWidget(globals.topl,
+			  "*warp_sgnl_controls_form*thresh_range_low") ){
+	  HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeLow);
+	}
+	if( slider =
+	   XtNameToWidget(globals.topl,
+			  "*warp_sgnl_controls_form*thresh_range_high") ){
+	  HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeHigh);
+	}
+	  
+	/* multi-colour mode */
+	if( slider =
+	   XtNameToWidget(globals.topl,
+			  "*warp_sgnl_controls_form*thresh_range_red_low") ){
+	  HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBLow[0]);
+	}
+	if( slider =
+	   XtNameToWidget(globals.topl,
+			  "*warp_sgnl_controls_form*thresh_range_red_high") ){
+	  HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBHigh[0]);
+	}
+	if( slider =
+	   XtNameToWidget(globals.topl,
+			  "*warp_sgnl_controls_form*thresh_range_green_low") ){
+	  HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBLow[1]);
+	}
+	if( slider =
+	   XtNameToWidget(globals.topl,
+			  "*warp_sgnl_controls_form*thresh_range_green_high") ){
+	  HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBHigh[1]);
+	}
+	if( slider =
+	   XtNameToWidget(globals.topl,
+			  "*warp_sgnl_controls_form*thresh_range_blue_low") ){
+	  HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBLow[2]);
+	}
+	if( slider =
+	   XtNameToWidget(globals.topl,
+			  "*warp_sgnl_controls_form*thresh_range_blue_high") ){
+	  HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBHigh[2]);
+	}
+
+	/* interactive mode */
+	if( slider =
+	   XtNameToWidget(globals.topl,
+			  "*warp_sgnl_controls_form*thresh_eccentricity") ){
+	  HGU_XmSetSliderValue(slider, (float) warpGlobals.colorEllipseEcc);
+	}
+	if( slider = XtNameToWidget(globals.topl,
+				    "*warp_sgnl_controls_form*thresh_radius") ){
+	  HGU_XmSetSliderValue(slider, (float) 10.0);
+	}
+	if( radio_box = 
+	   XtNameToWidget(globals.topl,
+			  "*warp_sgnl_controls_form*threshold_interact_rc") ){
+	  switch( threshParamStr.thresholdType ){
+	  default:
+	  case WLZ_RGBA_THRESH_SLICE:
+	    toggle = XtNameToWidget(radio_box, "*box");
+	    break;
+	  case WLZ_RGBA_THRESH_BOX:
+	    toggle = XtNameToWidget(radio_box, "*slice");
+	    break;
+	  case WLZ_RGBA_THRESH_SPHERE:
+	    toggle = XtNameToWidget(radio_box, "*sphere");
+	    break;
+	  }
+	  if( toggle ){
+	    XtVaSetValues(radio_box, XmNmenuHistory, toggle, NULL);
+	    XtCallCallbacks(toggle, XmNvalueChangedCallback, NULL);
+	  }
+	}
+
+	/* threshold type - affects notebook page selected */
+	warpGlobals.thresholdType = threshParamStr.thresholdType;
+	switch( threshParamStr.thresholdType ){
+	case WLZ_RGBA_THRESH_NONE: /* select pre-proc page */
+	  tmpStr = "pre_process_page";
+	  break;
+	case WLZ_RGBA_THRESH_SINGLE:
+	  tmpStr = "threshold_single_page";
+	  break;
+	case WLZ_RGBA_THRESH_MULTI:
+	  tmpStr = "threshold_multi_page";
+	  break;
+	case WLZ_RGBA_THRESH_PLANE:
+	case WLZ_RGBA_THRESH_SLICE:
+	case WLZ_RGBA_THRESH_BOX:
+	case WLZ_RGBA_THRESH_SPHERE:
+	  tmpStr = "threshold_interactive_page";
+	  break;
+	}
+	if( notebook = XtNameToWidget(warpGlobals.sgnlControls,
+				      "*warp_sgnl_notebook") ){
+	  int	minPageNum, maxPageNum, pageNum;
+	  XtVaGetValues(notebook,
+			XmNfirstPageNumber, &minPageNum,
+			XmNlastPageNumber, &maxPageNum,
+			NULL);
+	  for(i=minPageNum; i <= maxPageNum; i++){
+	    XmNotebookPageInfo	page_info;
+	    if(XmNotebookGetPageInfo(notebook, i, &page_info) ==
+	       XmPAGE_FOUND){
+	      if(strcmp(tmpStr, XtName(page_info.page_widget)) == 0){
+		if(strncmp(tmpStr, "threshold_", 10) == 0 ){
+		  warpGlobals.lastThresholdPageNum = i;
+		  thresholdMajorPageSelectCb(warpGlobals.sgnlControls,
+					     (XtPointer) warpGlobals.thresholdType,
+					     NULL);
+		}
+		break;
+	      }
+	    }
+	  }
+	}
+
+	/* colour space - affects channel selectors and callbacks */
+	warpGlobals.threshRGBSpace = threshParamStr.threshRGBSpace;
+	if( option_menu =
+	   XtNameToWidget(globals.topl,
+			  "*warp_sgnl_controls_form*color_space") ){
+	  switch( warpGlobals.threshRGBSpace ){
+	  default:
+	  case WLZ_RGBA_SPACE_RGB:
+	    button = XtNameToWidget(option_menu, "*RGB");
+	    break;
+	  case WLZ_RGBA_SPACE_HSB:
+	    button = XtNameToWidget(option_menu, "*HSB");
+	    break;
+	  case WLZ_RGBA_SPACE_CMY:
+	    button = XtNameToWidget(option_menu, "*CMY");
+	    break;
+	  }
+	  if( button ){
+	    XtVaSetValues(option_menu, XmNmenuHistory, button, NULL);
+	    XtCallCallbacks(button, XmNactivateCallback, NULL);
+	  }
+	}
+
+	/* colour channel - now recalculate the signal domain from scratch */
+	warpGlobals.threshColorChannel = threshParamStr.threshColorChannel;
+	if( radio_box =
+	   XtNameToWidget(globals.topl,
+			  "*warp_sgnl_controls_form*threshold_channel_rc") ){
+	  switch( threshParamStr.threshColorChannel ){
+	  default:
+	  case WLZ_RGBA_CHANNEL_GREY:
+	    toggle = XtNameToWidget(radio_box, "*grey");
+	    break;
+	  case WLZ_RGBA_CHANNEL_RED:
+	  case WLZ_RGBA_CHANNEL_HUE:
+	  case WLZ_RGBA_CHANNEL_CYAN:
+	    toggle = XtNameToWidget(radio_box, "*red");
+	    break;
+	  case WLZ_RGBA_CHANNEL_GREEN:
+	  case WLZ_RGBA_CHANNEL_SATURATION:
+	  case WLZ_RGBA_CHANNEL_MAGENTA:
+	    toggle = XtNameToWidget(radio_box, "*green");
+	    break;
+	  case WLZ_RGBA_CHANNEL_BLUE:
+	  case WLZ_RGBA_CHANNEL_BRIGHTNESS:
+	  case WLZ_RGBA_CHANNEL_YELLOW:
+	    toggle = XtNameToWidget(radio_box, "*blue");
+	    break;
+	  }
+	  if( toggle ){
+	    XtVaSetValues(radio_box, XmNmenuHistory, toggle, NULL);
+	    XtCallCallbacks(toggle, XmNvalueChangedCallback, NULL);
+	  }
+	}
+      }
+
+      /* check for signal post-processing parameters */
+
+      BibFileRecordFree(&bibfileRecord);
+      bibFileErr = BibFileRecordRead(&bibfileRecord, &errMsg, fp);
+    }
+    (void) fclose(fp);
+
+    /* calculate the warp transform and display */
+    if( warpGlobals.num_vtxs || resetOvlyFlg){
+      warpDisplayTiePoints();
+      warpSetOvlyObject();
+      if( warpGlobals.ovly.ximage ){
+	AlcFree(warpGlobals.ovly.ximage->data);
+	warpGlobals.ovly.ximage->data = NULL;
+	XDestroyImage(warpGlobals.ovly.ximage);
+	warpGlobals.ovly.ximage = NULL;
+      }
+      if( warpGlobals.ovly.ovlyImages[0] ){
+	AlcFree(warpGlobals.ovly.ovlyImages[0]->data);
+	warpGlobals.ovly.ovlyImages[0]->data = NULL;
+	XDestroyImage(warpGlobals.ovly.ovlyImages[0]);
+	warpGlobals.ovly.ovlyImages[0] = NULL;
+      }
+      if( warpGlobals.ovly.ovlyImages[1] ){
+	AlcFree(warpGlobals.ovly.ovlyImages[1]->data);
+	warpGlobals.ovly.ovlyImages[1]->data = NULL;
+	XDestroyImage(warpGlobals.ovly.ovlyImages[1]);
+	warpGlobals.ovly.ovlyImages[1] = NULL;
+      }
+      warpSetOvlyXImage(&(warpGlobals.ovly));
+      XtCallCallbacks(warpGlobals.ovly.canvas, XmNexposeCallback,
+		      NULL);
+      XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
+		      NULL);
+      XtCallCallbacks(warpGlobals.src.canvas, XmNexposeCallback,
+		      NULL);
+    }
+
+    /* calculate the signal threshold object */
+    if( warpGlobals.sgnl.obj ){
+      recalcWarpProcObjCb(w, (XtPointer) view_struct, NULL);
+    }
+
   }
 
   return;

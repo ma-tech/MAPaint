@@ -201,6 +201,7 @@ void read_anatomy_cb(
   /* display the object in 3D */
   if( globals.domain_display_list[globals.current_domain] ){
     glDeleteLists(globals.domain_display_list[globals.current_domain], 1);
+    globals.domain_display_list[globals.current_domain] = 0;
   }
   else {
     Widget	toggle;
@@ -209,7 +210,6 @@ void read_anatomy_cb(
 				"*domain_menu*threed_display_domain") ){
       XtVaSetValues(toggle, XmNset, True, NULL);
     }
-    globals.domain_display_list[globals.current_domain] = 1;
   }
   if( anatObj = get_domain_from_object(globals.obj, globals.current_domain) ){
     MAOpenGLDisplayDomainIndex(anatObj, globals.current_domain);

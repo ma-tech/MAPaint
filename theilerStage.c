@@ -53,18 +53,140 @@ void theiler_stage_setup_cb(
   XtPointer	client_data,
   XtPointer	call_data)
 {
-  String	newDir;
+  String	newDir, testDir;
+  char		fileStr[128];
+  FILE		*pp;
+
+  /* defaults for manual search */
+  newDir = NULL;
+  testDir = getenv("HOME");
+
+  /* check if using a CDROM */
+  if( HGU_XmUserConfirm(globals.topl,
+			"If you want to use the EMAP CDROM then\n"
+			"please insert the CD and press \"CDROM\".\n"
+			"Otherwise press Manual.\n",
+			"CDROM", "Manual", 1) ){
+    /* wait a bit for the CD to wind up */
+    sleep(5);
+
+    /* attempt to find the Models directory.
+       If it fails set a plausible path to start the manual browse. */
+#if defined (LINUX2)
+    if( pp = popen("find /mnt -maxdepth 4 -name Models", "r") ){
+      while( fscanf(pp, "%s", fileStr) != EOF ){
+	if( strstr(fileStr, "Models") ){
+	  newDir= AlcStrDup(fileStr);
+	  testDir = newDir;
+	  break;
+	}
+      }
+      pclose(pp);
+    }
+    else {
+      newDir = NULL;
+      testDir = "/mnt";
+    }
+#elif defined (DARWIN)
+    if( pp = popen("find /Volumes -maxdepth 4 -name Models", "r") ){
+      while( fscanf(pp, "%s", fileStr) != EOF ){
+	if( strstr(fileStr, "Models") ){
+	  newDir = AlcStrDup(fileStr);
+	  testDir = newDir;
+	  break;
+	}
+      }
+      pclose(pp);
+    }
+    else {
+      newDir = NULL;
+      testDir = "/mnt";
+    }
+#elif defined (SUNOS4) || defined (SUNOS5)
+    if( pp = popen("find /cdrom -maxdepth 4 -name Models", "r") ){
+      while( fscanf(pp, "%s", fileStr) != EOF ){
+	if( strstr(fileStr, "Models") ){
+	  newDir = AlcStrDup(fileStr);
+	  testDir = newDir;
+	  break;
+	}
+      }
+      pclose(pp);
+    }
+    else {
+      newDir = NULL;
+      testDir = "/mnt";
+    }
+#else
+    if( pp = popen("find / -maxdepth 5 -name Models", "r") ){
+      while( fscanf(pp, "%s", fileStr) != EOF ){
+	if( strstr(fileStr, "Models") ){
+	  newDir= AlcStrDup(fileStr);
+	  testDir = newDir;
+	  break;
+	}
+      }
+      pclose(pp);
+    }
+    else {
+      newDir = NULL;
+      testDir = "/";
+    }
+#endif
+
+    /* if a directory found then confirm */
+    if( newDir ){
+      if( testDir = 
+	 HGU_XmUserGetFilename(globals.topl,
+			       "Found the following Models directory.\n"
+			       "Press OK if correct otherwise Browse to\n"
+			       "the required location\n",
+			       "OK", "cancel", newDir,
+			       newDir, NULL) ){
+	AlcFree(newDir);
+	newDir = testDir;
+      }
+      else {
+	AlcFree(newDir);
+	newDir = NULL;
+	testDir = getenv("HOME");
+      }
+    }
+    else {
+      /* failed to find a likely directory - drop through to
+	 manual select */
+      if( !(newDir = 
+	    HGU_XmUserGetFilename(globals.topl,
+				  "No Models directory found, please browse\n"
+				  "to the required location.\n"
+				  "Usually this will be:\n"
+				  "/mnt/cdrom/Models - Linux\n"
+				  "/Volumes/MAData-??/Models - Mac OSX\n"
+				  "/cdrom/MAData-??/Models - Solaris\n",
+				  "OK", "cancel", testDir,
+				  testDir, NULL)) ){
+	HGU_XmUserError(globals.topl,
+			"Can't find CDROM, please use manual select\n",
+			XmDIALOG_FULL_APPLICATION_MODAL);
+	return;
+      }
+    }
+  }
 
   /* popup a dialog to get the new theiler reconstructions
      directory */
-  newDir = HGU_XmUserGetFilename(globals.topl,
-				 "Please input the source directory for the\n"
-				 "Edinburgh Mouse Atlas reconstructions.\n"
-				 "If you have the CD-ROM this could be:\n"
-				 "unix:  /cdrom/ema/reconstructions\n"
-				 "Win95: e:\\reconstructions\n",
-				 "OK", "cancel", globals.base_theiler_dir,
-				 globals.base_theiler_dir, NULL);
+  if( newDir == NULL ){
+    newDir = HGU_XmUserGetFilename(globals.topl,
+				   "Please input the source directory for the\n"
+				   "Edinburgh Mouse Atlas reconstructions.\n"
+				   "If you have the CD-ROM this could be:\n"
+				   "Linux: /mnt/cdrom/Models\n"
+				   "Mac OSX: /Volumes/MAData-??/Models\n"
+				   "Solaris:  /cdrom/MAData-??/Models\n",
+				   "OK", "cancel", testDir,
+				   testDir, NULL);
+  }
+
   if( newDir ){
     /* clear the old */
     if( globals.base_theiler_dir ){

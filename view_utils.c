@@ -213,6 +213,15 @@ void getViewDomains(
   WlzPixelV	thresh;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
+  /* check initialisation */
+  if( !view_struct->wlzViewStr->initialised ){
+    if( init_view_struct( view_struct ) ){
+      errNum = WLZ_ERR_UNSPECIFIED;
+    }
+  }
+
+  /* check for painted object */
+
   /* clear any current domains */
   numOverlays = globals.cmapstruct->num_overlays +
     globals.cmapstruct->num_solid_overlays;

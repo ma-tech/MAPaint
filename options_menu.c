@@ -17,6 +17,7 @@
 #include <math.h>
 
 #include <MAPaint.h>
+#include <MAWarp.h>
 
 /* menu item structures */
 
@@ -450,6 +451,7 @@ Widget	topl)
     Widget	canvas = XtNameToWidget(topl, "*.work_area"), widget;
     XColor	xcolor;
     String	filestr, dirstr;
+    char	lineBuf[256], fileBuf[256];
 
     /* create the tool controls dialog */
     tool_controls_dialog = create_tool_controls_dialog( topl );
@@ -469,10 +471,12 @@ Widget	topl)
     XtManageChild( colormap_dialog );
     HGU_XmSaveRestoreAddWidget( colormap_dialog, NULL, NULL, NULL, NULL );
 
-    /* add an autosave timeout */
+    /* get option menu resources */
     XtGetApplicationResources(globals.topl, &globals,
 			      autosave_res, XtNumber(autosave_res),
 			      NULL, 0);
+
+    /* add an autosave timeout */
     filestr = globals.autosave_file;
     dirstr = globals.autosave_dir;
     if( strlen(dirstr) < 1 ){
@@ -531,6 +535,104 @@ Widget	topl)
     save_seq_dialog = create_save_seq_dialog( topl );
     XtManageChild( save_seq_dialog );
     HGU_XmSaveRestoreAddWidget( save_seq_dialog, NULL, NULL, NULL, NULL );
+
+    /* get the current working directory */
+    if( dirstr = getcwd(lineBuf, 256) ){
+      globals.origDir = strdup(dirstr);
+    }
+    else {
+      globals.origDir = NULL;
+    }
+
+    /* check for bibfile list file */
+    globals.rapidMapFlg = 0;
+    if( globals.bibfileListFile ){
+      FILE	*fp;
+      int	linecount;
+      WlzObject	*dummyObj;
+      WlzPixelV	bgdV;
+      Widget	toggle, notebook;
+      XmNotebookPageInfo	pageInfo;
+      XmToggleButtonCallbackStruct	cbs;
+
+      /* read file and create list */
+      if( fp = fopen(globals.bibfileListFile, "r") ){
+	/* count lines */
+	linecount = 1;
+	while( fgets(lineBuf, 256, fp) ){
+	  linecount++;
+	}
+	warpGlobals.bibfileList = (char **) AlcCalloc(linecount, sizeof(char *));
+	rewind(fp);
+	linecount = 0;
+	while( fgets(lineBuf, 256, fp) ){
+	  sscanf(lineBuf, "%s", fileBuf);
+	  if((fileBuf[0] != '/') && globals.origDir ){
+	    warpGlobals.bibfileList[linecount] = 
+	      (char *) AlcMalloc(sizeof(char)*
+				 (strlen(fileBuf) +
+				  strlen(globals.origDir) + 2));
+	    sprintf(warpGlobals.bibfileList[linecount],
+		    "%s/%s", globals.origDir, fileBuf);
+	  }
+	  else {
+	    warpGlobals.bibfileList[linecount] = strdup(fileBuf);
+	  }
+	  linecount++;
+	}
+	warpGlobals.bibfileListCount = linecount;
+	fclose(fp);
+      }
+
+      /* create dummy reference object and install */
+      bgdV.type = WLZ_GREY_UBYTE;
+      bgdV.v.ubv = 255;
+      dummyObj = WlzAssignObject(WlzMakeCuboid(0, 5, 0, 5, 0, 5,
+					       WLZ_GREY_UBYTE, bgdV,
+					       NULL, NULL, NULL), NULL);
+      set_topl_title("dummy");
+      globals.file = NULL;
+      install_paint_reference_object(dummyObj);
+      WlzFreeObj(dummyObj);
+
+      /* create warp input dialog */
+      warpInput2DCb(globals.topl, NULL, NULL);
+
+      /* get the warp controls toggle */
+      if( toggle = XtNameToWidget(globals.topl, "*warp_input_2d_frame_title") ){
+	XtVaSetValues(toggle, XmNset, True, NULL);
+	cbs.set = True;
+	XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
+      }
+
+      /* set rapidMap mode */
+      globals.rapidMapFlg = 1;
+      if( notebook = XtNameToWidget(globals.topl,
+				    "*warp_cntrl_notebook") ){
+	XtVaSetValues(notebook,
+		      XmNcurrentPageNumber, 2,
+		      NULL);
+
+	/* call the activate callback */
+	if( XmNotebookGetPageInfo(notebook, 2,
+				  &pageInfo) == XmPAGE_FOUND ){
+	  XmPushButtonCallbackStruct cbs;
+
+	  cbs.reason = XmCR_ACTIVATE;
+	  cbs.event = NULL;
+	  cbs.click_count = 1;
+	  XtCallCallbacks(pageInfo.major_tab_widget,
+			  XmNactivateCallback, &cbs);
+	}
+      }
+
+      /* read first bibfile */
+      warpGlobals.bibfileSavedFlg = 1;
+      warpGlobals.bibfileListIndex = -1;
+      if( toggle = XtNameToWidget(globals.topl, "*warp_input_rapid_form*next") ){
+	XtCallCallbacks(toggle, XmNactivateCallback, NULL);
+      }
+    }
 
     return;
 }

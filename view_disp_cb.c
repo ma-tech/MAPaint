@@ -467,6 +467,9 @@ void display_view_cb(
 				     WLZ_NINT(wlzViewStr->minvals.vtX),
 				     WLZ_NINT(wlzViewStr->maxvals.vtX),
 				     &errNum);
+
+    /* this is not safe and assumes GetSection returns a rectangular
+       value table of this size at least */
     rectObj = WlzMakeMain(WLZ_2D_DOMAINOBJ, domain, sectObj->values,
 			  NULL, NULL, &errNum);
     if( view_struct->masked_object ){

@@ -332,6 +332,7 @@ static XrmOptionDescRec mapaint_options[] = {
   {"-logfile",	".logfile", XrmoptionSepArg, NULL},
   {"-emage",	".emage", XrmoptionNoArg, "True"},
   {"-noemage",	".emage", XrmoptionNoArg, "False"},
+  {"-rapidMap",	".rapidMap", XrmoptionSkipArg, NULL},
 };
 
 main(
@@ -349,6 +350,7 @@ main(
   Boolean		d8Flg=False;
   Boolean		d24Flg=False;
   Boolean		emageFlg=False;
+  Boolean		rapidMapFlg=False;
   XrmValue		xrmValue;
   char			*rtnStrType;
   char			*nameStr, *depthRscStr;
@@ -382,7 +384,7 @@ main(
   XtToolkitThreadInitialize();
   app_con = XtCreateApplicationContext();
   XtAppSetFallbackResources(app_con, fallback_resources);
-  dpy = XtOpenDisplay(app_con, NULL, nameStr, "MAPaint", mapaint_options, 13,
+  dpy = XtOpenDisplay(app_con, NULL, nameStr, "MAPaint", mapaint_options, 14,
 		      &argc, argv);
   globals.dpy = dpy;
 
@@ -545,7 +547,22 @@ main(
 			    dpy, arg, 3);
   }
   
-  /* check for command line reference image */
+  /* check for additional command line reference arguments */
+  /* this is not good and very fragile - put in to fix SepArg bug */
+  if( argc > 1 ){
+    if( strstr("-rapidMap", argv[1]) ){
+      int i;
+
+      globals.rapidMapFlg = 1;
+      /* this is the biblist argument */
+      globals.bibfileListFile = argv[2];
+      for(i=3; i < argc; argc++){
+	argv[i-2] = argv[i];
+      }
+      argc -= 2;
+    }
+  }
+
   if( argc > 1 ){
     initial_reference_file = argv[1];
   }

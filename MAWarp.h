@@ -153,6 +153,12 @@ typedef struct {
   float		seElemRadius;
   MAPaintStructElemType	seType;
 
+  /* rapid-map controls */
+  int		bibfileSavedFlg;
+  int		bibfileListCount;
+  int		bibfileListIndex;
+  char		**bibfileList;
+
 } MAPaintWarp2DStruct;
 
 typedef enum
@@ -165,6 +171,7 @@ typedef enum
 
 extern MAPaintWarp2DStruct warpGlobals;
 extern Widget warp_read_src_dialog;
+extern Widget warp_read_sgnl_dialog;
 extern const char *warpErrStr;
 extern char warpErrBuf[256];
 
@@ -422,6 +429,15 @@ extern void thresholdMajorPageSelectCb(
   Widget	w,
   XtPointer	client_data,
   XtPointer	call_data);
+
+/* pages for warp controls */
+extern Widget createWarpStandardControlsPage(
+  Widget		notebook,
+  ThreeDViewStruct	*view_struct);
+
+extern Widget createWarpRapidControlsPage(
+  Widget		notebook,
+  ThreeDViewStruct	*view_struct);
 
 /* the various pages for signal pre-processing */
 extern Widget createSignalPreProcPage(

@@ -89,7 +89,7 @@ static String  fallback_resources[] = {
 
   /* Theiler stage directory for the anatomy menu 
      this default should be changed when delivered */
-  "MAPaint.theilerDir: /cdrom/cdrom0/macd/reconstructions",
+  /*"MAPaint.theilerDir: /cdrom/cdrom0/macd/reconstructions",*/
 
   /* fonts and backgrounds */
   "MAPaint*background:		grey85",

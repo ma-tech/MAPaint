@@ -719,7 +719,7 @@ void set_domain_menu_entry(
   XtVaSetValues(widget, XmNlabelString, name, NULL);
 
   /* copy into the stored domain names - lose some memory here possibly */
-  globals.domain_name[domain] = (String) malloc(sizeof(char) *
+  globals.domain_name[domain] = (String) AlcMalloc(sizeof(char) *
 						(strlen(name_str+i+1) + 1));
   (void) strcpy(globals.domain_name[domain], name_str+i+1);
 

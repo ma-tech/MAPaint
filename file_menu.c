@@ -783,7 +783,7 @@ void read_reference_object_cb(
 		    "    selected file is empty or it is not the\n"
 		    "    correct object type - please check the\n"
 		    "    file or make a new selection",
-		    XmDIALOG_FULL_APPLICATION_MODAL);
+   		    XmDIALOG_FULL_APPLICATION_MODAL);
     /* set hour glass cursor */
     HGU_XmUnsetHourGlassCursor(globals.topl);
     return;
@@ -1008,7 +1008,7 @@ void fileMenuPopupCb(
 
 static XtResource set_att_res[] = {
 {"theilerDir", "TheilerDir", XtRString, sizeof(String),
- set_att_offset(base_theiler_dir), XtRString, "./reconstructions"},
+ set_att_offset(base_theiler_dir), XtRString, NULL},
 {"theilerStage", "TheilerStage", XtRString, sizeof(String),
  set_att_offset(theiler_stage), XtRString, NULL},
 {"logfile", "Logfile", XtRString, sizeof(String),
@@ -1161,8 +1161,49 @@ void file_menu_init(
   /* check base directory - if the string has come from the resources then
      we need to duplicate it to allow it to be freed
      possibly some memory leakage here */
+  /* note: only non-NULL if set by the user, if NULL then attempt to find
+     the cdrom or copied data */
   if( globals.base_theiler_dir ){
     globals.base_theiler_dir = AlcStrDup( globals.base_theiler_dir );
+  }
+  else {
+    FILE	*pp;
+    
+    /* search for the Theiler mode directory as per the CDROM 
+       should search local disc first */
+#if defined (LINUX2)
+    if( pp = popen("find /mnt -maxdepth 4 -name Models", "r") ){
+      while( fscanf(pp, "%s", fileStr) != EOF ){
+	if( strstr(fileStr, "Models") ){
+	  globals.base_theiler_dir = AlcStrDup(fileStr);
+	  break;
+	}
+      }
+      pclose(pp);
+    }
+#elif defined (DARWIN)
+    if( pp = popen("find /Volumes -maxdepth 4 -name Models", "r") ){
+      while( fscanf(pp, "%s", fileStr) != EOF ){
+	if( strstr(fileStr, "Models") ){
+	  globals.base_theiler_dir = AlcStrDup(fileStr);
+	  break;
+	}
+      }
+      pclose(pp);
+    }
+#elif defined (SUNOS4) || defined (SUNOS5)
+    if( pp = popen("find /cdrom -maxdepth 4 -name Models", "r") ){
+      while( fscanf(pp, "%s", fileStr) != EOF ){
+	if( strstr(fileStr, "Models") ){
+	  globals.base_theiler_dir = AlcStrDup(fileStr);
+	  break;
+	}
+      }
+      pclose(pp);
+    }
+#else
+    globals.base_theiler_dir = NULL;
+#endif
   }
   if( globals.theiler_stage ){
     char *tStr;

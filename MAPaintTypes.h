@@ -323,6 +323,9 @@ typedef struct _PaintGlobals{
   PaintActionInitProc	currentPaintActionInitFunc;
   PaintActionQuitProc	currentPaintActionQuitFunc;
   WlzObject		*review_domain_obj;
+  int			rapidMapFlg;
+  String		bibfileListFile;
+  String		origDir;
 
 } PaintGlobals;
 
