@@ -257,7 +257,7 @@ EXTRA_LIBS		= tiff m gen socket nsl
 X11LIBS         	= Xt Xmu X11  Xi Xext
 endif
 ifeq	 	($(UNIXTYPE), LINUX2)
-EXTRA_LIBS		= tiff m Xp SM ICE
+EXTRA_LIBS		= tiff m Xp SM ICE dl
 X11LIBS         	= Xt Xmu X11 Xext
 endif
 

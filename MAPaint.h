@@ -26,7 +26,6 @@
 
 #include <Wlz.h>
 #include <WlzExtFF.h>
-#include <WlzIO.h>
 
 #include <GL/gl.h>
 #include <GL/glu.h>
