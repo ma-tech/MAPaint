@@ -456,6 +456,7 @@ int set_paint_colormap(
 
     /* shouldn't do this but necessary on the 24bit displays */
     /*XInstallColormap(XtDisplay(w), cmap);*/
+    redisplay_all_views_cb(globals.topl, NULL, NULL);
     break;
 
   case MAPAINT_24BIT_ONLY_MODE:
@@ -465,6 +466,7 @@ int set_paint_colormap(
       globals.colormap[1][j] = colormap[1][j];
       globals.colormap[2][j] = colormap[2][j];
     }
+    redisplay_all_views_cb(globals.topl, NULL, NULL);
     break;
   }
 
