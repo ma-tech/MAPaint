@@ -27,53 +27,6 @@ SCRIPTS			= \
 RELEASE			= 1.0
 
 # List of all 'C' source files (modify as required).
-ifeq ($(UNIXTYPE), LINUX2)
-CSOURCES		= \
-			MAAutosaveDialog.c \
-			MAColormapDialog.c \
-			MAColormapUtils.c \
-			MAConformalPoly.c \
-			MADomainReviewDialog.c \
-			MADomainSurgeryDialog.c \
-			MAOpenGLUtils.c \
-			MAPaint.c \
-			MAPaintUndoDomain.c \
-			MARealignmentDialog.c \
-			MASaveSequenceDialog.c \
-			MAPaintSocket.c \
-			MATrackDomain.c \
-			MAWarpInput2DDialog.c \
-			MAWarpInputUtils.c \
-			MAWarpInputInteractUtils.c \
-			MAWarpInputPaintingCb.c \
-			MAWarpInputXUtils.c \
-			MAPMSnake.c \
-			NalgsDPSearch.c \
-			anatomy_menu.c \
-			domain_menu.c \
-			domain_utils.c \
-			file_menu.c \
-			main_buttonbar.c \
-			main_menubar.c \
-			main_work_area.c \
-			objPropsDialog.c \
-			options_menu.c \
-			paint_utils.c \
-			theilerStage.c \
-			tools_affine.c \
-			tools_fill_domain.c \
-			tools_interactive_geom.c \
-			tools_interactive_paint.c \
-			tools_morphological.c \
-			tools_edge_tracking.c \
-			tools_tracking.c \
-			view_disp_cb.c \
-			view_geom_cb.c \
-			view_menu.c \
-			view_utils.c \
-			view2DPaintingCb.c \
-			viewFixedPointUtils.c
-else
 CSOURCES		= \
 			HGU_Tablet.c \
 			MAAutosaveDialog.c \
@@ -121,6 +74,100 @@ CSOURCES		= \
 			view_utils.c \
 			view2DPaintingCb.c \
 			viewFixedPointUtils.c
+
+ifeq ($(UNIXTYPE), LINUX2)
+CSOURCES		= \
+			MAAutosaveDialog.c \
+			MAColormapDialog.c \
+			MAColormapUtils.c \
+			MAConformalPoly.c \
+			MADomainReviewDialog.c \
+			MADomainSurgeryDialog.c \
+			MAOpenGLUtils.c \
+			MAPaint.c \
+			MAPaintUndoDomain.c \
+			MARealignmentDialog.c \
+			MASaveSequenceDialog.c \
+			MAPaintSocket.c \
+			MATrackDomain.c \
+			MAWarpInput2DDialog.c \
+			MAWarpInputUtils.c \
+			MAWarpInputInteractUtils.c \
+			MAWarpInputPaintingCb.c \
+			MAWarpInputXUtils.c \
+			MAPMSnake.c \
+			NalgsDPSearch.c \
+			anatomy_menu.c \
+			domain_menu.c \
+			domain_utils.c \
+			file_menu.c \
+			main_buttonbar.c \
+			main_menubar.c \
+			main_work_area.c \
+			objPropsDialog.c \
+			options_menu.c \
+			paint_utils.c \
+			theilerStage.c \
+			tools_affine.c \
+			tools_fill_domain.c \
+			tools_interactive_geom.c \
+			tools_interactive_paint.c \
+			tools_morphological.c \
+			tools_edge_tracking.c \
+			tools_tracking.c \
+			view_disp_cb.c \
+			view_geom_cb.c \
+			view_menu.c \
+			view_utils.c \
+			view2DPaintingCb.c \
+			viewFixedPointUtils.c
+endif
+ifeq ($(UNIXTYPE), DARWIN)
+CSOURCES		= \
+			MAAutosaveDialog.c \
+			MAColormapDialog.c \
+			MAColormapUtils.c \
+			MAConformalPoly.c \
+			MADomainReviewDialog.c \
+			MADomainSurgeryDialog.c \
+			MAOpenGLUtils.c \
+			MAPaint.c \
+			MAPaintUndoDomain.c \
+			MARealignmentDialog.c \
+			MASaveSequenceDialog.c \
+			MAPaintSocket.c \
+			MATrackDomain.c \
+			MAWarpInput2DDialog.c \
+			MAWarpInputUtils.c \
+			MAWarpInputInteractUtils.c \
+			MAWarpInputPaintingCb.c \
+			MAWarpInputXUtils.c \
+			MAPMSnake.c \
+			NalgsDPSearch.c \
+			anatomy_menu.c \
+			domain_menu.c \
+			domain_utils.c \
+			file_menu.c \
+			main_buttonbar.c \
+			main_menubar.c \
+			main_work_area.c \
+			objPropsDialog.c \
+			options_menu.c \
+			paint_utils.c \
+			theilerStage.c \
+			tools_affine.c \
+			tools_fill_domain.c \
+			tools_interactive_geom.c \
+			tools_interactive_paint.c \
+			tools_morphological.c \
+			tools_edge_tracking.c \
+			tools_tracking.c \
+			view_disp_cb.c \
+			view_geom_cb.c \
+			view_menu.c \
+			view_utils.c \
+			view2DPaintingCb.c \
+			viewFixedPointUtils.c
 endif
 
 # List of all header files that are available outside of either this archive
@@ -157,7 +204,7 @@ INCDIRS			= .  \
 			../../Core/libAlg \
 			../../Core/libWlz \
 			../../Core/libWlzExtFF \
-			../../Core/libReconstruct \
+			../../Core/libhguDlpList \
 			../../HGUX/libHguX \
 			../../HGUX/libHguXm \
 			../../HGUX/libhguGL \
@@ -190,7 +237,7 @@ LIBDIRS			= . \
 			../../Core/libAlg \
 			../../Core/libWlz \
 			../../Core/libWlzExtFF \
-			../../Core/libReconstruct \
+			../../Core/libhguDlpList \
 			../../HGUX/libHguX \
 			../../HGUX/libHguXm \
 			../../HGUX/libhguGL \
@@ -199,6 +246,25 @@ LIBDIRS			= . \
 			  $(OPENGL_LIB_DIR) \
 			  $(X11_LIB_DIR) \
 			  $(MOTIF_LIB_DIR)
+endif
+ifeq ($(UNIXTYPE), DARWIN)
+LIBDIRS			= . \
+			  $(SYSLIB) \
+			../../Core/libAlc \
+			../../Core/libbibfile \
+			../../Core/libAlg \
+			../../Core/libWlz \
+			../../Core/libWlzExtFF \
+			../../Core/libhguDlpList \
+			../../HGUX/libHguX \
+			../../HGUX/libHguXm \
+			../../HGUX/libhguGL \
+			../../External/Tiff/tiff-v3.5.7/libtiff \
+			  $(HGU_LIB_DIR) \
+			  $(OPENGL_LIB_DIR) \
+			  $(X11_LIB_DIR) \
+			  $(MOTIF_LIB_DIR) \
+			/Users/richard/Desktop/darwin-extras/langinfo
 endif
 ifeq ($(UNIXTYPE), IRIX646)
 LIBDIRS			=  \
@@ -260,6 +326,10 @@ ifeq	 	($(UNIXTYPE), LINUX2)
 EXTRA_LIBS		= tiff m Xp SM ICE dl
 X11LIBS         	= Xt Xmu X11 Xext
 endif
+ifeq	 	($(UNIXTYPE), DARWIN)
+EXTRA_LIBS		= langinfo tiff m
+X11LIBS         	= Xt Xmu X11 Xp Xext
+endif
 
 OPENGLLIBS		= GLU GL
 MOTIFLIBS       	= Xm
@@ -288,6 +358,10 @@ endif
 
 ifeq	 	($(UNIXTYPE), LINUX2)
 LDFLAGS			= $(LIBDIRS:%=-L%) -static
+endif
+
+ifeq	 	($(UNIXTYPE), DARWIN)
+LDFLAGS			= $(LIBDIRS:%=-L%)
 endif
 
 LDLIBS			= $(LOCALLIBS:%=-l%) $(OPENGLLIBS:%=-l%) \
