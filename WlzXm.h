@@ -27,16 +27,25 @@ extern Widget WlzXmCreateExtFFObjectFSB(
   XtCallbackProc	proc,
   XtPointer		client_data);
 
-WlzObject *WlzXmReadExtFFObject(
+extern WlzObject *WlzXmReadExtFFObject(
   Widget				dialog,
   XmFileSelectionBoxCallbackStruct	*cbs,
   WlzEffFormat				*dstFmt,
   WlzErrorNum				*dstErr);
 
+extern WlzErrorNum WlzXmWriteExtFFObject(
+  WlzObject				*obj,
+  Widget				dialog,
+  XmFileSelectionBoxCallbackStruct	*cbs,
+  WlzEffFormat				*dstFmt);
+
 extern WlzErrorNum WlzXmExtFFObjectFSBSetType(
   Widget	dialog,
   WlzEffFormat	format);
 
+extern WlzEffFormat WlzXmExtFFObjectFSBGetType(
+  Widget	dialog,
+  WlzErrorNum	*dstErr);
 
 /* do not add anything after this line */
 #endif /* WLZXM_H */

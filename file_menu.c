@@ -23,105 +23,10 @@ static void new_obj_cb(
   XtPointer	client_data,
   XtPointer	call_data);
 
-static void image_type_cb(
-  Widget	w,
-  XtPointer	client_data,
-  XtPointer	call_data);
-
-static void write_image_type_cb(
-  Widget	w,
-  XtPointer	client_data,
-  XtPointer	call_data);
-
 void read_model_cb(
   Widget	w,
   XtPointer	client_data,
   XtPointer	call_data);
-
-/* menu item structure */
-static MenuItem file_type_menu_itemsP[] = {   /* file_menu items */
-  {"woolz", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   image_type_cb, (XtPointer) WLZEFF_FORMAT_WLZ,
-   myHGU_XmHelpStandardCb, SEC_INPUT_DATA_FORMATS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"ics", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   image_type_cb, (XtPointer) WLZEFF_FORMAT_ICS,
-   myHGU_XmHelpStandardCb, SEC_INPUT_DATA_FORMATS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"den", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   image_type_cb, (XtPointer) WLZEFF_FORMAT_DEN,
-   myHGU_XmHelpStandardCb, SEC_INPUT_DATA_FORMATS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"vff", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   image_type_cb, (XtPointer) WLZEFF_FORMAT_VFF,
-   myHGU_XmHelpStandardCb, SEC_INPUT_DATA_FORMATS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"pic", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   image_type_cb, (XtPointer) WLZEFF_FORMAT_PIC,
-   myHGU_XmHelpStandardCb, SEC_INPUT_DATA_FORMATS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"vtk", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   image_type_cb, (XtPointer) WLZEFF_FORMAT_VTK,
-   myHGU_XmHelpStandardCb, SEC_INPUT_DATA_FORMATS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"slc", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   image_type_cb, (XtPointer) WLZEFF_FORMAT_SLC,
-   myHGU_XmHelpStandardCb, SEC_INPUT_DATA_FORMATS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"ipl", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   image_type_cb, (XtPointer) WLZEFF_FORMAT_IPL,
-   myHGU_XmHelpStandardCb, SEC_INPUT_DATA_FORMATS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"pgm", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   image_type_cb, (XtPointer) WLZEFF_FORMAT_PNM,
-   myHGU_XmHelpStandardCb, SEC_OUTPUT_DATA_FORMATS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"bmp", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   image_type_cb, (XtPointer) WLZEFF_FORMAT_BMP,
-   myHGU_XmHelpStandardCb, SEC_OUTPUT_DATA_FORMATS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
-};
-
-static MenuItem write_file_type_menu_itemsP[] = {/* write file_menu items */
-  {"woolz", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   write_image_type_cb, (XtPointer) WLZEFF_FORMAT_WLZ,
-   myHGU_XmHelpStandardCb, SEC_OUTPUT_DATA_FORMATS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"ics", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   write_image_type_cb, (XtPointer) WLZEFF_FORMAT_ICS,
-   myHGU_XmHelpStandardCb, SEC_OUTPUT_DATA_FORMATS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"den", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   write_image_type_cb, (XtPointer) WLZEFF_FORMAT_DEN,
-   myHGU_XmHelpStandardCb, SEC_OUTPUT_DATA_FORMATS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"vff", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   write_image_type_cb, (XtPointer) WLZEFF_FORMAT_VFF,
-   myHGU_XmHelpStandardCb, SEC_OUTPUT_DATA_FORMATS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"pic", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   write_image_type_cb, (XtPointer) WLZEFF_FORMAT_PIC,
-   myHGU_XmHelpStandardCb, SEC_OUTPUT_DATA_FORMATS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"vtk", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   write_image_type_cb, (XtPointer) WLZEFF_FORMAT_VTK,
-   myHGU_XmHelpStandardCb, SEC_OUTPUT_DATA_FORMATS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"slc", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   write_image_type_cb, (XtPointer) WLZEFF_FORMAT_SLC,
-   myHGU_XmHelpStandardCb, SEC_OUTPUT_DATA_FORMATS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"pgm", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   write_image_type_cb, (XtPointer) WLZEFF_FORMAT_PNM,
-   myHGU_XmHelpStandardCb, SEC_OUTPUT_DATA_FORMATS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"bmp", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   write_image_type_cb, (XtPointer) WLZEFF_FORMAT_BMP,
-   myHGU_XmHelpStandardCb, SEC_OUTPUT_DATA_FORMATS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
-};
 
 static MenuItem file_menu_itemsP[] = {		/* file_menu items */
   {"new_obj", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
@@ -928,48 +833,34 @@ void read_reference_object_cb(
 {
   XmFileSelectionBoxCallbackStruct *cbs =
     (XmFileSelectionBoxCallbackStruct *) call_data;
-  WlzEffFormat		image_type = (WlzEffFormat) client_data;
+  WlzEffFormat		image_type;
   WlzObject		*obj;
-  FILE			*fp;
   String		icsfile;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
-
-  /* get the file pointer or file name if ics format */
-  if((image_type == WLZEFF_FORMAT_ICS) ||
-     (image_type == WLZEFF_FORMAT_PNM) ||
-     (image_type == WLZEFF_FORMAT_BMP))
-  {
-    if( (icsfile = HGU_XmGetFileStr(globals.topl, cbs->value,
-				    cbs->dir)) == NULL )
-    {
-      return;
-    }
-    fp = NULL;
-  }
-  else
-  {
-    if( (fp = HGU_XmGetFilePointer(globals.topl, cbs->value,
-				   cbs->dir, "r")) == NULL )
-    {
-      return;
-    }
-    icsfile = NULL;
-  }
 
   /* set hour glass cursor */
   HGU_XmSetHourGlassCursor(globals.topl);
 
-  /* read the new reference object */
-  obj = WlzEffReadObj(fp, icsfile, image_type, 0, NULL);
-
-  /* close the file pointer if non NULL */
-  if( fp )
-  {
-    (void) fclose( fp );
+  /* read the new reference object
+     note the switch is to allow direct read
+     given the image type to include the model
+     input options */
+  if( client_data ){
+    image_type = (WlzEffFormat) client_data;
+    if( icsfile = HGU_XmGetFileStr(globals.topl, cbs->value,
+				   cbs->dir) ){
+      obj = WlzEffReadObj(NULL, icsfile, image_type, 0, &errNum);
+      AlcFree(icsfile);
+    }
+    else {
+      obj = NULL;
+    }
   }
-
-  /* check the object */
-  if( obj == NULL ){
+  else {
+    obj = WlzXmReadExtFFObject(read_obj_dialog, cbs,
+			       &image_type, &errNum);
+  }
+  if( obj == NULL){
     HGU_XmUserError(globals.topl,
 		    "Read Reference Object:\n"
 		    "    No reference object read - either the\n"
@@ -981,6 +872,7 @@ void read_reference_object_cb(
     HGU_XmUnsetHourGlassCursor(globals.topl);
     return;
   }
+
   if( obj->values.core == NULL ){
     HGU_XmUserError(globals.topl,
 		    "Read Reference Object:\n"
@@ -1040,8 +932,7 @@ void read_reference_object_cb(
   globals.origObjExtType = image_type;
 
   /* set title and reference file list */
-  if(icsfile ||
-     (icsfile = HGU_XmGetFileStr(globals.topl, cbs->value, cbs->dir)) )
+  if(icsfile = HGU_XmGetFileStr(globals.topl, cbs->value, cbs->dir) )
   {
     ReferenceFileListPush(icsfile, image_type);
     if( XmStringGetLtoR(cbs->value, XmSTRING_DEFAULT_CHARSET, &icsfile) )
@@ -1081,28 +972,6 @@ XtPointer	call_data)
     FILE		*fp;
     String		icsfile;
 
-    /* get the file pointer or file name if ics format */
-    if((image_type == WLZEFF_FORMAT_ICS) ||
-       (image_type == WLZEFF_FORMAT_PNM) ||
-       (image_type == WLZEFF_FORMAT_BMP))
-    {
-      if( (icsfile = HGU_XmGetFileStr(globals.topl, cbs->value,
-				      cbs->dir)) == NULL )
-      {
-	return;
-      }
-      fp = NULL;
-    }
-    else
-    {
-      if( (fp = HGU_XmGetFilePointer(globals.topl, cbs->value,
-				     cbs->dir, "w")) == NULL )
-      {
-	return;
-      }
-      icsfile = NULL;
-    }
-
     /* set hour glass cursor */
     HGU_XmSetHourGlassCursor(globals.topl);
 
@@ -1114,26 +983,11 @@ XtPointer	call_data)
 			   globals.orig_obj->domain.p->domains[0],
 			   globals.orig_obj->values.vox->values[0],
 			   NULL, NULL, NULL);
-      if( fp ){
-	WlzWriteObj(fp, tmpObj);
-      }
+      WlzXmWriteExtFFObject(tmpObj, w, cbs, &image_type);
       WlzFreeObj(tmpObj);
     }
     else {
-      WlzEffWriteObj(fp, icsfile, globals.orig_obj, image_type);
-    }
-
-    /* close the file pointer if non NULL */
-    if( fp )
-    {
-      if( fclose( fp ) == EOF ){
-	HGU_XmUserError(globals.topl,
-			"Write Reference Object:\n"
-			"    Error closing the reference object file\n"
-			"    Please check disk sapce or quotas.\n"
-			"    Object not saved to disk.",
-			XmDIALOG_FULL_APPLICATION_MODAL);
-      }
+      WlzXmWriteExtFFObject(globals.orig_obj, w, cbs, &image_type);
     }
 
     /* set hour glass cursor */
@@ -1190,155 +1044,6 @@ void quit_cb(
     }
   }
   exit( 0 );
-}
-
-static void image_type_cb(
-  Widget	w,
-  XtPointer	client_data,
-  XtPointer	call_data)
-{
-  WlzEffFormat	image_type = (WlzEffFormat) client_data;
-  XmString	pattern_str;
-
-  XtRemoveAllCallbacks(read_obj_dialog, XmNokCallback);
-
-  switch( image_type )
-  {
-   default:
-   case WLZEFF_FORMAT_WLZ:
-     XtAddCallback(read_obj_dialog, XmNokCallback,
-		   read_reference_object_cb, (XtPointer) WLZEFF_FORMAT_WLZ);
-     pattern_str = XmStringCreateSimple( "*.wlz" );
-     break;
-     
-   case WLZEFF_FORMAT_ICS:
-     XtAddCallback(read_obj_dialog, XmNokCallback,
-		   read_reference_object_cb, (XtPointer) WLZEFF_FORMAT_ICS);
-     pattern_str = XmStringCreateSimple( "*.ics" );
-     break;
-
-   case WLZEFF_FORMAT_DEN:
-     XtAddCallback(read_obj_dialog, XmNokCallback,
-		   read_reference_object_cb, (XtPointer) WLZEFF_FORMAT_DEN);
-     pattern_str = XmStringCreateSimple( "*.den" );
-     break;
-
-   case WLZEFF_FORMAT_VFF:
-     XtAddCallback(read_obj_dialog, XmNokCallback,
-		   read_reference_object_cb, (XtPointer) WLZEFF_FORMAT_VFF);
-     pattern_str = XmStringCreateSimple( "*.vff" );
-     break;
-
-   case WLZEFF_FORMAT_PIC:
-     XtAddCallback(read_obj_dialog, XmNokCallback,
-		   read_reference_object_cb, (XtPointer) WLZEFF_FORMAT_PIC);
-     pattern_str = XmStringCreateSimple( "*.pic" );
-     break;
-
-   case WLZEFF_FORMAT_VTK:
-     XtAddCallback(read_obj_dialog, XmNokCallback,
-		   read_reference_object_cb, (XtPointer) WLZEFF_FORMAT_VTK);
-     pattern_str = XmStringCreateSimple( "*.vtk" );
-     break;
-
-   case WLZEFF_FORMAT_SLC:
-     XtAddCallback(read_obj_dialog, XmNokCallback,
-		   read_reference_object_cb, (XtPointer) WLZEFF_FORMAT_SLC);
-     pattern_str = XmStringCreateSimple( "*.slc" );
-     break;
-
-   case WLZEFF_FORMAT_IPL:
-     XtAddCallback(read_obj_dialog, XmNokCallback,
-		   read_reference_object_cb, (XtPointer) WLZEFF_FORMAT_IPL);
-     pattern_str = XmStringCreateSimple( "*.ipl" );
-     break;
-     
-   case WLZEFF_FORMAT_PNM:
-     XtAddCallback(read_obj_dialog, XmNokCallback,
-		   read_reference_object_cb, (XtPointer) WLZEFF_FORMAT_PNM);
-     pattern_str = XmStringCreateSimple( "*.p?m" );
-     break;
-     
-   case WLZEFF_FORMAT_BMP:
-     XtAddCallback(read_obj_dialog, XmNokCallback,
-		   read_reference_object_cb, (XtPointer) WLZEFF_FORMAT_BMP);
-     pattern_str = XmStringCreateSimple( "*.bmp" );
-     break;
-  }
-
-  /* XtAddCallback(read_obj_dialog, XmNokCallback, setup_ref_display_list_cb,
-		NULL);
-  XtAddCallback(read_obj_dialog, XmNokCallback, setup_obj_props_cb,
-  NULL);*/
-  XtAddCallback(read_obj_dialog, XmNokCallback, PopdownCallback, NULL);
-
-  XtVaSetValues(read_obj_dialog, XmNpattern, pattern_str, NULL);
-  XmStringFree( pattern_str );
-  XmFileSelectionDoSearch( read_obj_dialog, NULL );
-
-  return;
-}
-
-static void write_image_type_cb(
-  Widget	w,
-  XtPointer	client_data,
-  XtPointer	call_data)
-{
-  WlzEffFormat	image_type = (WlzEffFormat) client_data;
-  XmString	pattern_str;
-
-  XtRemoveAllCallbacks(write_obj_dialog, XmNokCallback);
-
-  switch( image_type )
-  {
-   default:
-   case WLZEFF_FORMAT_WLZ:
-     pattern_str = XmStringCreateSimple( "*.wlz" );
-     break;
-     
-   case WLZEFF_FORMAT_ICS:
-     pattern_str = XmStringCreateSimple( "*.ics" );
-     break;
-
-   case WLZEFF_FORMAT_DEN:
-     pattern_str = XmStringCreateSimple( "*.den" );
-     break;
-     
-   case WLZEFF_FORMAT_VFF:
-     pattern_str = XmStringCreateSimple( "*.vff" );
-     break;
-     
-   case WLZEFF_FORMAT_PIC:
-     pattern_str = XmStringCreateSimple( "*.pic" );
-     break;
-     
-   case WLZEFF_FORMAT_VTK:
-     pattern_str = XmStringCreateSimple( "*.vtk" );
-     break;
-     
-   case WLZEFF_FORMAT_SLC:
-     pattern_str = XmStringCreateSimple( "*.slc" );
-     break;
-     
-   case WLZEFF_FORMAT_PNM:
-     pattern_str = XmStringCreateSimple( "*.p?m" );
-     break;
-     
-   case WLZEFF_FORMAT_BMP:
-     pattern_str = XmStringCreateSimple( "*.bmp" );
-     break;
-     
-  }
-
-  XtAddCallback(write_obj_dialog, XmNokCallback,
-		write_reference_object_cb, client_data);
-  XtAddCallback(write_obj_dialog, XmNokCallback, PopdownCallback, NULL);
-
-  XtVaSetValues(write_obj_dialog, XmNpattern, pattern_str, NULL);
-  XmStringFree( pattern_str );
-  XmFileSelectionDoSearch( write_obj_dialog, NULL );
-
-  return;
 }
 
 void fileMenuPopupCb(
@@ -1405,7 +1110,7 @@ static XtResource set_att_res[] = {
 void file_menu_init(
   Widget	topl)
 {
-  Widget	form, file_type_menu, toggle;
+  Widget	rc, form, file_type_menu, toggle;
   XmString	xmstr;
   Visual	*visual;
   Arg		arg[1];
@@ -1433,55 +1138,38 @@ void file_menu_init(
   XtManageChild( read_model_dialog );
 
   /* create the read-obj file selection dialog */
-  read_obj_dialog = XmCreateFileSelectionDialog( topl,
-						"read_obj_dialog", arg, 1);
+  read_obj_dialog = WlzXmCreateExtFFObjectFSB(topl, "read_obj_dialog",
+					      read_reference_object_cb, NULL);
+  if( rc = XtNameToWidget(read_obj_dialog, "*.formatFormRC") ){
 
-  /* add a form to include file type and fill-blanks toggle */
-  form = XtVaCreateManagedWidget("read_file_form", xmFormWidgetClass,
-				 read_obj_dialog,
-				 XmNborderWidth,	0,
-				 NULL);
-
-  /* add a file type selection menu */
-  file_type_menu = HGU_XmBuildMenu(form, XmMENU_OPTION,
-				   "file_type", 0, XmTEAR_OFF_DISABLED,
-				   file_type_menu_itemsP);
-  XtVaSetValues(file_type_menu,
-		XmNtopAttachment,	XmATTACH_FORM,
-		XmNleftAttachment,	XmATTACH_FORM,
-		XmNrightAttachment,	XmATTACH_FORM,
-		NULL);
-  XtManageChild( file_type_menu );
-
-  /* add a fill-blanks toggles */
-  toggle = XtVaCreateManagedWidget("fill_blanks", xmToggleButtonGadgetClass,
-				   form,
-				   XmNindicatorOn, 	True,
-				   XmNindicatorType,	XmN_OF_MANY,
-				   XmNset,		False,
-				   XmNtopAttachment,	XmATTACH_WIDGET,
-				   XmNtopWidget,	file_type_menu,
-				   XmNleftAttachment,	XmATTACH_FORM,
+    /* add a form to include file type and fill-blanks toggle */
+    form = XtVaCreateManagedWidget("read_file_form", xmFormWidgetClass,
+				   rc,
+				   XmNborderWidth,	0,
 				   NULL);
 
-  toggle = XtVaCreateManagedWidget("min_domain", xmToggleButtonGadgetClass,
-				   form,
-				   XmNindicatorOn, 	True,
-				   XmNindicatorType,	XmN_OF_MANY,
-				   XmNset,		True,
-				   XmNtopAttachment,	XmATTACH_WIDGET,
-				   XmNtopWidget,	file_type_menu,
-				   XmNleftAttachment,	XmATTACH_WIDGET,
-				   XmNleftWidget,	toggle,
-				   NULL);
+    /* add a fill-blanks toggles */
+    toggle = XtVaCreateManagedWidget("fill_blanks", xmToggleButtonGadgetClass,
+				     form,
+				     XmNindicatorOn, 	True,
+				     XmNindicatorType,	XmN_OF_MANY,
+				     XmNset,		False,
+				     XmNtopAttachment,	XmATTACH_FORM,
+				     XmNleftAttachment,	XmATTACH_FORM,
+				     NULL);
 
-  /* add the callbacks */
-  image_type_cb( read_obj_dialog, (XtPointer) WLZEFF_FORMAT_WLZ,
-		NULL);
-  XtAddCallback( read_obj_dialog, XmNcancelCallback, 
-		PopdownCallback, NULL);
-  XtAddCallback(read_obj_dialog, XmNmapCallback,
-		FSBPopupCallback, NULL);
+    toggle = XtVaCreateManagedWidget("min_domain", xmToggleButtonGadgetClass,
+				     form,
+				     XmNindicatorOn, 	True,
+				     XmNindicatorType,	XmN_OF_MANY,
+				     XmNset,		True,
+				     XmNtopAttachment,	XmATTACH_FORM,
+				     XmNleftAttachment,	XmATTACH_WIDGET,
+				     XmNleftWidget,	toggle,
+				     NULL);
+  }
+
+  WlzXmExtFFObjectFSBSetType(read_obj_dialog, WLZEFF_FORMAT_WLZ);
   XtManageChild( read_obj_dialog );
 
   /* add to the save restore list */
@@ -1489,24 +1177,10 @@ void file_menu_init(
 			     (XtPointer) XtName(topl), NULL, NULL );
 
   /* create the write-obj file selection dialog */
-  write_obj_dialog = XmCreateFileSelectionDialog( topl,
-						 "write_obj_dialog",
-						 arg, 1);
-
-  /* add a file type selection menu */
-  file_type_menu = HGU_XmBuildMenu(write_obj_dialog, XmMENU_OPTION,
-				   "file_type", 0, XmTEAR_OFF_DISABLED,
-				   write_file_type_menu_itemsP);
-  XtManageChild( file_type_menu );
-
-  /* add the callbacks */
-  write_image_type_cb( write_obj_dialog, (XtPointer) WLZEFF_FORMAT_WLZ,
-		      NULL);
-  XtAddCallback( write_obj_dialog, XmNcancelCallback, 
-		PopdownCallback, NULL);
-  XtAddCallback(write_obj_dialog, XmNmapCallback,
-		FSBPopupCallback, NULL);
-  XtManageChild( write_obj_dialog );
+  write_obj_dialog = WlzXmCreateExtFFObjectFSB(topl, "write_obj_dialog",
+					       write_reference_object_cb,
+					       NULL);
+  WlzXmExtFFObjectFSBSetType(write_obj_dialog, WLZEFF_FORMAT_WLZ);
 
   /* add to the save restore list */
   HGU_XmSaveRestoreAddWidget( write_obj_dialog, HGU_XmFSD_SaveFunc,

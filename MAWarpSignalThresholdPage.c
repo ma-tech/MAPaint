@@ -13,7 +13,7 @@
 *   Author Name :  richard						*
 *   Author Login:  richard@hgu.mrc.ac.uk				*
 *   Date        :  Tue Dec 16 18:01:47 2003				*
-*   $Revision$								*
+*   $Revision$							*
 *   $Name$								*
 *   Synopsis    : 							*
 *************************************************************************
@@ -880,6 +880,7 @@ Widget createSignalThresholdPage(
   XtAddCallback(toggle, XmNvalueChangedCallback,
 		thresholdInteractToggleSelectCb,
 		(XtPointer) WLZ_RGBA_THRESH_SPHERE);
+  XtVaSetValues(radio_box, XmNmenuHistory, toggle, NULL);
   XtManageChild(radio_box);
 
   /* parameters for ellipsoid */

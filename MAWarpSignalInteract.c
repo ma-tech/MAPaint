@@ -32,6 +32,7 @@ extern void warpThreshRadiusSet(
 /* include a static undo list here.
    For simplicity no redo - no doubt the punters will want it */
 static AlcDLPList *sgnlIncrList=NULL;
+
 void sgnlListItemFree(
   void *entry)
 {

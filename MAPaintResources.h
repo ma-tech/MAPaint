@@ -25,6 +25,8 @@
 /* fallback resources  */
 static String  fallback_resources[] = {
 
+  "*OptionButton.labelString: bloop",
+
   /* tool tip preferences */
   "toolTipLabel.background:	white",
   "toolTipLabel.borderWidth:	2",
@@ -630,7 +632,7 @@ static String  fallback_resources[] = {
   "*view_dialog*warp_sgnl_controls_form*thresh_range_high.labelString: Threshold high val:",
 
   "*view_dialog*warp_sgnl_controls_form*thresh_range_red_low.labelString: R: low",
-  "*view_dialog*warp_sgnl_controls_form*thresh_range_red_high.labelString: high",
+   "*view_dialog*warp_sgnl_controls_form*thresh_range_red_high.labelString: high",
   "*view_dialog*warp_sgnl_controls_form*thresh_range_green_low.labelString: G: low",
   "*view_dialog*warp_sgnl_controls_form*thresh_range_green_high.labelString: high",
   "*view_dialog*warp_sgnl_controls_form*thresh_range_blue_low.labelString: B: low",
@@ -650,6 +652,23 @@ static String  fallback_resources[] = {
   "Structuring Element:",
   "*view_dialog*warp_sgnl_controls_form*post_process_page*struct_elem_radius.labelString: "
   "Struct Elem Radius:",
+
+  "*view_dialog*warp_sgnl_controls_form*post_process_smooth_page."
+  "size_select_type.labelString: Size filter:",
+  "*view_dialog*warp_sgnl_controls_form*post_process_smooth_page*"
+  "size_select_area.labelString: Size:",
+
+  "*view_dialog*warp_sgnl_controls_form*post_process_smooth_page."
+  "smooth_filter_type.labelString: Smooth filter:",
+  "*view_dialog*warp_sgnl_controls_form*post_process_smooth_page*"
+  "smooth_filter_width.labelString: Width:",
+
+  "*view_dialog*warp_sgnl_controls_form*post_process_smooth_page*"
+  "size_select.labelString: Apply filter",
+  "*view_dialog*warp_sgnl_controls_form*post_process_smooth_page*"
+  "smooth.labelString: Apply smooth",
+  "*view_dialog*warp_sgnl_controls_form*post_process_smooth_page*"
+  "undo.labelString: Undo",
 
   "*view_dialog*warp_input_2d_form*mesh_method.labelString: Mesh:",
   "*view_dialog*warp_input_2d_form*mesh_min_dist.labelString:	Mesh min distance:",

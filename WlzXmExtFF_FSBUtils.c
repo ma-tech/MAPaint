@@ -48,6 +48,90 @@ static void WlzXmFSBSelectImageTypeCb(
   return;
 }
 
+WlzErrorNum WlzXmWriteExtFFObject(
+  WlzObject				*obj,
+  Widget				dialog,
+  XmFileSelectionBoxCallbackStruct	*cbs,
+  WlzEffFormat				*dstFmt)
+{
+  WlzErrorNum	errNum=WLZ_ERR_NONE;
+  FILE		*fp;
+  WlzEffFormat	format;
+  String	filename;
+
+  /* get the dialog */
+  while( dialog && (XmIsFileSelectionBox(dialog)==False) ){
+    dialog = XtParent(dialog);
+  }
+  if( dialog == NULL ){
+    return;
+  }
+
+  /* get the image type */
+  if( errNum == WLZ_ERR_NONE ){
+    if( dialog ){
+      XtVaGetValues(dialog, XmNuserData, &format, NULL);
+    }
+    else {
+      errNum = WLZ_ERR_PARAM_DATA;
+    }
+  }
+
+  /* now write the object */
+  if( errNum == WLZ_ERR_NONE ){
+    switch( format ){
+    case WLZEFF_FORMAT_ICS:
+    case WLZEFF_FORMAT_PNM:
+    case WLZEFF_FORMAT_BMP:
+    case WLZEFF_FORMAT_TIFF:
+      if( filename = HGU_XmGetFileStr(dialog, cbs->value, cbs->dir) ){
+	errNum = WlzEffWriteObj(NULL, filename, obj, format);
+	AlcFree( filename );
+      }
+      else {
+	errNum = WLZ_ERR_PARAM_DATA;
+      }
+      break;
+
+    case WLZEFF_FORMAT_AM:
+    case WLZEFF_FORMAT_IPL:
+    case WLZEFF_FORMAT_VTK:
+    case WLZEFF_FORMAT_VFF:
+    case WLZEFF_FORMAT_SLC:
+    case WLZEFF_FORMAT_PIC:
+    case WLZEFF_FORMAT_DEN:
+    case WLZEFF_FORMAT_WLZ:
+    case WLZEFF_FORMAT_JPEG:
+      /* check file pointer */
+      if( (fp = HGU_XmGetFilePointer(dialog, cbs->value,
+				     cbs->dir, "wb")) == NULL ){
+	errNum = WLZ_ERR_FILE_OPEN;
+      }
+      else {
+	errNum = WlzEffWriteObj(fp, NULL, obj, format);
+	fclose(fp);
+      }
+      break;
+
+    case WLZEFF_FORMAT_RAW:
+      /* need more info for this */
+      errNum = WLZ_ERR_FILE_FORMAT;
+      break;
+
+    default:
+      obj = NULL;
+      errNum = WLZ_ERR_FILE_FORMAT;
+      break;
+    }
+  }
+
+  /* assign format return */
+  if( dstFmt ){
+    *dstFmt = format;
+  }
+  return errNum;
+}
+
 WlzObject *WlzXmReadExtFFObject(
   Widget				dialog,
   XmFileSelectionBoxCallbackStruct	*cbs,
@@ -56,15 +140,9 @@ WlzObject *WlzXmReadExtFFObject(
 {
   WlzObject	*obj=NULL;
   WlzErrorNum	errNum=WLZ_ERR_NONE;
-  FILE		*fp;
+  FILE		*fp=NULL;
   WlzEffFormat	format;
   String	filename;
-
-  /* check file pointer */
-  if( (fp = HGU_XmGetFilePointer(dialog, cbs->value,
-				 cbs->dir, "rb")) == NULL ){
-    errNum = WLZ_ERR_FILE_OPEN;
-  }
 
   /* get the image type */
   if( errNum == WLZ_ERR_NONE ){
@@ -101,7 +179,15 @@ WlzObject *WlzXmReadExtFFObject(
     case WLZEFF_FORMAT_DEN:
     case WLZEFF_FORMAT_WLZ:
     case WLZEFF_FORMAT_JPEG:
-      obj = WlzEffReadObj(fp, NULL, format, 0, &errNum);
+      /* check file pointer */
+      if( (fp = HGU_XmGetFilePointer(dialog, cbs->value,
+				     cbs->dir, "rb")) == NULL ){
+	errNum = WLZ_ERR_FILE_OPEN;
+      }
+      else {
+	obj = WlzEffReadObj(fp, NULL, format, 0, &errNum);
+	fclose(fp);
+      }
       break;
 
     case WLZEFF_FORMAT_RAW:
@@ -114,7 +200,6 @@ WlzObject *WlzXmReadExtFFObject(
       errNum = WLZ_ERR_FILE_FORMAT;
       break;
     }
-    fclose(fp);
   }
 
   /* assign return type and error */
@@ -182,6 +267,37 @@ Widget WlzXmCreateExtFFObjectFSB(
   WlzXmExtFFObjectFSBSetType(dialog, WLZEFF_FORMAT_WLZ);
 
   return dialog;
+}
+
+WlzEffFormat WlzXmExtFFObjectFSBGetType(
+  Widget	w,
+  WlzErrorNum	*dstErr)
+{
+  WlzEffFormat	format;
+  Widget	dialog=NULL;
+  WlzErrorNum	errNum=WLZ_ERR_NONE;
+
+  /* get the dialog */
+  dialog = w;
+  while( dialog && (XmIsFileSelectionBox(dialog)==False) ){
+    dialog = XtParent(dialog);
+  }
+  if( dialog == NULL ){
+    errNum = WLZ_ERR_PARAM_DATA;;
+  }
+
+  /* get the user data/format */
+  if( errNum == WLZ_ERR_NONE ){
+    XtVaGetValues(dialog, XmNuserData, &format, NULL);
+  }
+  else {
+    format = WLZEFF_FORMAT_NONE;
+  }
+
+  if( dstErr ){
+    *dstErr = errNum;
+  }
+  return format;
 }
 
 WlzErrorNum WlzXmExtFFObjectFSBSetType(

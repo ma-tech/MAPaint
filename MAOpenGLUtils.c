@@ -399,11 +399,11 @@ void MAOpenGLDisplaySection(
       mask = WlzAssignObject(view_struct->masked_object, &errNum);
       (void) glLineWidth((GLfloat) 3.0 );
       if( globals.toplDepth == 24 ){
-	glColor3f((GLfloat) 0.8, (GLfloat) 0.8, (GLfloat) 0.2);
+	glColor3f((GLfloat) 0.8, (GLfloat) 0.2, (GLfloat) 0.2);
       }
       else {
 	glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap,
-				    0.8, 0.8, 0.2));
+				    0.8, 0.2, 0.2));
       }
     }
     else {
@@ -436,11 +436,11 @@ void MAOpenGLDisplaySection(
       /* set the colour */
       (void) glLineWidth((GLfloat) 1.0 );
       if( globals.toplDepth == 24 ){
-	glColor3f((GLfloat) 0.8, (GLfloat) 0.2, (GLfloat) 0.2);
+	glColor3f((GLfloat) 0.8, (GLfloat) 0.8, (GLfloat) 0.2);
       }
       else {
 	glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap,
-				    0.8, 0.2, 0.2));
+				    0.8, 0.8, 0.2));
       }
     }
 
