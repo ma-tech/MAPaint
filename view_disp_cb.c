@@ -577,8 +577,8 @@ void view_feedback_cb(
       MAPaintReportWlzError(globals.topl, "view_feedback_cb", errNum);
       return;
     }
-    x = vtx.vtX;
-    y = vtx.vtY;
+    x = vtx.vtX - vl->view_struct->wlzViewStr->minvals.vtX;
+    y = vtx.vtY - vl->view_struct->wlzViewStr->minvals.vtY;
 
     angle = Wlz3DViewGetIntersectionAngle(wlzViewStr,
 					  vl->view_struct->wlzViewStr,

@@ -779,6 +779,35 @@ static void view_direction_toggle_cb(
   return;
 }
 
+static void voxelRescaleCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  WlzThreeDViewStruct	*wlzViewStr=view_struct->wlzViewStr;
+  XmToggleButtonCallbackStruct	*tbCbStruct = 
+    (XmToggleButtonCallbackStruct *) call_data;
+
+  if( tbCbStruct->set ){
+    wlzViewStr->voxelRescaleFlg = 1;
+  }
+  else {
+    wlzViewStr->voxelRescaleFlg = 0;
+  }
+  reset_view_struct( view_struct );
+
+  /* redisplay the section */
+  XClearWindow(XtDisplay(view_struct->canvas),
+	       XtWindow(view_struct->canvas));
+  display_view_cb(widget, (XtPointer) view_struct, call_data);
+
+  /* clear previous domains */
+  view_struct_clear_prev_obj( view_struct );
+
+  return;
+}
+
 static void view_controls_cb(
   Widget	widget,
   XtPointer	client_data,
@@ -1170,9 +1199,21 @@ Widget create_view_window_dialog(
 		XmNtopAttachment,	XmATTACH_FORM,
 		XmNleftAttachment,	XmATTACH_WIDGET,
 		XmNleftWidget,		widget,
-		XmNrightAttachment,	XmATTACH_FORM,
 		NULL);
   XtManageChild(option_menu);
+
+  /* add in toggle for voxel-size re-scaling */
+  button = XtVaCreateManagedWidget("voxel_rescale_toggle",
+				   xmToggleButtonGadgetClass, form,
+				   XmNleftAttachment,	XmATTACH_WIDGET,
+				   XmNleftWidget,	option_menu,
+				   XmNtopAttachment,	XmATTACH_OPPOSITE_WIDGET,
+				   XmNtopWidget,	option_menu,
+				   XmNbottomAttachment,	XmATTACH_OPPOSITE_WIDGET,
+				   XmNbottomWidget,	option_menu,
+				   XmNrightAttachment,	XmATTACH_FORM,
+				   NULL);
+  XtAddCallback(button, XmNvalueChangedCallback, voxelRescaleCb, view_struct);
 
   /* now the orientation sliders */
   slider = HGU_XmCreateHorizontalSlider("phi_slider", form,

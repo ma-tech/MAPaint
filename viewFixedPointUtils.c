@@ -574,6 +574,7 @@ void fixed_2_cb(
   float			x, y, z, s;
   WlzPolygonDomain	*startPoly, *poly;
   HGU_XInteractCallbacks	callbacks;
+  WlzAffineTransform	*trans;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   if( !wlzViewStr->initialised ){
@@ -681,10 +682,13 @@ void fixed_2_cb(
   }
   /* now the viewing direction which is by definition perpendicular
      to the vector between the fixed points - assumes that the fixed
-     points have been defined on the same visible section */
-  view_struct->norm2.vtX = wlzViewStr->rotation[2][0];
-  view_struct->norm2.vtY = wlzViewStr->rotation[2][1];
-  view_struct->norm2.vtZ = wlzViewStr->rotation[2][2];
+     points have been defined on the same visible section. Need the
+     inverse transform */
+  trans = WlzAffineTransformInverse(wlzViewStr->trans, &errNum);
+  view_struct->norm2.vtX = trans->mat[0][2];
+  view_struct->norm2.vtY = trans->mat[1][2];
+  view_struct->norm2.vtZ = trans->mat[2][2];
+  WlzFreeAffineTransform(trans);
 
   view_struct->norm3.vtX = y*view_struct->norm2.vtZ -
     z*view_struct->norm2.vtY;
