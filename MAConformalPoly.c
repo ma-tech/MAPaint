@@ -84,7 +84,7 @@ static void DisplayBoundF(
 }
 
 WlzBasisFnTransform *WlzConfPolyFromCPts(
-  WlzBasisFnType	type,
+  WlzFnType		type,
   int 			order,
   int 			nDPts,
   WlzDVertex2 		*dPts,
@@ -106,6 +106,7 @@ WlzBasisFnTransform *WlzConfPolyFromCPts(
   WlzDVertex2	powVx,
   		sVx;
   WlzBasisFnTransform *basis = NULL;
+  WlzBasisFn	*basisFn;
   WlzErrorNum	errNum = WLZ_ERR_NONE;
   int		nPts = nDPts;
   const double	tol = 1.0e-06;
@@ -122,14 +123,23 @@ WlzBasisFnTransform *WlzConfPolyFromCPts(
   }
   else
   {
-    basis->type = WLZ_TRANSFORM_2D_BASISFN;
-    basis->linkcount = 0;
-    basis->freeptr = NULL;
-    basis->basisFn = WLZ_BASISFN_POLY;
-    basis->nPoly = order;
-    basis->nBasis = 0;
-    basis->nVtx = 0;
-    basis->delta = 0.0;
+    if((basisFn = (WlzBasisFn *)
+	AlcCalloc(sizeof(WlzBasisFn), 1)) == NULL){
+      AlcFree(basis);
+      basis = NULL;
+      errNum = WLZ_ERR_MEM_ALLOC;
+    }
+    else {
+     basis->type = WLZ_TRANSFORM_2D_BASISFN;
+     basis->linkcount = 0;
+     basis->freeptr = NULL;
+     basisFn->type = WLZ_FN_BASIS_2DCONF_POLY;
+     basisFn->nPoly = order;
+     basisFn->nBasis = 0;
+     basisFn->nVtx = 0;
+     basisFn->param = AlcMalloc(sizeof(double));
+     *((double *) basisFn->param) = 0.0;
+    }
   }
 
   if(errNum == WLZ_ERR_NONE)
@@ -139,8 +149,7 @@ WlzBasisFnTransform *WlzConfPolyFromCPts(
        ((bMx = (double *)AlcMalloc(sizeof(double) * nPts)) == NULL) ||
        (AlcDouble2Malloc(&vMx, nPts, nCoef) != ALC_ER_NONE) ||
        (AlcDouble2Malloc(&aMx, nPts, nCoef) !=  ALC_ER_NONE) ||
-       ((basis->poly = (WlzDVertex2 *)
-		       AlcMalloc(sizeof(WlzDVertex2) * nCoef)) == NULL))
+       ((basisFn->poly.v = AlcMalloc(sizeof(WlzDVertex2) * nCoef)) == NULL))
     {
       errNum = WLZ_ERR_MEM_ALLOC;
     }
@@ -154,7 +163,7 @@ WlzBasisFnTransform *WlzConfPolyFromCPts(
       idN = 0;
       powVx.vtX = 1.0;
       sVx = *(sPts + idM);
-      for(idX = 0; idX <= basis->nPoly; ++idX)
+      for(idX = 0; idX <= basisFn->nPoly; ++idX)
       {
 	*(*(aMx + idM) + idX) = powVx.vtX;
 	powVx.vtX *= sVx.vtX;
@@ -197,7 +206,7 @@ WlzBasisFnTransform *WlzConfPolyFromCPts(
        y coordinate and re-solve. */
     for(idN = 0; idN < nCoef; ++idN)
     {
-      (basis->poly + idN)->vtX = *(bMx + idN);
+      (basisFn->poly.d2 + idN)->vtX = *(bMx + idN);
     }
     for(idM = 0; idM < nPts; ++idM)
     {
@@ -211,7 +220,7 @@ WlzBasisFnTransform *WlzConfPolyFromCPts(
     /* Copy out the ypolynomial coefficients. */
     for(idN = 0; idN < nCoef; ++idN)
     {
-      (basis->poly + idN)->vtY = *(bMx + idN);
+      (basisFn->poly.d2 + idN)->vtY = *(bMx + idN);
     }
   }
   if(bMx)
@@ -232,14 +241,21 @@ WlzBasisFnTransform *WlzConfPolyFromCPts(
   }
   if(errNum != WLZ_ERR_NONE)
   {
-    if(basis)
+    if(basisFn)
     {
-      if(basis->poly)
+      if(basisFn->poly.v)
       {
-	AlcFree(basis->poly);
+	AlcFree(basisFn->poly.v);
       }
+      if(basisFn->param){
+	AlcFree(basisFn->param);
+      }
+      AlcFree(basisFn);
+    }
+    if( basis ){
       AlcFree(basis);
-      }
+      basis = NULL;
+    }
   }
 
   if( dstErr ){
@@ -257,7 +273,7 @@ WlzFVertex2	WlzConfPolyTransformVertexF(WlzBasisFnTransform *basis,
   WlzFVertex2	dspVx;
   WlzDVertex2	*polyP;
 
-  polyP = basis->poly;
+  polyP = basis->basisFn->poly.d2;
   w.re = srcVx.vtX;
   w.im = srcVx.vtY;
   z.re = polyP[0].vtX;
@@ -265,7 +281,7 @@ WlzFVertex2	WlzConfPolyTransformVertexF(WlzBasisFnTransform *basis,
   powW.re = 1.0;
   powW.im = 0.0;
 
-  for(i=1; i <= basis->nPoly; i++){
+  for(i=1; i <= basis->basisFn->nPoly; i++){
     powW = AlgCMult(powW, w);
     a.re = polyP[i].vtX;
     a.im = polyP[i].vtY;
@@ -335,9 +351,9 @@ void conformalCalculateMeshCb(
 /*  basis = WlzConfPolyFromCPts(WLZ_BASISFN_CONF_POLY, 6,
 			       nPts, dPts, nPts, sPts,
 			       &wlzErr);*/
-  basis = WlzBasisFnTrFromCPts(WLZ_BASISFN_CONF_POLY, 2,
-			       nPts, dPts, nPts, sPts,
-			       &wlzErr);
+  basis = WlzBasisFnTrFromCPts2D(WLZ_FN_BASIS_2DCONF_POLY, 2,
+				 nPts, dPts, nPts, sPts,
+				 &wlzErr);
 
   /* calculate the mesh polylines */
   numMeshPolys = 20;
@@ -365,8 +381,8 @@ void conformalCalculateMeshCb(
     }*/
   for(i=0; i < 20; i++){
     double	theta, radius;
-    meshPolys[i] = WlzMakePolyDmn(WLZ_POLYGON_FLOAT,
-				  NULL, 0, 41, 1, NULL);
+    meshPolys[i] = WlzMakePolygonDomain(WLZ_POLYGON_FLOAT, 0,
+					NULL, 41, 1, NULL);
     fvtxs = (WlzFVertex2 *) meshPolys[i]->vtx;
     theta = (double) i * 2.0 * WLZ_M_PI / 20.0;
     for(j=0; j < 41; j++){
@@ -459,8 +475,9 @@ void conformal_input_cb(
 	fpVtx.vtX = cbs->event->xbutton.x;
 	fpVtx.vtY = cbs->event->xbutton.y;
 	startPoly = WlzAssignPolygonDomain(
-	  WlzMakePolyDmn(WLZ_POLYGON_FLOAT, (WlzIVertex2 *) &fpVtx,
-			 1, 1, 1, NULL), &errNum);
+	  WlzMakePolygonDomain(WLZ_POLYGON_FLOAT, 1,
+			       (WlzIVertex2 *) &fpVtx,
+			       1, 1, NULL), &errNum);
 	if( confPoly ){
 	  WlzFreePolyDmn(confPoly);
 	}
@@ -477,9 +494,9 @@ void conformal_input_cb(
 	if( polygon = WlzPolyTo8Polygon(confPoly, 1, &errNum) ){
 	  WlzFreePolyDmn(confPoly);
 	  if( confPoly = WlzAssignPolygonDomain(
-	    WlzMakePolyDmn(WLZ_POLYGON_INT,
-			   polygon->domain.poly->vtx,
+	    WlzMakePolygonDomain(WLZ_POLYGON_INT, 
 			   polygon->domain.poly->nvertices,
+			   polygon->domain.poly->vtx,
 			   polygon->domain.poly->nvertices,
 			   1, &errNum), NULL)){
 	    confPoly->type = WLZ_POLYGON_FLOAT;

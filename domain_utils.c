@@ -323,11 +323,6 @@ void setDomainIncrement(
   if( obj == NULL || WlzIsEmpty(obj, NULL) )
     return;
 
-  if( fp = fopen("qwe4.wlz", "w") ){
-    WlzWriteObj(fp, obj);
-    fclose(fp);
-  }
-
   /* check the view object */
   if( view_struct->view_object == NULL ){
     if( obj1 = WlzGetSectionFromObject(globals.orig_obj,
@@ -376,10 +371,6 @@ void setDomainIncrement(
     obj1 = WlzMakeMain(obj->type, obj->domain, values, NULL, NULL, NULL);
     obj1 = WlzAssignObject(obj1, NULL);
     dominanceFlag = 1;
-  }
-  if( fp = fopen("qwe5.wlz", "w") ){
-    WlzWriteObj(fp, obj1);
-    fclose(fp);
   }
 
   for(j=1;(errNum == WLZ_ERR_NONE) && (j <= numOverlays); j++){
@@ -461,10 +452,6 @@ void setDomainIncrement(
 				view_struct->painted_object,
 				globals.cmapstruct->ovly_cols[i],
 				globals.cmapstruct->ovly_planes);
-  }
-  if( fp = fopen("qwe8.wlz", "w") ){
-    WlzWriteObj(fp, view_struct->curr_domain[i]);
-    fclose(fp);
   }
   
   /* redisplay this view */

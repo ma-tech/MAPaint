@@ -599,9 +599,9 @@ void fixed_2_cb(
       * wlzViewStr->scale;
     fpVtx.vtY = (0 - view_struct->view_object->domain.i->line1)
       * wlzViewStr->scale;
-    if( startPoly = WlzMakePolyDmn(WLZ_POLYGON_FLOAT,
-				   (WlzIVertex2 *) &fpVtx,
-				   1, 1, 1, &errNum) ){
+    if( startPoly = WlzMakePolygonDomain(WLZ_POLYGON_FLOAT, 1,
+					 (WlzIVertex2 *) &fpVtx,
+					 1, 1, &errNum) ){
       startPoly = WlzAssignPolygonDomain(startPoly, NULL);
     }
     else {
@@ -1056,7 +1056,7 @@ void special_coords_write_cb(
 
   /* call the disarm callbacks to remove any timeouts and avoid posting
      the menu */
-  XtCallCallbacks(w, XmNdisarmCallback, call_data);
+  /* XtCallCallbacks(w, XmNdisarmCallback, call_data);*/
 
   /* get a filename for the section parameters */
   if( fileStr =
@@ -1195,8 +1195,8 @@ void controls_io_read_cb(
   double		oldScale, newScale;
 
   /* call the disarm callbacks to remove any timeouts and avoid posting
-     th emenu */
-  XtCallCallbacks(w, XmNdisarmCallback, call_data);
+     the menu */
+  /*XtCallCallbacks(w, XmNdisarmCallback, call_data);*/
 
   /* get a filename for the section parameters */
   if( fileStr = HGU_XmUserGetFilename(globals.topl,
@@ -1234,7 +1234,6 @@ void controls_io_read_cb(
       oldScale = wlzViewStr->scale;
       WlzEffBibParse3DSectionViewParamsRecord(bibfileRecord, wlzViewStr);
       BibFileRecordFree(&bibfileRecord);
-      (void) fclose(fp);
 
       /* normal viewing sliders active and unset fixed-line mode */
       setViewSliderSensitivities(view_struct, True);

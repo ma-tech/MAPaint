@@ -403,8 +403,8 @@ void MAPaintDraw2DCb(
       fpVtx.vtX = cbs->event->xbutton.x;
       fpVtx.vtY = cbs->event->xbutton.y;
       startPoly = WlzAssignPolygonDomain(
-	WlzMakePolyDmn(WLZ_POLYGON_FLOAT, (WlzIVertex2 *) &fpVtx,
-		       1, 1, 1, NULL), NULL);
+	WlzMakePolygonDomain(WLZ_POLYGON_FLOAT, 1, (WlzIVertex2 *) &fpVtx,
+			     1, 1, NULL), NULL);
       globals.paint_action_quit_flag = 0;
       poly = HGU_XGetPolyDomain(XtDisplay(view_struct->canvas),
 				XtWindow(view_struct->canvas),

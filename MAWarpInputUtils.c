@@ -198,10 +198,10 @@ void warpSetOvlyObject(void)
   }
   polyOrder = WLZ_MIN(4, warpGlobals.num_vtxs - 1);
   if( !(warpGlobals.basisTr =
-     WlzBasisFnTrFromCPts(warpGlobals.basisFnType, polyOrder,
-			  warpGlobals.num_vtxs, srcVtxs,
-			  warpGlobals.num_vtxs, dstVtxs,
-			  &errNum)) ){
+     WlzBasisFnTrFromCPts2D(warpGlobals.wlzFnType, polyOrder,
+			    warpGlobals.num_vtxs, srcVtxs,
+			    warpGlobals.num_vtxs, dstVtxs,
+			    &errNum)) ){
 
     (void) WlzStringFromErrorNum(errNum, &warpErrStr);
     sprintf(warpErrBuf,
@@ -559,7 +559,7 @@ void warpIOWrite(
 
       /* write the warp transform parameters */
       if( WlzEffBibWriteWarpTransformParamsRecord(fp, "WlzWarpTransformParams",
-						  warpGlobals.basisFnType,
+						  warpGlobals.wlzFnType,
 						  warpGlobals.affineType,
 						  warpGlobals.meshMthd,
 						  warpGlobals.meshMinDst,
@@ -764,14 +764,14 @@ void warpIORead(
 
 	/* check for warp transform parameters */
 	if( !strncmp(bibfileRecord->name, "WlzWarpTransformParams", 22) ){
-	  WlzBasisFnType	basisFnType;
+	  WlzFnType		wlzFnType;
 	  WlzMeshGenMethod	meshMthd;
 	  int			meshMinDst;
 	  int	 		meshMaxDst;
 	  WlzTransformType	affineType;
 
 	  WlzEffBibParseWarpTransformParamsRecord(bibfileRecord,
-						  &basisFnType,
+						  &wlzFnType,
 						  &affineType,
 						  &meshMthd,
 						  &meshMinDst, &meshMaxDst);
@@ -779,23 +779,23 @@ void warpIORead(
 	     is not set  - now it is */
 	  if( option_menu = XtNameToWidget(view_struct->dialog,
 					   "*.mesh_function") ){
-	    switch( basisFnType ){
+	    switch( wlzFnType ){
 	    default:
-	    case WLZ_BASISFN_MQ:
+	    case WLZ_FN_BASIS_2DMQ:
 	      if( widget = XtNameToWidget(option_menu, "*.multiquadric") ){
 		XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
 		XtCallCallbacks(widget, XmNactivateCallback, NULL);
 	      }
 	      break;
 
-	    case WLZ_BASISFN_TPS:
+	    case WLZ_FN_BASIS_2DTPS:
 	      if( widget = XtNameToWidget(option_menu, "*.thin-plate spline") ){
 		XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
 		XtCallCallbacks(widget, XmNactivateCallback, NULL);
 	      }
 	      break;
 
-	    case WLZ_BASISFN_POLY:
+	    case WLZ_FN_BASIS_2DPOLY:
 	      if( widget = XtNameToWidget(option_menu, "*.polynomial") ){
 		XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
 		XtCallCallbacks(widget, XmNactivateCallback, NULL);
@@ -935,7 +935,7 @@ void warpIORead(
 			    &fileStr, &fileType);
 
 	  /* read the image and install */
-	  if( obj = WlzEffReadObj(NULL, fileStr, fileType, &errNum) ){
+	  if( obj = WlzEffReadObj(NULL, fileStr, fileType, 0, &errNum) ){
 	    if((obj->type == WLZ_2D_DOMAINOBJ) &&
 	       (obj->values.core != NULL)){
 	      warpGlobals.srcFile = fileStr;
@@ -981,7 +981,7 @@ void warpIORead(
 			    &fileStr, &fileType);
 
 	  /* read the image and install */
-	  if( obj = WlzEffReadObj(NULL, fileStr, fileType, &errNum) ){
+	  if( obj = WlzEffReadObj(NULL, fileStr, fileType, 0, &errNum) ){
 	    warpGlobals.sgnlFile = fileStr;
 	    warpGlobals.sgnlFileType = fileType;
 	    if( warpGlobals.sgnl.obj ){

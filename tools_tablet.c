@@ -539,7 +539,8 @@ static void TabletPolyNextPoint(
 
   /* create the polygon if required */
   if( tabletPoly == NULL ){
-    tabletPoly = WlzMakePolyDmn(WLZ_POLYGON_INT, NULL, 0, 256, 1, NULL);
+    tabletPoly = WlzMakePolygonDomain(WLZ_POLYGON_INT,
+				      0, NULL, 256, 1, NULL);
     tabletPoly->vtx[0].vtX = x;
     tabletPoly->vtx[0].vtY = y;
     tabletPoly->nvertices = 1;
@@ -555,8 +556,9 @@ static void TabletPolyNextPoint(
 
   /* check if more points needed */
   if( lastVtx >= tabletPoly->maxvertices ){
-    tmpPoly = WlzMakePolyDmn(WLZ_POLYGON_INT, tabletPoly->vtx, lastVtx,
-			     lastVtx + 256, 1, NULL);
+    tmpPoly = WlzMakePolygonDomain(WLZ_POLYGON_INT, lastVtx,
+				   tabletPoly->vtx,
+				   lastVtx + 256, 1, NULL);
     WlzFreePolyDmn(tabletPoly);
     tabletPoly = tmpPoly;
   }

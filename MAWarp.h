@@ -108,7 +108,7 @@ typedef struct {
   WlzAffineTransform	*affine;
   WlzTransformType	affineType;
   WlzBasisFnTransform	*basisTr;
-  WlzBasisFnType	basisFnType;
+  WlzFnType		wlzFnType;
   WlzMeshTransform	*meshTr;
   int			meshErrFlg;
   WlzMeshGenMethod	meshMthd;

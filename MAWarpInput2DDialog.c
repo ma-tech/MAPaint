@@ -76,10 +76,10 @@ void warpMeshFunctionCb(
   XtPointer		client_data,
   XtPointer		call_data)
 {
-  WlzBasisFnType	basisFn=(WlzBasisFnType) client_data;
+  WlzFnType		wlzFnType=(WlzFnType) client_data;
   WlzErrorNum		errNum;
 
-  warpGlobals.basisFnType = basisFn;
+  warpGlobals.wlzFnType = wlzFnType;
 
   return;
 }
@@ -493,7 +493,7 @@ void warpReadSignalCb(
   warpGlobals.sgnlFileType = WLZEFF_FORMAT_WLZ;
 
   /* read the new signal object - ready to extend to other types */
-  obj = WlzEffReadObj(fp, NULL, WLZEFF_FORMAT_WLZ, &errNum);
+  obj = WlzEffReadObj(fp, NULL, WLZEFF_FORMAT_WLZ, 0, &errNum);
   fclose(fp);
 
   /* check the object */
@@ -615,7 +615,7 @@ void warpReadSourceCb(
   warpGlobals.srcFileType = WLZEFF_FORMAT_WLZ;
 
   /* read the new source object - ready to extend to other types */
-  obj = WlzEffReadObj(fp, NULL, WLZEFF_FORMAT_WLZ, &errNum);
+  obj = WlzEffReadObj(fp, NULL, WLZEFF_FORMAT_WLZ, 0, &errNum);
   fclose(fp);
 
   /* check the object */
@@ -1085,10 +1085,6 @@ void mapWarpDataCb(
   if((warpGlobals.sgnlObj == NULL)){
     return;
   }
-  if( fp = fopen("qwe1.wlz", "w") ){
-    WlzWriteObj(fp, warpGlobals.sgnlObj);
-    fclose(fp);
-  }
 
   /* shift the signal object for the -ve bounds-obj mesh bug */
   if( tmpObj = WlzAssignObject(
@@ -1098,15 +1094,7 @@ void mapWarpDataCb(
     /* transform the domain and add to current domain */
     if( obj = mapaintWarpObj(tmpObj,
 			     WLZ_INTERPOLATION_NEAREST) ){
-  if( fp = fopen("qwe3.wlz", "w") ){
-    WlzWriteObj(fp, obj);
-    fclose(fp);
-  }
       pushUndoDomains(view_struct);
-  if( fp = fopen("qwe3a.wlz", "w") ){
-    WlzWriteObj(fp, obj);
-    fclose(fp);
-  }
       setDomainIncrement(obj, view_struct, globals.current_domain, 0);
       WlzFreeObj(obj);
     }
@@ -1826,19 +1814,19 @@ static MenuItem mesh_menu_itemsP[] = {		/* mesh_menu items */
 
 static MenuItem interpFunctionItemsP[] = { /* interp_function_menu items */
   {"multiquadric", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   warpMeshFunctionCb, (XtPointer) WLZ_BASISFN_MQ,
+   warpMeshFunctionCb, (XtPointer) WLZ_FN_BASIS_2DMQ,
    HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"thin-plate spline", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   warpMeshFunctionCb, (XtPointer) WLZ_BASISFN_TPS,
+   warpMeshFunctionCb, (XtPointer) WLZ_FN_BASIS_2DTPS,
    HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
   {"polynomial", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   warpMeshFunctionCb, (XtPointer) WLZ_BASISFN_POLY,
+   warpMeshFunctionCb, (XtPointer) WLZ_FN_BASIS_2DPOLY,
    HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
 /*{"gaussian", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   warpMeshFunctionCb, (XtPointer) WLZ_BASISFN_GAUSS,
+   warpMeshFunctionCb, (XtPointer) WLZ_FN_BASIS_2DGAUSS,
    HGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},*/
   NULL,
@@ -2272,7 +2260,7 @@ Widget createWarpInput2DDialog(
   warpGlobals.affine = NULL;
   warpGlobals.affineType = WLZ_TRANSFORM_2D_NOSHEAR;
   warpGlobals.basisTr = NULL;
-  warpGlobals.basisFnType = WLZ_BASISFN_MQ;
+  warpGlobals.wlzFnType = WLZ_FN_BASIS_2DMQ;
   warpGlobals.meshTr = NULL;
   warpGlobals.meshErrFlg = 0;
   warpGlobals.meshMthd = WLZ_MESH_GENMETHOD_GRADIENT;

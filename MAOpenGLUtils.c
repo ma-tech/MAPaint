@@ -420,9 +420,9 @@ void MAOpenGLDisplaySection(
 	vtxs2[vtxCntr].vtY = vtxs3[vtxCntr].vtY;
 	vtxCntr++;
       }
-      domain.poly = WlzMakePolyDmn(WLZ_POLYGON_DOUBLE,
+      domain.poly = WlzMakePolygonDomain(WLZ_POLYGON_DOUBLE, num_vtxs,
 				   (WlzIVertex2 *) (&vtxs2[0]),
-				   num_vtxs, num_vtxs, 1, &errNum);
+				   num_vtxs, 1, &errNum);
       if( templ = WlzPolyToObj(domain.poly, WLZ_SIMPLE_FILL, &errNum) ){
 	templ = WlzAssignObject(templ, NULL);
 	if( mask = WlzDiffDomain(templ, view_struct->masked_object,

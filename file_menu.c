@@ -321,7 +321,7 @@ void ReferenceFileListCb(
   
     /* read the new reference object */
     HGU_XmSetHourGlassCursor(globals.topl);
-    obj = WlzEffReadObj(fp, refFileList[fileIndex], image_type, &errNum);
+    obj = WlzEffReadObj(fp, refFileList[fileIndex], image_type, 0, &errNum);
 
     /* close the file pointer if non NULL */
     if( fp )
@@ -937,7 +937,7 @@ void read_reference_object_cb(
   HGU_XmSetHourGlassCursor(globals.topl);
 
   /* read the new reference object */
-  obj = WlzEffReadObj(fp, icsfile, image_type, NULL);
+  obj = WlzEffReadObj(fp, icsfile, image_type, 0, NULL);
 
   /* close the file pointer if non NULL */
   if( fp )
