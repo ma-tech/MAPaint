@@ -442,7 +442,7 @@ XtPointer	call_data)
     /* set the title of the top-level car */
     if( XmStringGetLtoR(cbs->value, XmSTRING_DEFAULT_CHARSET, &icsfile) ){
        set_topl_title(icsfile);
-       XtFree(icsfile);
+       globals.file = icsfile;
     }
 
     /* set hour glass cursor */

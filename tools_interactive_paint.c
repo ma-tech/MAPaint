@@ -672,7 +672,17 @@ static void thresholdCanvasMotionEventHandler(
 
   /* check if initialised */
   if( threshold_gVWSp == NULL ){
-    return;
+    /* attempt to reset */
+    if( view_struct->view_object == NULL ){
+      view_struct->view_object =
+	WlzGetSectionFromObject(globals.orig_obj,
+				view_struct->wlzViewStr,
+				NULL);
+    }
+    if( (threshold_gVWSp = WlzGreyValueMakeWSp(view_struct->view_object,
+					      NULL)) == NULL ){
+      return;
+    }
   }
 
   /* call the canvas input callbacks */
@@ -1033,6 +1043,12 @@ void MAPaintThreshold2DCb(
       if( cbs->event->xkey.state&(Mod1Mask|Mod2Mask) ){
 	changeThreshRange(0);
       }
+      else {
+	/* maybe resetting the view */
+	/* clear the grey-value workspace */
+	WlzGreyValueFreeWSp(threshold_gVWSp);
+	threshold_gVWSp = NULL;
+      }
       break;
 
     case XK_Up:
@@ -1044,6 +1060,12 @@ void MAPaintThreshold2DCb(
       /* if <alt> or <alt gr> pressed then change tool option */
       if( cbs->event->xkey.state&(Mod1Mask|Mod2Mask) ){
 	changeThreshRange(1);
+      }
+      else {
+	/* maybe resetting the view */
+	/* clear the grey-value workspace */
+	WlzGreyValueFreeWSp(threshold_gVWSp);
+	threshold_gVWSp = NULL;
       }
       break;
 

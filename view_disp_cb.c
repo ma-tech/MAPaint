@@ -328,6 +328,7 @@ void view_feedback_cb(
 		       Unsorted);
     XDrawLine(dpy, win, globals.gc_set, x0, y0, x1, y1);
     XFlush( dpy );
+    XSetClipMask(dpy, globals.gc_set, None);
     vl = vl->next;
   }
 

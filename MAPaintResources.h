@@ -89,6 +89,7 @@ static String  fallback_resources[] = {
     "*read_obj_dialog.pattern:				*.wlz",
     "*read_obj_dialog.file_type.labelString:		Select image type:",
     "*read_obj_dialog.file_type.borderWidth:		0",
+    "*read_obj_dialog.directory:	/opt/MouseAtlas/reconstructions",
     "*write_obj_dialog_popup.mappedWhenManaged:		False",
     "*write_obj_dialog.dialogTitle:		  Write 3D ReferenceObject",
     "*write_obj_dialog.pattern:				*.wlz",
@@ -431,6 +432,10 @@ static String  fallback_resources[] = {
     "*view_dialog*poly_mode_select_label.labelString: Mode:",
     "*view_dialog*poly_mode_select.polyline.labelString:	Polyline",
     "*view_dialog*poly_mode_select.straight_line.labelString:	Str. Line",
+    "*view_dialog*realignment_form*reset.labelString:	Reset poly",
+    "*view_dialog*realignment_form*apply.labelString:	Apply trans",
+    "*view_dialog*realignment_form*undo.labelString:	Undo trans",
+    "*view_dialog*realignment_form*i_o.labelString:	I/O",
 
     /* help_menu */
     "*helpDefaultUrl:		file:/net/glenturret/export/data0/richard/MouseAtlas/Docs/paint_help/paint_help.html",

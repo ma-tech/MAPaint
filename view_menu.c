@@ -272,7 +272,12 @@ void ViewFeedback(
     break;
 
   case MapNotify:
-    display_view_cb(w, vl->view_struct, NULL);
+    if( vl->view_struct->wlzViewStr->initialised ){
+      redisplay_view_cb(w, vl->view_struct, NULL);
+    }
+    else {
+      display_view_cb(w, vl->view_struct, NULL);
+    }
     break;
 
   default:
@@ -574,9 +579,11 @@ static void saveSectionCb(
 
   /* get the view object */
   if( view_struct->view_object == NULL ){
-    view_struct->view_object = WlzGetSectionFromObject(globals.orig_obj,
-						       wlzViewStr,
-						       NULL);
+    view_struct->view_object =
+      WlzAssignObject(WlzGetSectionFromObject(globals.orig_obj,
+					      wlzViewStr,
+					      NULL), NULL);
+    
   }
 
   /* get a filename for the section object */

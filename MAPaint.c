@@ -1,7 +1,7 @@
 #pragma ident "MRC HGU $Id$"
 /************************************************************************
 * Project:	MRC HGU General IP and Display Utilities		*
-* Title:	paint.c							*
+* Title:	MAPaint.c						*
 * Author:	Richard Baldock, MRC Human Genetics Unit		*
 * Copyright:	Medical Research Council, UK.				*
 * Date:		

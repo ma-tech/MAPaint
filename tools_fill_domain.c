@@ -63,6 +63,18 @@ WlzObject *getSelectedRegion(
     return NULL;
   }
 
+  /* check for painted object */
+  if( view_struct->painted_object == NULL ){
+    WlzObject	*sectObj;
+    sectObj = WlzGetSectionFromObject(globals.obj, wlzViewStr, NULL);
+    if( sectObj ){
+      view_struct->painted_object = WlzAssignObject(sectObj, NULL);
+    }
+    else {
+      return NULL;
+    }
+  }
+
   /* check scaling and offsets */
   x /= wlzViewStr->scale;
   y /= wlzViewStr->scale;

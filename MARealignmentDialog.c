@@ -9,6 +9,7 @@
 *************************************************************************
 *   Project    :   Mouse Atlas Project					*
 *   File       :   MARealignmentDialog.c				*
+* $Revision$
 *************************************************************************
 *   Author Name :  Richard Baldock					*
 *   Author Login:  richard@hgu.mrc.ac.uk				*
@@ -20,28 +21,80 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+#include <time.h>
 
 #include <MAPaint.h>
+
+#include <Reconstruct.h>
 
 extern Widget create_view_window_dialog(Widget topl,
 					double theta,
 					double phi,
 					WlzDVertex3 *fixed);
 
-static int		alignBufferSize=100;
-static XPoint		*srcPoly, *dstPoly, *tmpPoly;
-static WlzObject	*origPaintedObject;
+static int			alignBufferSize=100;
+static XPoint			*srcPoly=NULL, *dstPoly=NULL, *tmpPoly=NULL;
+static WlzObject		*origPaintedObject=NULL;
+static WlzObject		*origRefObj=NULL, *origObj=NULL;
+static WlzObject		*transformsObj=NULL;
 
 void realignmentCb(
   Widget		w,
   XtPointer		client_data,
   XtPointer		call_data)
 {
-  Widget	dialog;
+  Widget	dialog, widget;
 
-  dialog = createRealignmentDialog(globals.topl);
-  XtManageChild(dialog);
+  if( dialog = createRealignmentDialog(globals.topl) ){
+    if( widget = XtNameToWidget(globals.topl, "*options_menu*realignment") ){
+      XtSetSensitive(widget, False);
+    }
+    XtManageChild(dialog);
+  }
 
+  return;
+}
+
+void realignmentDestroyCb(
+  Widget		w,
+  XtPointer		client_data,
+  XtPointer		call_data)
+{
+  Widget	widget;
+
+  if( origRefObj ){
+    WlzFreeObj(origRefObj);
+    origRefObj = NULL;
+  }
+  if( origObj ){
+    WlzFreeObj(origObj);
+    origObj = NULL;
+  }
+  if( origPaintedObject ){
+    WlzFreeObj(origPaintedObject);
+    origPaintedObject = NULL;
+  }
+
+  if( srcPoly ){
+    AlcFree((void *) srcPoly);
+    srcPoly = NULL;
+  }
+  if( dstPoly ){
+    AlcFree((void *) dstPoly);
+    dstPoly = NULL;
+  }
+
+  if( transformsObj ){
+    WlzFreeObj(transformsObj);
+    transformsObj = NULL;
+  }
+
+  if( widget = XtNameToWidget(globals.topl, "*options_menu*realignment") ){
+    XtSetSensitive(widget, True);
+  }
+  
   return;
 }
 
@@ -151,6 +204,492 @@ void resetRealignPolyCb(
 
   realignSetImage(view_struct);
   realignDisplayPolysCb(w, client_data, call_data);
+  return;
+}
+
+WlzObject *WlzAffineTransformObj3D(
+  WlzObject	*obj,
+  WlzObject	*transObj,
+  WlzErrorNum	*dstErr)
+{
+  WlzErrorNum	errNum=WLZ_ERR_NONE;
+  WlzObject	*rtnObj=NULL;
+  WlzDomain	domain;
+  WlzValues	values;
+  int		p, nPlanes;
+  WlzObject	*obj1, *obj2;
+
+  /* make the new object */
+  domain.p = WlzMakePlaneDomain(obj->domain.p->type,
+				obj->domain.p->plane1,
+				obj->domain.p->lastpl,
+				obj->domain.p->line1,
+				obj->domain.p->lastln,
+				obj->domain.p->kol1,
+				obj->domain.p->lastkl,
+				&errNum);
+  for(p=0; p < 3; p++){
+    domain.p->voxel_size[p] = obj->domain.p->voxel_size[p];
+  }
+
+  if( obj->values.core ){
+    values.vox = WlzMakeVoxelValueTb(obj->values.vox->type,
+				     obj->values.vox->plane1,
+				     obj->values.vox->lastpl,
+				     obj->values.vox->bckgrnd,
+				     NULL, &errNum);
+  }
+  else {
+    values.vox = NULL;
+  }
+  rtnObj = WlzMakeMain(origRefObj->type, domain, values,
+		       NULL, NULL, &errNum);
+
+  /* apply the transform plane by plane */
+  nPlanes = obj->domain.p->lastpl - obj->domain.p->plane1 + 1;
+  for(p=0; p < nPlanes; p++){
+    /* get the plane to be transformed */
+    if( obj->values.core ){
+      obj1 = WlzMakeMain(WLZ_2D_DOMAINOBJ,
+			 obj->domain.p->domains[p],
+			 obj->values.vox->values[p],
+			 NULL, NULL, NULL);
+    }
+    else {
+      obj1 = WlzMakeMain(WLZ_2D_DOMAINOBJ,
+			 obj->domain.p->domains[p],
+			 obj->values,
+			 NULL, NULL, NULL);
+    }
+    obj1 = WlzAssignObject(obj1, NULL);
+
+    /* now transform it */
+    if(((p + obj->domain.p->plane1) >= transObj->domain.p->plane1) &&
+       ((p + obj->domain.p->plane1) <= transObj->domain.p->lastpl) &&
+       (transObj->domain.p->domains[p]).t ){
+      obj2 = WlzAffineTransformObj(obj1,
+				   (transObj->domain.p->domains[p]).t,
+				   WLZ_INTERPOLATION_NEAREST, NULL);
+      rtnObj->domain.p->domains[p] = WlzAssignDomain(obj2->domain, NULL);
+      rtnObj->values.vox->values[p] = WlzAssignValues(obj2->values, NULL);
+      WlzFreeObj(obj2);
+    }
+    else {
+      rtnObj->domain.p->domains[p] = WlzAssignDomain(obj1->domain, NULL);
+      rtnObj->values.vox->values[p] = WlzAssignValues(obj1->values, NULL);
+    }
+    WlzFreeObj(obj1);
+  }
+
+  /* standardise the plane domain and voxel table */
+   WlzStandardPlaneDomain(rtnObj->domain.p, rtnObj->values.vox);
+
+  if( dstErr ){
+    *dstErr = errNum;
+  }
+  return rtnObj;
+}
+
+WlzObject *WlzMakeTransformObj3D(
+  WlzObject	*obj,
+  WlzErrorNum	*dstErr)
+{
+  WlzErrorNum	errNum = WLZ_ERR_NONE;
+  WlzDomain	domain;
+  WlzValues	values;
+  WlzObject	*rtnObj=NULL;
+  int		i;
+
+  if( domain.p = WlzMakePlaneDomain(WLZ_PLANEDOMAIN_AFFINE,
+				    obj->domain.p->plane1,
+				    obj->domain.p->lastpl,
+				    obj->domain.p->line1,
+				    obj->domain.p->lastln,
+				    obj->domain.p->kol1,
+				    obj->domain.p->lastkl,
+				    &errNum) ){
+    for(i=0; i < 3; i++){
+      domain.p->voxel_size[i] = obj->domain.p->voxel_size[i];
+    }
+    values.core = NULL;
+    rtnObj = WlzMakeMain(WLZ_3D_DOMAINOBJ,
+			 domain, values, NULL, NULL, NULL);
+  }
+
+  if( dstErr ){
+    *dstErr = errNum;
+  }
+  return rtnObj;
+}
+
+static void realignUpdateTransformsObj(
+  ThreeDViewStruct	*view_struct)
+{
+  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
+  int		i, p, nPlanes = view_struct->ximage->height;
+  int		x, y, origWidth;
+  int		kol1, kol2, line1, line2, plane1, plane2;
+  WlzAffineTransform	*newTrans, *tmpTrans;
+
+  /* fill transforms as required */
+  for(i=0; i < nPlanes; i++){
+    /* get true coordinates and build the new transform */
+    origWidth = wlzViewStr->maxvals.vtX - wlzViewStr->minvals.vtX + 1;
+    x = srcPoly[i].x / wlzViewStr->scale - alignBufferSize;
+    x = WLZ_MAX(0, x);
+    x = WLZ_MIN(x, origWidth);
+    y = i;
+    kol1 = (int) (wlzViewStr->xp_to_x[x] + wlzViewStr->yp_to_x[y]);
+    line1 = (int) (wlzViewStr->xp_to_y[x] + wlzViewStr->yp_to_y[y]);
+    plane1 = (int) (wlzViewStr->xp_to_z[x] + wlzViewStr->yp_to_z[y]);
+
+    x = dstPoly[i].x / wlzViewStr->scale - alignBufferSize;
+    x = WLZ_MAX(0, x);
+    x = WLZ_MIN(x, origWidth);
+    kol2 = (int) (wlzViewStr->xp_to_x[x] + wlzViewStr->yp_to_x[y]);
+    line2 = (int) (wlzViewStr->xp_to_y[x] + wlzViewStr->yp_to_y[y]);
+    plane2 = (int) (wlzViewStr->xp_to_z[x] + wlzViewStr->yp_to_z[y]);
+
+    if( plane1 != plane2 ){
+      HGU_XmUserError(view_struct->dialog,
+		      "Something wrong here, original planes\n"
+		      "not coming out equal. Please check the\n"
+		      "pitch angle which should be 90 degrees",
+		      XmDIALOG_FULL_APPLICATION_MODAL);
+      return;
+    }
+    newTrans = WlzAffineTransformFromPrim(WLZ_TRANSFORM_2D_AFFINE,
+					  (double) kol2 - kol1,
+					  (double) line2 - line1,
+					  0.0, 1.0, 0.0, 0.0,
+					  0.0, 0.0, 0.0, 0, NULL);
+
+    /* apply to existing transform */
+    p = plane1 - transformsObj->domain.p->plane1;
+    if( (transformsObj->domain.p->domains[p]).t ){
+      tmpTrans = WlzAffineTransformProduct((transformsObj->domain.p->domains[p]).t,
+					   newTrans, NULL);
+      WlzFreeAffineTransform((transformsObj->domain.p->domains[p]).t);
+      WlzFreeAffineTransform(newTrans);
+      (transformsObj->domain.p->domains[p]).t =
+	WlzAssignAffineTransform(tmpTrans, NULL);
+    }
+    else {
+      (transformsObj->domain.p->domains[p]).t =
+	WlzAssignAffineTransform(newTrans, NULL);
+    }
+  }
+
+  return;
+}
+
+void applyRealignTransCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
+  XmPushButtonCallbackStruct
+    *cbs = (XmPushButtonCallbackStruct *) call_data;
+  WlzObject	*newOrigObj, *newObj;
+  Widget	widget;
+
+  /* check we really want to do this */
+  if( !HGU_XmUserConfirm(view_struct->dialog,
+			 "Do you really want to transform\n"
+			 "the whole 3D stack?", "Yes", "No", 1) ){
+    return;
+  }
+
+  /* check the view is valid for this operation: pitch == 90 */
+  if( fabs(wlzViewStr->phi - WLZ_M_PI_2) > 1.0e-2 ){
+    HGU_XmUserError(view_struct->dialog,
+		    "Invalid pitch value. For this\n"
+		    "operation please set pitch = 90.0\n"
+		    "and redefine the alignment",
+		    XmDIALOG_FULL_APPLICATION_MODAL);
+    return;
+  }
+
+  /* set hour glass */
+  HGU_XmSetHourGlassCursor(globals.topl);
+  HGU_XmSetHourGlassCursor(XtParent(view_struct->dialog));
+
+  /* set up a transform object and update with current */
+  if( transformsObj == NULL ){
+    if( !(transformsObj =
+	  WlzAssignObject(WlzMakeTransformObj3D(origObj, NULL), NULL)) ){
+      HGU_XmUserError(view_struct->dialog,
+		      "Failed to allocate memory for this\n"
+		      "operation. Probably you need to restart\n"
+		      "MAPaint and try again or make a smaller\n"
+		      "reference image",
+		      XmDIALOG_FULL_APPLICATION_MODAL);
+      return;
+    }
+  }
+  realignUpdateTransformsObj(view_struct);
+
+  /* make a new reference object and painted volume */
+  newOrigObj = WlzAffineTransformObj3D(origRefObj, transformsObj, NULL);
+  newObj = WlzAffineTransformObj3D(origObj, transformsObj, NULL);
+
+  /* install the new reference object and painted image */
+  if( globals.orig_obj != NULL ){
+    WlzFreeObj( globals.orig_obj );
+  }
+  globals.orig_obj = WlzAssignObject(newOrigObj, NULL);
+
+  if( globals.obj != NULL ){
+    WlzFreeObj( globals.obj );
+  }
+  globals.obj = WlzAssignObject(newObj, NULL);
+  
+  /* reset  displays */
+  setup_ref_display_list_cb(NULL, NULL, NULL);
+  setup_obj_props_cb(NULL, NULL, NULL);
+    
+  /* reset realignment controls */
+  if( widget = XtNameToWidget(view_struct->dialog,
+			      "*.realignment_frame_title") ){
+    XmToggleButtonCallbackStruct cbs;
+
+    XtVaSetValues(widget, XmNset, False, NULL);
+    cbs.set = False;
+    XtCallCallbacks(widget, XmNvalueChangedCallback, (XtPointer) &cbs);
+  }
+
+  /* unset hour glass */
+  HGU_XmUnsetHourGlassCursor(globals.topl);
+  HGU_XmUnsetHourGlassCursor(XtParent(view_struct->dialog));
+
+  return;
+}
+
+void undoRealignTransCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  Widget		widget;
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+
+  /* install the new reference object and painted image */
+  if( globals.orig_obj != NULL ){
+    WlzFreeObj( globals.orig_obj );
+  }
+  globals.orig_obj = WlzAssignObject(origRefObj, NULL);
+
+  if( globals.obj != NULL ){
+    WlzFreeObj( globals.obj );
+  }
+  globals.obj = WlzAssignObject(origObj, NULL);
+  
+  /* reset  displays */
+  setup_ref_display_list_cb(NULL, NULL, NULL);
+  setup_obj_props_cb(NULL, NULL, NULL);
+
+  /* reset realignment controls */
+  if( widget = XtNameToWidget(view_struct->dialog,
+			      "*.realignment_frame_title") ){
+    XmToggleButtonCallbackStruct cbs;
+
+    XtVaSetValues(widget, XmNset, False, NULL);
+    cbs.set = False;
+    XtCallCallbacks(widget, XmNvalueChangedCallback, (XtPointer) &cbs);
+  }
+
+  /* clear the transform object */
+  if( transformsObj ){
+    WlzFreeObj(transformsObj);
+    transformsObj = NULL;
+  }
+
+  return;
+}
+
+void writeRealignTransCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
+  XmPushButtonCallbackStruct
+    *cbs = (XmPushButtonCallbackStruct *) call_data;
+  String		fileStr;
+  FILE			*fp;
+  int			i, p;
+  BibFileRecord	*record = NULL;
+  BibFileField	*field0 = NULL,
+		*field1 = NULL,
+		*field2 = NULL;
+  char		tmpBuf[256], *eMsg;
+  char		*tmpS,
+		*idxS = NULL,
+		*dateS = NULL,
+		*hostS = NULL,
+		*userS = NULL,
+                *fileS = NULL;
+  char 		tTypeS[32],
+		tTxS[32],
+		tTyS[32],
+		tTzS[32],
+		tScaleS[32],
+		tThetaS[32],
+		tPhiS[32],
+		tAlphaS[32],
+		tPsiS[32],
+		tXsiS[32],
+		tInvertS[32];
+  static char	unknownS[] = "unknown";
+  time_t	tmpTime;
+
+  /* get a bib-file filename */
+  if( fileStr =
+     HGU_XmUserGetFilename(globals.topl,
+			   "Please type in a filename\n"
+			   "for the transforms bib-file\n",
+			   "OK", "cancel", "MAPaintRealign.bib",
+			   NULL, "*.bib") ){
+    if( (fp = fopen(fileStr, "w")) == NULL ){
+      HGU_XmUserError(view_struct->dialog,
+		      "Failed to open the bib-file. Please\n"
+		      "check the filename and permissions.\n",
+		      XmDIALOG_FULL_APPLICATION_MODAL);
+      AlcFree((void *) fileStr);
+      return;
+    }
+  }
+  else {
+    return;
+  }
+  AlcFree((void *) fileStr);
+
+  /* set hour glass */
+  HGU_XmSetHourGlassCursor(globals.topl);
+  HGU_XmSetHourGlassCursor(XtParent(view_struct->dialog));
+
+  /* set up a transform object and update with current */
+  if( transformsObj == NULL ){
+    if( !(transformsObj =
+	  WlzAssignObject(WlzMakeTransformObj3D(origObj, NULL), NULL)) ){
+      HGU_XmUserError(view_struct->dialog,
+		      "Failed to allocate memory for this\n"
+		      "operation. Probably you need to restart\n"
+		      "MAPaint and try again or make a smaller\n"
+		      "reference image",
+		      XmDIALOG_FULL_APPLICATION_MODAL);
+      return;
+    }
+  }
+  realignUpdateTransformsObj(view_struct);
+
+  /* run through the transform list writing a bibfile for each
+     plane. Use correct plane numbers but do not define a
+     file name (since its not known)
+     Note the relative transform from the previous section is used.
+  */
+
+  /* an identifier record - who, when, how */
+  if((((field0 = BibFileFieldMakeVa("Text", "MAPaint realignment section file",
+				    "Version", "1",
+				    NULL)) == NULL) ||
+      ((record = BibFileRecordMake("Ident", "0", field0)) == NULL)))
+  {
+    HGU_XmUnsetHourGlassCursor(globals.topl);
+    HGU_XmUnsetHourGlassCursor(XtParent(view_struct->dialog));
+    fclose(fp);
+    return;
+  }
+  BibFileRecordWrite(fp, &eMsg, record);
+  BibFileRecordFree(&record);
+
+  tmpS = getenv("USER");
+  (void )sprintf(tmpBuf, "User: %s", tmpS?tmpS:unknownS);
+  userS = AlcStrDup(tmpBuf);
+
+  tmpTime = time(NULL);
+  tmpS = ctime(&tmpTime);
+  *(tmpS + strlen(tmpS) - 1) = '\0';
+  (void )sprintf(tmpBuf, "Date: %s", tmpS?tmpS:unknownS);
+  dateS = AlcStrDup(tmpBuf);
+
+  tmpS = getenv("HOST");
+  (void )sprintf(tmpBuf, "Host: %s", tmpS?tmpS:unknownS);
+  hostS = AlcStrDup(tmpBuf);
+
+  (void )sprintf(tmpBuf, "File: %s", globals.file?globals.file:unknownS);
+  fileS = AlcStrDup(tmpBuf);
+
+  if((((field0 = BibFileFieldMakeVa("Text", userS,
+				    "Text", dateS,
+				    "Text", hostS,
+				    "Text", fileS,
+				    NULL)) == NULL) ||
+       ((record = BibFileRecordMake("Comment", "0", field0)) == NULL)))
+  {
+    HGU_XmUnsetHourGlassCursor(globals.topl);
+    HGU_XmUnsetHourGlassCursor(XtParent(view_struct->dialog));
+    fclose(fp);
+    return;
+  }
+  BibFileRecordWrite(fp, &eMsg, record);
+  BibFileRecordFree(&record);
+  AlcFree(dateS);
+  AlcFree(hostS);
+  AlcFree(userS);
+
+  /* now the section records */
+  if( transformsObj ){
+    for(p=transformsObj->domain.p->plane1, i=0;
+	p <= transformsObj->domain.p->lastpl; p++, i++){
+      WlzAffineTransform	*transf=transformsObj->domain.p->domains[i].t;
+      if( transf == NULL ){
+	continue;
+      }
+      sprintf(tmpBuf, "%d", p);
+      idxS = AlcStrDup(tmpBuf);
+
+      (void )sprintf(tTypeS, "%d", transf->type);
+      (void )sprintf(tTxS, "%g", transf->tx);
+      (void )sprintf(tTyS, "%g", transf->ty);
+      (void )sprintf(tTzS, "%g", transf->tz);
+      (void )sprintf(tScaleS, "%g", transf->scale);
+      (void )sprintf(tThetaS, "%g", transf->theta);
+      (void )sprintf(tPhiS, "%g", transf->phi);
+      (void )sprintf(tAlphaS, "%g", transf->alpha);
+      (void )sprintf(tPsiS, "%g", transf->psi);
+      (void )sprintf(tXsiS, "%g", transf->xsi);
+      (void )sprintf(tInvertS, "%d", transf->invert);
+      field0 = BibFileFieldMakeVa(
+	"TransformType", tTypeS,
+	"TransformTx", tTxS,
+	"TransformTy", tTyS,
+	"TransformTz", tTzS,
+	"TransformScale", tScaleS,
+	"TransformTheta", tThetaS,
+	"TransformPhi", tPhiS,
+	"TransformAlpha", tAlphaS,
+	"TransformPsi", tPsiS,
+	"TransformXsi", tXsiS,
+	"TransformInvert", tInvertS,
+	NULL);
+
+      record = BibFileRecordMake("Section", idxS, field0);
+      BibFileRecordWrite(fp, &eMsg, record);
+      BibFileRecordFree(&record);
+      AlcFree(idxS);
+    }
+  }
+
+  /* unset hour glass */
+  HGU_XmUnsetHourGlassCursor(globals.topl);
+  HGU_XmUnsetHourGlassCursor(XtParent(view_struct->dialog));
+
+  fclose(fp);
+
   return;
 }
 
@@ -380,14 +919,16 @@ static void realignment_setup_cb(
   }
   else {
     /* clear stored data */
+    XtRemoveCallback(view_struct->canvas, XmNexposeCallback,
+		     realignDisplayPolysCb, view_struct);
     reset_view_struct(view_struct);
     display_view_cb(widget, client_data, call_data);
     AlcFree((void *) srcPoly);
     AlcFree((void *) dstPoly);
     AlcFree((void *) tmpPoly);
     WlzFreeObj(origPaintedObject);
-    XtRemoveCallback(view_struct->canvas, XmNexposeCallback,
-		     realignDisplayPolysCb, view_struct);
+    srcPoly = dstPoly = tmpPoly = NULL;
+    origPaintedObject = NULL;
   }
   return;
 }
@@ -457,7 +998,9 @@ static void realignment_controls_cb(
 
 static ActionAreaItem   realign_controls_actions[] = {
 {"reset",	NULL,		NULL},
-{"I/O",        NULL,           NULL},
+{"apply",	NULL,		NULL},
+{"undo",	NULL,		NULL},
+{"i_o",		NULL,           NULL},
 };
 
 static MenuItem poly_menu_itemsP[] = {		/* poly_menu items */
@@ -488,6 +1031,11 @@ Widget createRealignmentDialog(
   ThreeDViewStruct	*view_struct;
   Widget	control, frame, form, title, controls_frame;
   Widget	option_menu, button, buttons, radio_box, label, widget;
+
+  /* check for reference object */
+  if( !globals.obj ){
+    return NULL;
+  }
 
   /* should call reset fixed point for this */
   fixed.vtX = (globals.obj->domain.p->kol1 + globals.obj->domain.p->lastkl)/2;
@@ -617,6 +1165,12 @@ Widget createRealignmentDialog(
   /* now some buttons */
   realign_controls_actions[0].callback = resetRealignPolyCb;
   realign_controls_actions[0].client_data = view_struct;
+  realign_controls_actions[1].callback = applyRealignTransCb;
+  realign_controls_actions[1].client_data = view_struct;
+  realign_controls_actions[2].callback = undoRealignTransCb;
+  realign_controls_actions[2].client_data = view_struct;
+  realign_controls_actions[3].callback = writeRealignTransCb;
+  realign_controls_actions[3].client_data = view_struct;
   buttons = HGU_XmCreateWActionArea(form,
 				    realign_controls_actions,
 				    XtNumber(realign_controls_actions),
@@ -633,6 +1187,12 @@ Widget createRealignmentDialog(
 		XmNbottomAttachment,	XmATTACH_WIDGET,
 		XmNbottomWidget,	frame,
 		NULL);
+
+  /* copy the original reference object and painted volume
+     and add a callback to the destroy callback list */
+  origRefObj = WlzAssignObject(globals.orig_obj, NULL);
+  origObj = WlzAssignObject(globals.obj, NULL);
+  XtAddCallback(dialog, XmNdestroyCallback, realignmentDestroyCb, NULL);
 
   return( dialog );
 }

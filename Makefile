@@ -1,10 +1,10 @@
 ##########################################################################
 # Project:      Mouse Atlas						#
 # Title:        Makefile		                               	#
-# SCCS:		%W%\t%G%						#
+#$Id$
 # Date:         September 1994	                                    	#
 # Author:       Bill Hill 				    		#
-# Version:	%I%							#
+#$Revision$
 # Purpose:      Template makefile for Mouse Atlas Project sources.	#
 # Maintenance:	Log changes below, with most recent at top of list.	#
 # Christophe : 15 Sep 94 : added doc and www templates                  #
@@ -29,6 +29,9 @@ endif
 
 # Names of executables to be built (modify as required).
 EXECUTABLES		= MAPaint
+
+# A version number for a versioned release
+VERSION			= 1.0
 
 # List of all 'C' source files (modify as required).
 CSOURCES		= \
@@ -105,6 +108,7 @@ INCDIRS			= .  \
 			../../Core/libAlg \
 			../../Core/libWlz \
 			../../Core/libWlzExtFF \
+			../../Core/libReconstruct \
 			../../HGUX/libHguX \
 			../../HGUX/libHguXm \
 			../../HGUX/libhguGL \
@@ -127,6 +131,7 @@ LIBDIRS			= \
 			../../Core/libAlg \
 			../../Core/libWlz \
 			../../Core/libWlzExtFF \
+			../../Core/libReconstruct \
 			../../HGUX/libHguX \
 			../../HGUX/libHguXm \
 			../../HGUX/libhguGL \
@@ -175,15 +180,16 @@ endif
 
 OPENGLLIBS		= GLU GL
 MOTIFLIBS       	= Xm
-LOCALLIBS		= hguGL HguXm HguX WlzExtFF Wlz Alg bibfile Alc
-LIBRARIES		= hguGL HguXm HguX Wlz Alg Alc \
+LOCALLIBS		= hguGL HguXm HguX WlzExtFF Wlz Reconstruct bibfile Alg Alc
+LIBRARIES		= hguGL HguXm HguX Wlz Reconstruct bibfile Alg Alc \
 			$(OPENGLLIBS) $(MOTIFLIBS) $(X11LIBS) $(EXTRA_LIBS)
 
 # Basic flags for controlling compilation (modify as required).
 #CDEBUG			= -g
 #COPTIMISE		=
 
-DEFINES			= -D$(UNIXTYPE) $(UNIXFLAGS) -D__EXTENSIONS__
+DEFINES			= -D$(UNIXTYPE) $(UNIXFLAGS) -D__EXTENSIONS__ \
+			-D$(VERSION)
 CPPFLAGS		= $(INCDIRS:%=-I%) $(DEFINES)
 CFLAGS			= $(CDEBUG) $(COPTIMISE) $(ANSI_CONFORMANCE)
 
@@ -297,7 +303,6 @@ lint:			$(CSOURCES) $(INCLUDES_PRV)
 
 # Target to clean up after making (should not need modifying).
 clean:
-			-$(SCCS) clean
 			-$(RM) core $(OBJECTS) $(EXECUTABLES) $(ARCHIVE)
 
 # Target to clean up everything that might not be wanted (should not need
