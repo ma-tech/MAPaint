@@ -204,10 +204,10 @@ XErrorEvent	*err_event)
 	  err_event->minor_code,
 	  err_event->serial);
 
-  if( HGU_XmUserConfirm(globals.topl, str,
-			"Yes", "No", 1) ){
+  /*if( HGU_XmUserConfirm(globals.topl, str,
+    "Yes", "No", 1) ){*/
     /* blah blah blah action here */
-  }
+  /*}*/
 
   AlcFree(str);
   AlcFree(errStr);
@@ -330,9 +330,7 @@ main(
   
   /* create the top level shell */
   XtToolkitInitialize();
-  if( XtToolkitThreadInitialize() ){
-    fprintf(stderr, "MAPaint: threadsafe\n");
-  }
+  XtToolkitThreadInitialize();
   app_con = XtCreateApplicationContext();
   XtAppSetFallbackResources(app_con, fallback_resources);
   dpy = XtOpenDisplay(app_con, NULL, nameStr, "MAPaint", mapaint_options, 10,

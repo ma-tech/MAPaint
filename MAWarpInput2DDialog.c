@@ -402,7 +402,9 @@ static void warpSetupCb(
     if( paint_key == view_struct ){
       if( !warpGlobals.warp2DInteractDialog ){
 	warpGlobals.warp2DInteractDialog =
-	  create2DWarpDialog(dialog, view_struct);
+/* 	  create2DWarpDialog(dialog, view_struct);*/
+	  create2DWarpDialog(globals.topl, view_struct);
+
 	/* add a new dismiss callback to destroy the warp dialog */
 	if( button = XtNameToWidget(dialog, "*.dismiss") ){
 	  XtAddCallback(button, XmNactivateCallback,
@@ -747,14 +749,14 @@ Widget createWarpDisplayFrame(
   Widget	button;
 
   /* create the frame and frame children */
-  frame = XtVaCreateManagedWidget(name, xmFrameWidgetClass,
+  frame = XtVaCreateWidget(name, xmFrameWidgetClass,
 				  parent, NULL);
   title = XtVaCreateManagedWidget("title", xmRowColumnWidgetClass, frame,
 				  XmNchildType, 	XmFRAME_TITLE_CHILD,
 				  XmNorientation,	XmHORIZONTAL,
 				  NULL);
   scrolled_window =
-    XtVaCreateManagedWidget("warp_disp_scrolled_window",
+    XtVaCreateWidget("warp_disp_scrolled_window",
 			    xmScrolledWindowWidgetClass, frame,
 			    XmNchildType, XmFRAME_WORKAREA_CHILD,
 			    XmNscrollingPolicy, 	XmAUTOMATIC,
@@ -813,7 +815,8 @@ Widget createWarpDisplayFrame(
 				   XtNdepth,	depth,
 				   XtNvisual,	visual,
 				   NULL);
-
+  XtManageChild(scrolled_window);
+  XtManageChild(frame);
   return frame;
 }
 
@@ -1150,7 +1153,7 @@ static Widget create2DWarpDialog(
   Visual	*visual;
 
   /* create a dialog widget and get control form and 24-bit visual */
-  dialog = HGU_XmCreateStdDialog(globals.topl, "warp2DInteractDialog",
+  dialog = HGU_XmCreateStdDialog(parent, "warp2DInteractDialog",
 				 xmFormWidgetClass,
 				 warp_interact_actions, 5);
   control = XtNameToWidget( dialog, "*.control" );
