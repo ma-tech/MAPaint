@@ -429,7 +429,12 @@ void canvas_input_cb(
      switch( cbs->event->xbutton.button ){
 
       case Button1:
-	if( (!view_struct->noPaintingFlag) && (!globals.sectViewFlg) ){
+	if(cbs->event->xbutton.state & Mod1Mask){
+	  x = cbs->event->xbutton.x / wlzViewStr->scale;
+	  y = cbs->event->xbutton.y / wlzViewStr->scale;
+	  display_pointer_feedback_information(view_struct, x, y);
+	}
+	else if( (!view_struct->noPaintingFlag) && (!globals.sectViewFlg) ){
 	  paintingTrigger = 1;
 	}
 	break;
@@ -497,7 +502,9 @@ void canvas_input_cb(
 
    case MotionNotify:
 
-     if( cbs->event->xmotion.state & Button2Mask )
+     if((cbs->event->xmotion.state & Button2Mask) ||
+        ((cbs->event->xmotion.state & Button1Mask) &&
+	 (cbs->event->xmotion.state & Mod1Mask)))
      {
 	x = cbs->event->xmotion.x / wlzViewStr->scale;
 	y = cbs->event->xmotion.y / wlzViewStr->scale;
@@ -715,6 +722,8 @@ static String canvas_translations_table =
 Alt<BtnDown>:	DrawingAreaInput()\n\
 Alt<BtnUp>: 	DrawingAreaInput()";
 
+static XtTranslations	translations=NULL;
+
 Widget create_view_window_dialog(
   Widget	topl,
   double	theta,
@@ -726,7 +735,6 @@ Widget create_view_window_dialog(
   Widget		widget, form, scrolled_window, title, option_menu;
   Widget		row_col, button;
   Widget		top_controls_form, buttons;
-  XtTranslations	translations;
   ThreeDViewStruct	*view_struct;
   WlzThreeDViewStruct	*wlzViewStr;
   ViewListEntry		*new_view_list;
@@ -895,8 +903,9 @@ Widget create_view_window_dialog(
 
   /* translations = XtParseTranslationTable( canvas_translations_table );
   XtOverrideTranslations( canvas, translations );*/
-
-  translations = XtParseTranslationTable( translations_table );
+  if( !translations ){
+    translations = XtParseTranslationTable( translations_table );
+  }
   XtAugmentTranslations( XtParent(dialog), translations );
 
   /* add the view struct to the dialog via the user-data */

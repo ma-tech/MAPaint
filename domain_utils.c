@@ -318,7 +318,7 @@ void setDomainIncrement(
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check the object */
-  if( obj == NULL || WlzArea(obj, NULL) <= 0 )
+  if( obj == NULL || WlzIsEmpty(obj, NULL) )
     return;
 
   /* check the view object */

@@ -480,6 +480,7 @@ void warpSetOvlyXImage(
   UBYTE			*data0, *data1, *dst_data, *data;
   int			i, j, acc;
   double		a, b, c;
+  int			r, g, bl;
 
   /* clear the old ximage */
   if( winStruct->ximage ){
@@ -506,7 +507,7 @@ void warpSetOvlyXImage(
   width = winStruct->ovlyImages[0]->width;
   height = winStruct->ovlyImages[0]->height;
 
-  dst_data = (UBYTE *) AlcMalloc(4*width*height*sizeof(char));
+  dst_data = (UBYTE *) AlcCalloc(4*width*height, sizeof(char));
   data = dst_data;
   data0 = (UBYTE *) winStruct->ovlyImages[0]->data;
   data1 = (UBYTE *) winStruct->ovlyImages[1]->data;
@@ -523,76 +524,82 @@ void warpSetOvlyXImage(
   c = winStruct->mixRatio / 100.0;
 
   /* merge the images */
+  if( win_att.visual->red_mask == 0xff ){
+    r = 3; g = 2; bl = 1;
+  }
+  else {
+    r = 2; g = 1; bl = 0;
+  }
   switch( winStruct->mixType ){
   case MA_OVERLAY_MIXTYPE_RG1:
     for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[3] = c * 255 + (1 - c) * data1[2];
-      data[2] = c * data0[3] + (1-c) * 255;
-      data[1] = c * data0[3] + (1-c) * data1[2];
+      data[r] = c * 255 + (1 - c) * data1[2];
+      data[g] = c * data0[3] + (1-c) * 255;
+      data[bl] = c * data0[3] + (1-c) * data1[2];
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_RG2:
     for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[3] = a * (255 - data0[3]);
-      data[2] = b * (255 - data1[2]);
-      data[1] = 0;
+      data[r] = a * (255 - data0[3]);
+      data[g] = b * (255 - data1[2]);
+      data[bl] = 0;
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_RB1:
     for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[3] = c * 255 + (1 - c) * data1[2];
-      data[1] = c * data0[3] + (1-c) * 255;
-      data[2] = c * data0[3] + (1-c) * data1[2];
+      data[r] = c * 255 + (1 - c) * data1[2];
+      data[bl] = c * data0[3] + (1-c) * 255;
+      data[g] = c * data0[3] + (1-c) * data1[2];
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_RB2:
     for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[3] = a * (255 - data0[3]);
-      data[1] = b * (255 - data1[2]);
-      data[2] = 0;
+      data[r] = a * (255 - data0[3]);
+      data[bl] = b * (255 - data1[2]);
+      data[g] = 0;
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_GB1:
     for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[2] = c * 255 + (1 - c) * data1[2];
-      data[1] = c * data0[3] + (1-c) * 255;
-      data[3] = c * data0[3] + (1-c) * data1[2];
+      data[g] = c * 255 + (1 - c) * data1[2];
+      data[bl] = c * data0[3] + (1-c) * 255;
+      data[r] = c * data0[3] + (1-c) * data1[2];
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_GB2:
     for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[2] = a * (255 - data0[3]);
-      data[1] = b * (255 - data1[2]);
-      data[3] = 0;
+      data[g] = a * (255 - data0[3]);
+      data[bl] = b * (255 - data1[2]);
+      data[r] = 0;
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_RNR:
     for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[3] = a * (255 - data0[3]);
-      data[2] = b * (255 - data1[2]);
-      data[1] = b * (255 - data1[2]);
+      data[r] = a * (255 - data0[3]);
+      data[g] = b * (255 - data1[2]);
+      data[bl] = b * (255 - data1[2]);
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_GNG:
     for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[2] = a * (255 - data0[3]);
-      data[1] = b * (255 - data1[2]);
-      data[3] = b * (255 - data1[2]);
+      data[g] = a * (255 - data0[3]);
+      data[r] = b * (255 - data1[2]);
+      data[bl] = b * (255 - data1[2]);
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_BNB:
     for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[1] = a * (255 - data0[3]);
-      data[3] = b * (255 - data1[2]);
-      data[2] = b * (255 - data1[2]);
+      data[bl] = a * (255 - data0[3]);
+      data[g] = b * (255 - data1[2]);
+      data[r] = b * (255 - data1[2]);
     }
     break;
 
@@ -601,15 +608,15 @@ void warpSetOvlyXImage(
 	i++, data += 4, data0 += 4, data1 += 4){
       acc += 255 - data0[3];
       if( acc > 127 ){
-	data[3] = a * 255 + (1-a) * data1[3];
-	data[2] = (1-a) * data1[2];
-	data[1] = (1-a) * data1[1];
+	data[r] = a * 255 + (1-a) * data1[3];
+	data[g] = (1-a) * data1[2];
+	data[bl] = (1-a) * data1[1];
 	acc -= 256;
       }
       else {
-	data[3] = b * data1[3];
-	data[2] = b * data1[2];
-	data[1] = b * data1[1];
+	data[r] = b * data1[3];
+	data[g] = b * data1[2];
+	data[bl] = b * data1[1];
       }
     }
     break;
@@ -619,15 +626,15 @@ void warpSetOvlyXImage(
 	i++, data += 4, data0 += 4, data1 += 4){
       acc += 255 - data1[3];
       if( acc > 127 ){
-	data[3] = b * 255 + (1-b) * data0[3];
-	data[2] = (1-b) * data0[2];
-	data[1] = (1-b) * data0[1];
+	data[r] = b * 255 + (1-b) * data0[3];
+	data[g] = (1-b) * data0[2];
+	data[bl] = (1-b) * data0[1];
 	acc -= 256;
       }
       else {
-	data[3] = a * data0[3];
-	data[2] = a * data0[2];
-	data[1] = a * data0[1];
+	data[r] = a * data0[3];
+	data[g] = a * data0[2];
+	data[bl] = a * data0[1];
       }
     }
     break;

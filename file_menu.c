@@ -588,6 +588,7 @@ XtPointer	call_data)
 	{
 	  Wlz3DSectionIncrementDistance(viewStr, (double) step);
 	  if( obj1 = WlzGetSectionFromObject(globals.fb_obj, viewStr, &errNum) ){
+	    obj1 = WlzAssignObject(obj1, NULL);
 	    boundobj = WlzObjToBoundary(obj1, 1, &errNum);
 	    if( boundobj != NULL )
 	    {
@@ -599,6 +600,7 @@ XtPointer	call_data)
 	    WlzFreeObj( obj1 );
 	  }
 	}
+	WlzFree3DViewStruct(viewStr);
       }
     }
 
@@ -606,25 +608,29 @@ XtPointer	call_data)
     if( errNum == WLZ_ERR_NONE ){
       glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 0.0));
       glColor3f(1.0, 1.0, 0.0);
-      viewStr->theta = 0.0;
-      viewStr->phi = WLZ_M_PI / 2.0;
-      viewStr->dist = planedmn->kol1 - step/2;
-      errNum = WlzInit3DViewStruct(viewStr, globals.fb_obj);
-      for(z=viewStr->dist+step; (errNum == WLZ_ERR_NONE) && (z <= planedmn->lastkl);
-	  z += step)
-      {
-	Wlz3DSectionIncrementDistance(viewStr, (double) step);
-	if( obj1 = WlzGetSectionFromObject(globals.fb_obj, viewStr, &errNum) ){
-	  boundobj = WlzObjToBoundary(obj1, 1, &errNum);
-	  if( boundobj != NULL )
-	  {
-	    /* convert boundary coordinates to voxel coordinates */
-	    Wlz3DSectionTransformXBound(boundobj->domain.b, viewStr);
-	    MAOpenGLDisplayXBoundList(boundobj->domain.b, (float) z);
-	    WlzFreeObj( boundobj );
+      if( viewStr = WlzMake3DViewStruct(WLZ_3D_VIEW_STRUCT, &errNum) ){
+	viewStr->theta = 0.0;
+	viewStr->phi = WLZ_M_PI / 2.0;
+	viewStr->dist = planedmn->kol1 - step/2;
+	errNum = WlzInit3DViewStruct(viewStr, globals.fb_obj);
+	for(z=viewStr->dist+step; (errNum == WLZ_ERR_NONE) && (z <= planedmn->lastkl);
+	    z += step)
+	{
+	  Wlz3DSectionIncrementDistance(viewStr, (double) step);
+	  if( obj1 = WlzGetSectionFromObject(globals.fb_obj, viewStr, &errNum) ){
+	    obj1 = WlzAssignObject(obj1, NULL);
+	    boundobj = WlzObjToBoundary(obj1, 1, &errNum);
+	    if( boundobj != NULL )
+	    {
+	      /* convert boundary coordinates to voxel coordinates */
+	      Wlz3DSectionTransformXBound(boundobj->domain.b, viewStr);
+	      MAOpenGLDisplayXBoundList(boundobj->domain.b, (float) z);
+	      WlzFreeObj( boundobj );
+	    }
+	    WlzFreeObj( obj1 );
 	  }
-	  WlzFreeObj( obj1 );
 	}
+	WlzFree3DViewStruct(viewStr);
       }
     }
   }
@@ -1548,7 +1554,7 @@ void file_menu_init(
 	if( globals.fb_obj ){
 	  WlzFreeObj(globals.fb_obj);
 	}
-	globals.fb_obj = obj;
+	globals.fb_obj = WlzAssignObject(obj, NULL);
 	setup_ref_display_list_cb(read_obj_dialog, NULL, NULL);
       }
       (void) fclose( fp );

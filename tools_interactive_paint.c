@@ -657,8 +657,8 @@ void MAPaintPaintBall2DCb(
        should check that button 1 or button 2 is pressed */
     if((paintBallTrigger) &&
        (cbs->event->xmotion.state & (Button1Mask|Button2Mask)) ){
-      delX = (int) cbs->event->xbutton.x - 1;
-      delY = (int) cbs->event->xbutton.y - 1;
+      delX = (int) cbs->event->xmotion.x - 1;
+      delY = (int) cbs->event->xmotion.y - 1;
       if( obj = WlzAssignObject(WlzShiftObject(cursorObj, delX, delY,
 					       0, &errNum), NULL) ){
 					   
@@ -978,7 +978,9 @@ static WlzObject *get_thresh_obj(
       return( NULL );
     }
     obj2 = WlzAssignObject(obj2, NULL);
+    WlzFreeObj( obj1 );
   }
+
   /* find the object at the test point */
   if( errNum == WLZ_ERR_NONE ){
     if( (errNum = WlzLabel(obj2, &num_obj, &obj_list, 4096, 0,
@@ -989,11 +991,10 @@ static WlzObject *get_thresh_obj(
       for(i=0; i < num_obj; i++){
 	if( WlzInsideDomain( obj_list[i], 0.0, 
 			    (double) y, (double) x, NULL ) ){
-	  obj2 = WlzAssignObject(obj_list[i], NULL);
+	  obj2 = WlzMakeMain(obj_list[i]->type, obj_list[i]->domain,
+			     obj_list[i]->values, NULL, NULL, NULL);
 	}
-	else {
-	  WlzFreeObj( obj_list[i] );
-	}
+	WlzFreeObj( obj_list[i] );
       }
       AlcFree((void *) obj_list);
     }
@@ -1004,11 +1005,10 @@ static WlzObject *get_thresh_obj(
 	for(i=0; i < num_obj; i++){
 	  if( WlzInsideDomain( obj_list[i], 0.0, 
 			      (double) y, (double) x, NULL ) ){
-	    obj2 = WlzAssignObject(obj_list[i], NULL);
+	    obj2 = WlzMakeMain(obj_list[i]->type, obj_list[i]->domain,
+			     obj_list[i]->values, NULL, NULL, NULL);
 	  }
-	  else {
-	    WlzFreeObj( obj_list[i] );
-	  }
+	  WlzFreeObj( obj_list[i] );
 	}
 	AlcFree((void *) obj_list);
 	errNum = WLZ_ERR_NONE;
@@ -1089,9 +1089,10 @@ void MAPaintThreshold2DCb(
 	  setDomainIncrement(obj1, view_struct, paintBallCurrDomain, 1);
 	}
 	  
-	if( threshObj = getSelectedRegion(thresholdInitialX,
-					  thresholdInitialY,
-					  view_struct) ){
+	if( threshObj = WlzAssignObject(
+	  getSelectedRegion(thresholdInitialX,
+			    thresholdInitialY,
+			    view_struct), NULL) ){
 	  threshObj->values =
 	    WlzAssignValues(view_struct->view_object->values, NULL);
 	}
@@ -1122,8 +1123,9 @@ void MAPaintThreshold2DCb(
 	/* maybe use the recursive filter here */
 	if( obj1 = WlzGauss2(threshObj, thresh_smooth_size, thresh_smooth_size,
 			     0, 0, &errNum) ){
+	  obj1 = WlzAssignObject(obj1, NULL);
 	  WlzFreeObj(threshObj);
-	  threshObj = WlzAssignObject(obj1, NULL);
+	  threshObj = obj1;
 	}
 	else {
 	  MAPaintReportWlzError(globals.topl, "MAPaintThreshold2DCb", errNum);
@@ -1201,7 +1203,7 @@ void MAPaintThreshold2DCb(
 	obj = WlzAssignObject(obj, NULL);
 	if( prevObj && (obj1 = WlzDiffDomain(prevObj, obj, &errNum)) ){
 	  obj1 = WlzAssignObject(obj1, NULL);
-	  if( WlzArea(obj1, NULL) < 1 ){
+	  if( WlzIsEmpty(obj1, NULL) ){
 	    WlzFreeObj(obj1);
 	    obj1 = NULL;
 	  }

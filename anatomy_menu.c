@@ -239,6 +239,7 @@ void freeAnatomyMenuItems(
   while( menu_items[itemIndex].name ){
     /* should be able to free the name but the widget
        is still using it */
+    AlcFree(menu_items[itemIndex].name);
 
     /* free any sub-items */
     if( menu_items[itemIndex].subitems ){
@@ -386,7 +387,7 @@ MenuItem *createAnatomyMenuItems(
 
   /* dividing line */
   if( dirIndex && numDirs){
-    items[dirIndex].name = "";
+    items[dirIndex].name = strdup("");
     items[dirIndex].wclass = &xmSeparatorGadgetClass;
     items[dirIndex].mnemonic = '\0';
     items[dirIndex].accelerator = NULL;
@@ -418,6 +419,7 @@ MenuItem *createAnatomyMenuItems(
        ((statBuf.st_mode&S_IFMT) != S_IFDIR) ){
 #endif /* LINUX2 */
       /* its an ordinary file */
+      AlcFree((void *) newDirStr);
       continue;
     }
     str = (String) AlcMalloc(strlen(dp->d_name) + 1);

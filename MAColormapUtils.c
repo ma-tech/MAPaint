@@ -123,7 +123,12 @@ int set_paint_colormap(
   unsigned int	solid_ovly;
 
   /* setup the colormap  - grey-level */
-  for(i=cmpstr->gmin; i <= cmpstr->gmax; i++){
+  for(i=0; i < cmpstr->gmin; i++){
+      colormap[0][i] = 0;
+      colormap[1][i] = 0;
+      colormap[2][i] = 0;
+  }  
+  for(; i <= cmpstr->gmax; i++){
 
     /* grey-levels: use invert and gamma parameters */
     val = ((i - cmpstr->gmin) * 255 )/ (cmpstr->gmax - cmpstr->gmin);
@@ -150,6 +155,11 @@ int set_paint_colormap(
     colormap[1][i] = gval;
     colormap[2][i] = gval;
   }
+  for(; i < 256; i++){
+      colormap[0][i] = 0;
+      colormap[1][i] = 0;
+      colormap[2][i] = 0;
+  }  
 
   /* set the wash overlays */
   for(j=1; j <= cmpstr->num_overlays; j++){

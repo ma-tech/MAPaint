@@ -54,13 +54,15 @@ Cardinal	*num_params)
     Widget	widget;
 
     static	initialised=0;
+    char	butMap[10];
+    int		numEl;
 
     if( initialised )
 	return;
     initialised = 1;
 
     /* set the WM size hints */
-/*    set_MainWindow_XSizeHints( w );*/
+    /*    set_MainWindow_XSizeHints( w );*/
 
     /* initialise the work area */
     (void) init_main_work_area( w );
@@ -71,6 +73,38 @@ Cardinal	*num_params)
     /* initialise the button bar */
     (void) init_main_buttonbar( w );
 
+    /* get the button mapping */
+    switch( numEl = XGetPointerMapping(XtDisplay(globals.topl), butMap, 10) ){
+    case 1:
+    case 3:
+    default:
+      break;
+
+    case 2:
+      HGU_XmUserMessage(globals.topl,
+			"You have a two-button mouse, to get\n"
+			"middle mouse-button events use the\n"
+			" <alt> key with the left-button.\n"
+			"E.g. to get anaomty and domain feedback\n"
+			"press the <alt> key then press and drag\n"
+			"the left mouse button over the image\n"
+			"displayed in a view window\n",
+			XmDIALOG_FULL_APPLICATION_MODAL);
+      /*fprintf(stderr,
+	      "Num map elements: %d\n"
+	      "map[0] = %d\n"
+	      "map[1] = %d\n"
+	      "map[2] = %d\n"
+	      "map[3] = %d\n"
+	      "map[4] = %d\n", numEl, butMap[0], butMap[1],
+	      butMap[2], butMap[3], butMap[4]);*/
+
+      butMap[0] = 1;
+      butMap[1] = 3;
+      XSetPointerMapping(XtDisplay(globals.topl), butMap, numEl);
+      break;
+    }
+      
     /* flush the X-request queue */
     XFlush(globals.dpy);
 }
@@ -269,10 +303,13 @@ main(
   XrmValue		xrmValue;
   char			*rtnStrType;
   char			*nameStr, *depthRscStr;
+  char			butMap[10];
+  int			numEl;
   
   /* get the application name in case it is not MAPaint */
   if( argv[0] ){
     int i;
+    nameStr = argv[0];
     for(i=strlen(argv[0]); i > 0; i--){
       if( argv[0][i-1] == '/' ){
 	nameStr = (argv[0]) + i;

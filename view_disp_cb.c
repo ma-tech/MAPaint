@@ -50,15 +50,29 @@ void HGU_XPutImage8To24(
 		     ZPixmap, 0, (char *) newdata,
 		     width, height, 32, 0);
 
-  /* transfer data  via colormap to 24 bit */
+  /* transfer data  via colormap to 24 bit  - use visual for colour masks */
   srcOff = 0;
-  for(j=0; j < height; j++){
-    dstOff = (srcY+j) * ximage->bytes_per_line + srcX;
-    for(i=0; i < width; i++, dstOff++){
-      newdata[srcOff++] = 0;
-      newdata[srcOff++] = colormap[2][data[dstOff]];
-      newdata[srcOff++] = colormap[1][data[dstOff]];
-      newdata[srcOff++] = colormap[0][data[dstOff]];
+  /* assume only two options for the rgb masks - no doubt wrong */
+  if( win_att.visual->red_mask == 0xff ){
+    for(j=0; j < height; j++){
+      dstOff = (srcY+j) * ximage->bytes_per_line + srcX;
+      for(i=0; i < width; i++, dstOff++){
+	newdata[srcOff++] = 0;
+	newdata[srcOff++] = colormap[2][data[dstOff]];
+	newdata[srcOff++] = colormap[1][data[dstOff]];
+	newdata[srcOff++] = colormap[0][data[dstOff]];
+      }
+    }
+  }
+  else {
+    for(j=0; j < height; j++){
+      dstOff = (srcY+j) * ximage->bytes_per_line + srcX;
+      for(i=0; i < width; i++, dstOff++){
+	newdata[srcOff++] = colormap[2][data[dstOff]];
+	newdata[srcOff++] = colormap[1][data[dstOff]];
+	newdata[srcOff++] = colormap[0][data[dstOff]];
+	newdata[srcOff++] = 0;
+      }
     }
   }
 
@@ -571,6 +585,29 @@ XtPointer	call_data)
     ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
     ViewListEntry	*vl1 = global_view_list, *vl2;
 
+    /* release paint key */
+    if( paint_key == view_struct ){
+      removeCurrentPaintTool(view_struct->canvas, view_struct);
+      paint_key = NULL;
+
+      /* clear the undo domains */
+      clearUndoDomains();
+
+      /* clear the section view image */
+      if( view_struct->view_object ){
+	WlzFreeObj(view_struct->view_object);
+	view_struct->view_object = NULL;
+      }
+
+      /* install new domains, update all views */
+      installViewDomains(view_struct);
+
+      /* restart the 3D feedback display */
+      HGUglwCanvasTbAnimate(globals.canvas);
+      XtSetSensitive(globals.canvas, True);
+    }
+
+    /* remove the view from the view list */
     if( vl1->view_struct == view_struct ){
 	global_view_list = vl1->next;
 	AlcFree( (void *) vl1 );
@@ -585,11 +622,6 @@ XtPointer	call_data)
 	    vl2->next = vl1->next;
 	    AlcFree( (void *) vl1 );
 	}
-    }
-
-    /* release paint key */
-    if( paint_key == view_struct ){
-      paint_key = NULL;
     }
 
     free_view_struct( view_struct );

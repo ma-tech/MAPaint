@@ -244,6 +244,14 @@ void theiler_menu_init(
     }
     }*/
 
+  /* free space */
+  stage = 0;
+  while( menu_items[stage].name != NULL ){
+    AlcFree(menu_items[stage].name);
+    stage++;
+  }
+  AlcFree(menu_items);
+
   return;
 }
 
