@@ -173,6 +173,25 @@ static char *emapFilename[]={
   "domain_10.wlz"
 };
 
+char *getEMAGE_Name(
+  int	domain)
+{
+  if((domain > 0) &&
+     (domain <= (emapNumSolidOverlays+emapNumWashOverlays)) ){
+    return emageName[domain-1];
+  }
+  return NULL;
+}
+
+char *getEMAGE_Filename(
+  int	domain)
+{
+  if((domain > 0) &&
+     (domain <= (emapNumSolidOverlays+emapNumWashOverlays)) ){
+    return emageFilename[domain-1];
+  }
+  return NULL;
+}
 
 void setEMAPDomainsAndColoursCb(
   Widget	w,

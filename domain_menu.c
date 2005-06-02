@@ -18,6 +18,11 @@ static void image_type_cb(
   XtPointer	client_data,
   XtPointer	call_data);
 
+void emageReviewCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data);
+
 extern Widget create_domain_controls_dialog(
   Widget	topl);
 
@@ -207,6 +212,10 @@ static MenuItem domain_menu_itemsP[] = {		/* file_menu items */
      XmTEAR_OFF_DISABLED, False, False, NULL},
 {"emage_domains", &xmPushButtonGadgetClass, 0,  NULL, NULL, False,
      setEMAGEDomainsAndColoursCb, NULL,
+     myHGU_XmHelpStandardCb, "paint/paint.html#domain_controls",
+     XmTEAR_OFF_DISABLED, False, False, NULL},
+{"emage_review", &xmPushButtonGadgetClass, 0,  NULL, NULL, False,
+     emageReviewCb, NULL,
      myHGU_XmHelpStandardCb, "paint/paint.html#domain_controls",
      XmTEAR_OFF_DISABLED, False, False, NULL},
 {"", &xmSeparatorGadgetClass, 0, NULL, NULL, False,
@@ -432,6 +441,13 @@ void MAPaintDomainGetResourceValues(void)
 {
   XtGetApplicationResources(globals.topl, &globals, domain_res,
 			    XtNumber(domain_res), NULL, 0);
+  if( globals.emageFlg ){
+    int i;
+    for(i=1; i <= 10; i++){
+      globals.domain_name[i] = getEMAGE_Name(i);
+      globals.domain_filename[i] = getEMAGE_Filename(i);
+    }
+  }
   return;
 }
 
@@ -804,7 +820,7 @@ int setDomain(
      }
 
      /* reset the menu-entry label */
-     if( name_str ){
+     if( !globals.emageFlg && name_str ){
        set_domain_menu_entry(domain, name_str);
      }
 
@@ -1058,6 +1074,7 @@ void read_domain_cb(
     XmStringGetLtoR(cbs->value, XmSTRING_DEFAULT_CHARSET, &name_str);
     obj = WlzAssignObject(obj, NULL);
     setDomain(obj, globals.current_domain, name_str);
+    globals.domain_filename[globals.current_domain] = strdup(name_str);
     WlzFreeObj(obj);
     AlcFree( (void *) name_str );
   }
@@ -1177,10 +1194,16 @@ int clearDomain(
        should really get this from resources */
     /* now get it from resources - also requires special
        knowledge of the resourece list */
-    XtGetApplicationResources(globals.topl, &globals, domain_res+domain,
-			      1, NULL, 0);
-    XtGetApplicationResources(globals.topl, &globals, domain_res+domain+32,
-			      1, NULL, 0);
+    if( globals.emageFlg ){
+      globals.domain_name[domain] = getEMAGE_Name(domain);
+      globals.domain_filename[domain] = getEMAGE_Filename(domain);
+    }
+    else {
+      XtGetApplicationResources(globals.topl, &globals, domain_res+domain,
+				1, NULL, 0);
+      XtGetApplicationResources(globals.topl, &globals, domain_res+domain+32,
+				1, NULL, 0);
+    }
     set_domain_menu_entry(domain, globals.domain_name[domain]);
     /* clear the 3D view */
     if( globals.domain_display_list[domain] ){
@@ -1333,17 +1356,20 @@ void write_domain_cb(
     obj = get_domain_from_object(globals.obj, globals.current_domain);
 
     /* reset the menu-entry label */
-    XmStringGetLtoR(cbs->value, XmSTRING_DEFAULT_CHARSET, &name_str);
-    set_domain_menu_entry(globals.current_domain, name_str);
-    free( name_str );
-
+    if( !globals.emageFlg ){
+      XmStringGetLtoR(cbs->value, XmSTRING_DEFAULT_CHARSET, &name_str);
+      set_domain_menu_entry(globals.current_domain, name_str);
+      free( name_str );
+    }
     break;
+
   case MASK_DOMAIN:
     obj = WlzMakeMain(globals.mask_domain->type,
 		      globals.mask_domain->domain,
 		      globals.mask_domain->values,
 		      NULL, NULL, NULL);
     break;
+
   case GREYS_DOMAIN:
   default:
     (void) fclose( fp );
@@ -1366,9 +1392,11 @@ void write_domain_cb(
 			   objVals, NULL, NULL, NULL);
     }
     if( WlzWriteObj(fp, tmpObj) == WLZ_ERR_NONE ){
-      globals.domain_changed_since_saved[globals.current_domain] = 0;
-      globals.domain_filename[globals.current_domain] =
-	HGU_XmGetFileStr(w, cbs->value, cbs->dir);
+      if(!globals.emageFlg){
+	globals.domain_changed_since_saved[globals.current_domain] = 0;
+	globals.domain_filename[globals.current_domain] =
+	  HGU_XmGetFileStr(w, cbs->value, cbs->dir);
+      }
     } else {
       char		*errstr;
       errstr = (char *) AlcMalloc(128);

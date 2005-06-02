@@ -131,7 +131,18 @@ extern void setDomainIncrement(WlzObject	*obj,
 extern void setGreyValuesFromObject(WlzObject	*destObj,
 				    WlzObject	*srcObj);
 
+/* domainControls */
+extern char *getEMAGE_Name(
+  int	domain);
+extern char *getEMAGE_Filename(
+  int	domain);
+
 extern void setEMAGEDomainsAndColoursCb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data);
+
+extern void setEMAPDomainsAndColoursCb(
   Widget	w,
   XtPointer	client_data,
   XtPointer	call_data);
@@ -509,6 +520,9 @@ extern void popupDrawnButtonCb(
 extern void canvas_2D_painting_cb(Widget          w,
 				  XtPointer	client_data,
 				  XtPointer	call_data);
+extern void cleanDomainsCb(Widget          w,
+			   XtPointer	client_data,
+			   XtPointer	call_data);
 extern void canvasMagPlusCb(Widget          w,
 			    XtPointer	client_data,
 			    XtPointer	call_data);

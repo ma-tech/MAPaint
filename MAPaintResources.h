@@ -258,6 +258,8 @@ static String  fallback_resources[] = {
   "*domain_menu*controls.mnemonic:		C",
   "*domain_menu*emage_domains.labelString:	EMAGE defaults",
   "*domain_menu*controls.mnemonic:		E",
+  "*domain_menu*emage_review.labelString:	EMAGE review",
+  "*domain_menu*controls.mnemonic:		r",
   "*domain_menu*auto_increment.labelString:	Auto-increment",
   "*domain_menu*auto_increment.mnemonic:	A",
   "*domain_menu*auto_increment.borderwidth:	0",

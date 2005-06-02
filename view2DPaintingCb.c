@@ -286,6 +286,42 @@ static int		paintLiftFlag=0;
 static DomainSelection	paintLiftDomain;
 static WlzObject	*paintLiftObj=NULL;
 
+void cleanDomainsCb(
+  Widget          w,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
+  WlzObject	*obj1;
+  WlzErrorNum	errNum=WLZ_ERR_NONE;
+
+  /* some checks */
+  if( (view_struct == NULL) || (wlzViewStr == NULL) ){
+    return;
+  }
+
+  /* remove paint from outside of the reference object domain */
+  /* in paint mode clean current domains */
+  if( view_struct == paint_key ){
+    /* push onto undo-stack */
+    pushUndoDomains(view_struct);
+
+    /* find the mask and reset the grey-values */
+    if( obj1 = WlzDiffDomain(view_struct->view_object,
+			     view_struct->masked_object, &errNum) ){
+      setGreysIncrement(obj1, view_struct);
+      WlzFreeObj(obj1);
+    }
+  }
+  else {
+  /* in non-paint mode just re-display */
+    display_view_cb(w, client_data, call_data);
+  }
+
+  return;
+}
+  
 void canvasMagPlusCb(
   Widget          w,
   XtPointer	client_data,

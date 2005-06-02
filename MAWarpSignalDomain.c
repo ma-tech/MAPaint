@@ -13,7 +13,7 @@
 *   Author Name :  richard						*
 *   Author Login:  richard@hgu.mrc.ac.uk				*
 *   Date        :  Tue Nov  4 17:29:28 2003				*
-*   $Revision$								*
+*   $Revision$							*
 *   $Name$								*
 *   Synopsis    : 							*
 *************************************************************************
@@ -204,8 +204,40 @@ void warpSetSignalDomain(
       obj1 = NULL;
       x = warpGlobals.globalThreshVtx.vtX;
       y = warpGlobals.globalThreshVtx.vtY;
-      if( (errNum = WlzLabel(warpGlobals.sgnlObj, &numObjs, &objs, 4096, 0,
-			     WLZ_4_CONNECTED)) == WLZ_ERR_NONE ){
+      errNum = WlzLabel(warpGlobals.sgnlObj, &numObjs, &objs, 8192, 0,
+			WLZ_4_CONNECTED);
+      if( (errNum == WLZ_ERR_INT_DATA) && (numObjs == 8192) ){
+	WlzObject	*tmpObj1, *tmpObj2;
+	WlzDomain	domain;
+	WlzValues	values;
+
+	/* try again, smaller domain */
+	for(i=0; i < numObjs; i++){
+	  WlzFreeObj( objs[i] );
+	}
+	AlcFree((void *) objs);
+	objs = NULL;
+	numObjs = 0;
+	domain.i = WlzMakeIntervalDomain(WLZ_INTERVALDOMAIN_RECT,
+					 y - 80, y + 80,
+					 x - 80, x + 80, &errNum);
+	values.core = NULL;
+	if( tmpObj1 = WlzMakeMain(warpGlobals.sgnlObj->type, domain, values,
+				  NULL, NULL, &errNum) ){
+	  if( tmpObj2 = WlzIntersect2(warpGlobals.sgnlObj, tmpObj1, &errNum) ){
+	    tmpObj2->values = WlzAssignValues(warpGlobals.sgnlObj->values, NULL);
+	    errNum = WlzLabel(warpGlobals.sgnlObj, &numObjs, &objs, 8192, 0,
+			      WLZ_4_CONNECTED);
+	    WlzFreeObj(tmpObj2);
+	    if((errNum == WLZ_ERR_INT_DATA) && (numObjs == 8192) ){
+	      errNum = WLZ_ERR_NONE;
+	    }
+	  }
+	  WlzFreeObj(tmpObj1);
+	}
+	
+      }
+      if( errNum == WLZ_ERR_NONE ){
 
 	for(i=0; i < numObjs; i++){
 	  if( WlzInsideDomain( objs[i], 0.0, y, x, NULL ) ){

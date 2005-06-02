@@ -1098,6 +1098,10 @@ Widget create_view_window_dialog(
 				   row_col, NULL);
   XtAddCallback(button, XmNactivateCallback, canvasMagMinusCb, view_struct);
 
+  button = XtVaCreateManagedWidget("clean", xmPushButtonWidgetClass,
+				   row_col, NULL);
+  XtAddCallback(button, XmNactivateCallback, cleanDomainsCb, view_struct);
+
   /* create scrolled view */
   width = globals.obj->domain.p->lastkl - globals.obj->domain.p->kol1 + 1;
   height = globals.obj->domain.p->lastln - globals.obj->domain.p->line1 + 1;
@@ -1380,8 +1384,6 @@ void view_cb(
   XmAnyCallbackStruct	*cbs = (XmAnyCallbackStruct *) call_data;
   Widget		widget;
   WlzDVertex3		fixed;
-  XColor		colorcell_def;
-  XWindowAttributes	win_att;
   double		theta, phi;
 
   if( globals.obj == NULL )

@@ -230,8 +230,6 @@ void warpReadSignalPopupCb(
   return;
 }
 
-
-
 void mapWarpDataCb(
   Widget	w,
   XtPointer	client_data,
@@ -251,14 +249,38 @@ void mapWarpDataCb(
   if( tmpObj = WlzAssignObject(
     WlzShiftObject(warpGlobals.sgnlObj, warpGlobals.srcXOffset,
 		   warpGlobals.srcYOffset, 0, &errNum), NULL) ){
+    WlzObject	*obj1, *obj2;
+    WlzPixelV	bckgrnd;
+    int		*greyVals, size;
 		       
     /* transform the domain and add to current domain */
-    if( obj = mapaintWarpObj(tmpObj,
+    /* transform as a grey-value image and threshold
+       - avoid boundlist <-> domain bug */
+    bckgrnd.type = WLZ_GREY_UBYTE;
+    bckgrnd.v.ubv = 0;
+    size = ((tmpObj->domain.i->lastln - tmpObj->domain.i->line1 + 1) *
+	    (tmpObj->domain.i->lastkl - tmpObj->domain.i->kol1 + 1));
+    greyVals = (int *) AlcCalloc(size, sizeof(UBYTE));
+    obj1 = WlzMakeRect(tmpObj->domain.i->line1, tmpObj->domain.i->lastln,
+		       tmpObj->domain.i->kol1, tmpObj->domain.i->lastkl,
+		       WLZ_GREY_UBYTE, greyVals, bckgrnd,
+		       NULL, NULL, &errNum);
+    obj1 = WlzAssignObject(obj1, NULL);
+    obj1->values.r->freeptr = AlcFreeStackPush(obj1->values.r->freeptr,
+					       (void *) greyVals, NULL);
+    bckgrnd.v.ubv = 100;
+    obj2 = WlzAssignObject(WlzGreyMask(obj1, tmpObj, bckgrnd, &errNum), NULL);
+    WlzFreeObj(obj1);
+    if( obj = mapaintWarpObj(obj2,
 			     WLZ_INTERPOLATION_NEAREST) ){
+      obj = WlzAssignObject(obj, NULL);
+      obj1 = WlzThreshold(obj, bckgrnd, WLZ_THRESH_HIGH, &errNum);
       pushUndoDomains(view_struct);
-      setDomainIncrement(obj, view_struct, globals.current_domain, 0);
+      setDomainIncrement(obj1, view_struct, globals.current_domain, 0);
+      WlzFreeObj(obj1);
       WlzFreeObj(obj);
     }
+    WlzFreeObj(obj2);
     WlzFreeObj(tmpObj);
   }
 

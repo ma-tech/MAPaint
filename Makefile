@@ -39,6 +39,7 @@ CSOURCES		= \
 			MAConformalPoly.c \
 			MADomainReviewDialog.c \
 			MADomainSurgeryDialog.c \
+			MAEmageReview.c \
 			MAOpenGLUtils.c \
 			MAPaint.c \
 			MAPaintEvent.c \
@@ -100,6 +101,7 @@ CSOURCES		= \
 			MAConformalPoly.c \
 			MADomainReviewDialog.c \
 			MADomainSurgeryDialog.c \
+			MAEmageReview.c \
 			MAOpenGLUtils.c \
 			MAPaint.c \
 			MAPaintEvent.c \
@@ -160,6 +162,7 @@ CSOURCES		= \
 			MAConformalPoly.c \
 			MADomainReviewDialog.c \
 			MADomainSurgeryDialog.c \
+			MAEmageReview.c \
 			MAOpenGLUtils.c \
 			MAPaint.c \
 			MAPaintEvent.c \

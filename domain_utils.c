@@ -286,14 +286,16 @@ void setGreysIncrement(
 	/* subtract it from existing domains */
 	numOverlays = globals.cmapstruct->num_overlays +
 	  globals.cmapstruct->num_solid_overlays;
-	for(i=1; (errNum == WLZ_ERR_NONE) && (i < numOverlays); i++){
-	  obj1 = WlzDiffDomain(view_struct->curr_domain[i], obj, &errNum);
-	  WlzFreeObj(view_struct->curr_domain[i]);
-	  if( obj1 ){
-	    view_struct->curr_domain[i] = WlzAssignObject(obj1, NULL);
-	  }
-	  else {
-	    view_struct->curr_domain[i] = NULL;
+	for(i=1; (errNum == WLZ_ERR_NONE) && (i <= numOverlays); i++){
+	  if( view_struct->curr_domain[i] ){
+	    obj1 = WlzDiffDomain(view_struct->curr_domain[i], obj, &errNum);
+	    WlzFreeObj(view_struct->curr_domain[i]);
+	    if( obj1 ){
+	      view_struct->curr_domain[i] = WlzAssignObject(obj1, NULL);
+	    }
+	    else {
+	      view_struct->curr_domain[i] = NULL;
+	    }
 	  }
 	}
       }
