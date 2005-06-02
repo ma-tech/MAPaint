@@ -305,6 +305,9 @@ void theiler_menu_init(
   menu_parent = XtNameToWidget(topl, "*file_menu*theiler_stage");
 
   /* open the required directory and count the files */
+  if( globals.base_theiler_dir == NULL ){
+    return;
+  }
   if( (dfd = opendir(globals.base_theiler_dir)) == NULL ){
     /* failed - should give a warning */
     return;
