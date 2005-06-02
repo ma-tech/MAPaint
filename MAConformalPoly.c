@@ -352,8 +352,8 @@ void conformalCalculateMeshCb(
 			       nPts, dPts, nPts, sPts,
 			       &wlzErr);*/
   basis = WlzBasisFnTrFromCPts2D(WLZ_FN_BASIS_2DCONF_POLY, 2,
-				 nPts, dPts, nPts, sPts,
-				 &wlzErr);
+				 nPts, sPts, nPts, dPts,
+				 NULL, &wlzErr);
 
   /* calculate the mesh polylines */
   numMeshPolys = 20;

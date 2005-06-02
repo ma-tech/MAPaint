@@ -202,7 +202,7 @@ void warpSetOvlyObject(void)
      WlzBasisFnTrFromCPts2D(warpGlobals.wlzFnType, polyOrder,
 			    warpGlobals.num_vtxs, srcVtxs,
 			    warpGlobals.num_vtxs, dstVtxs,
-			    &errNum)) ){
+			    NULL, &errNum)) ){
 
     (void) WlzStringFromErrorNum(errNum, &warpErrStr);
     sprintf(warpErrBuf,
