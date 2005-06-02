@@ -269,7 +269,7 @@ MenuItem *createAnatomyMenuItems(
   char		strBuf[256];
 
   /* open the directory and count the subdirectories */
-  if( (dfd = opendir(dirStr)) == NULL ){
+  if((dirStr == NULL) || ((dfd = opendir(dirStr)) == NULL) ){
     return NULL;
   }
   numDirs = 0;
@@ -469,7 +469,7 @@ void set_anatomy_menu(
   String	theilerDir, dirStr;
   
   /* open the current theiler stage directory */
-  if( globals.theiler_stage ){
+  if( globals.theiler_stage && globals.base_theiler_dir ){
     theilerDir = (String) AlcMalloc(strlen(globals.base_theiler_dir) +
 				    strlen(globals.theiler_stage) + 2);
     sprintf(theilerDir, "%s/%s", globals.base_theiler_dir,
