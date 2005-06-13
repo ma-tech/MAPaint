@@ -9,6 +9,8 @@
 ************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <math.h>
 
 #include <MAPaint.h>
@@ -1074,7 +1076,10 @@ void read_domain_cb(
     XmStringGetLtoR(cbs->value, XmSTRING_DEFAULT_CHARSET, &name_str);
     obj = WlzAssignObject(obj, NULL);
     setDomain(obj, globals.current_domain, name_str);
-    globals.domain_filename[globals.current_domain] = strdup(name_str);
+    /* don't reset filename in EMAGE mode */
+    if( !globals.emageFlg ){
+      globals.domain_filename[globals.current_domain] = strdup(name_str);
+    }
     WlzFreeObj(obj);
     AlcFree( (void *) name_str );
   }
@@ -1499,17 +1504,34 @@ XtPointer	call_data)
     }
 
     /* write the domain only */
-    if( obj != NULL ){
-      WlzObject	*tmpObj;
-      WlzValues	objVals;
-      XmString	xmstr;
+    if( (obj == NULL) || WlzIsEmpty(obj, NULL) ){
+      struct stat	buf;
+
+      /* if emage mode then even if empty move an existing 
+	 domain file to backup */
+      if(globals.emageFlg &&	
+	 (stat(globals.domain_filename[domainIndx], &buf) == 0) ){
+	if( S_ISREG( buf.st_mode ) ){
+	  char *filebak;
+
+	  filebak = (char *) AlcMalloc((strlen(globals.domain_filename[domainIndx])
+					 + 6) * sizeof(char));
+	  (void) sprintf(filebak, "%s%s",
+			 globals.domain_filename[domainIndx], ".bak");
+	  rename(globals.domain_filename[domainIndx], filebak);
+	  AlcFree(filebak);
+	}
+      }
 
       /* check for empty */
       if( WlzIsEmpty(obj, NULL) ){
 	WlzFreeObj(obj);
-	HGU_XmUnsetHourGlassCursor(globals.topl);
-	return;
       }
+    }
+    else {
+      WlzObject	*tmpObj;
+      WlzValues	objVals;
+      XmString	xmstr;
 
       /* get the file pointer */
       xmstr = XmStringCreateSimple(globals.domain_filename[domainIndx]);

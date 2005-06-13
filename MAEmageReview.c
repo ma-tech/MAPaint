@@ -24,6 +24,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include <MAPaint.h>
 
@@ -39,11 +41,11 @@ extern Widget create_view_window_dialog(
   double        phi,
   WlzDVertex3	*fixed);
 
-void installReferenceFromBibfile(
+WlzErrorNum  installReferenceFromBibfile(
   String		fileStr)
 {
   FILE			*fp;
-  WlzErrorNum		errNum=WLZ_ERR_NONE;
+  WlzErrorNum		errNum=WLZ_ERR_READ_EOF;
   WlzObject		*obj;
 
   /* open file */
@@ -84,7 +86,7 @@ void installReferenceFromBibfile(
     (void) fclose(fp);
   }
 
-  return;
+  return errNum;
 }
 
 void installViewFromBibfile(
@@ -242,11 +244,11 @@ void installViewFromBibfile(
   return;
 }
 
-void emageReviewInstallFromBibfile(
+WlzErrorNum emageReviewInstallFromBibfile(
   String	bibfileStr,
   ThreeDViewStruct	*view_struct)
 {
-  String	dirStr;
+  String	dirStr, str;
 
   /* check file string */
   if( bibfileStr == NULL ){
@@ -270,7 +272,69 @@ void emageReviewInstallFromBibfile(
   }
 
   /* read  bibfile for the reference object and view */
-  installReferenceFromBibfile(bibfileStr);
+  switch( installReferenceFromBibfile(bibfileStr) ){
+  default:
+    /* should record an error here */
+    return WLZ_ERR_PARAM_DATA;
+
+  case WLZ_ERR_NONE:
+    break;
+
+  case WLZ_ERR_READ_EOF:
+    /* try and decode reference image from bib-file filename
+       search for ".ts", then model number, then type,
+       then add directory prefix /opt/MouseAtlas/EMAP_models/
+    */
+    if( str = strstr(bibfileStr, ".ts") ){
+      char	fileStrBuf[128], modelType;
+      int	stage, modelNum;
+      XmString	xmstr;
+      XmFileSelectionBoxCallbackStruct	cbs;
+      struct stat	buf;
+
+      if( sscanf(str, ".ts%d.%d.%c", &stage, &modelNum, &modelType) == 3 ){
+	/* generate the reference object string */
+	switch( modelType ){
+	case 'l':
+	  sprintf(fileStrBuf, "/opt/MouseAtlas/EMAP_models/ts%02d/embryo_%d_WM_left.wlz",
+		  stage, modelNum);
+	  break;
+	case 'r':
+	  sprintf(fileStrBuf, "/opt/MouseAtlas/EMAP_models/ts%02d/embryo_%d_WM_right.wlz",
+		  stage, modelNum);
+	  break;
+	case 'b':
+	  /* number of options here */
+	  sprintf(fileStrBuf, "/opt/MouseAtlas/EMAP_models/ts%02d/embryo_%d_3D",
+		  stage, modelNum);
+	  break;
+	default:
+	  return  WLZ_ERR_PARAM_DATA;
+	}
+	/* now install the object - check existence first */
+	if( stat(fileStrBuf, &buf) == 0 ){
+	  xmstr = XmStringCreateLtoR(fileStrBuf, XmSTRING_DEFAULT_CHARSET);
+	  cbs.value = xmstr;
+	  cbs.dir = NULL;
+	  read_reference_object_cb(globals.topl, (XtPointer) WLZEFF_FORMAT_WLZ,
+				   &cbs);
+	  XmStringFree(xmstr);
+	}
+	else {
+	  return  WLZ_ERR_PARAM_DATA;
+	}
+      }
+      else {
+	return  WLZ_ERR_PARAM_DATA;
+      }
+    }
+    else {
+      /* give up */
+      return  WLZ_ERR_PARAM_DATA;
+    }
+    break;
+  }
+
   if( view_struct == NULL ){
     /* create a view */
     WlzDVertex3		fixed;
@@ -292,7 +356,7 @@ void emageReviewInstallFromBibfile(
     installViewFromBibfile(bibfileStr, view_struct);
   }
 
-  return;
+  return WLZ_ERR_NONE;
 }
 
 void emageReviewCb(
@@ -319,17 +383,7 @@ XtPointer	call_data)
   if( view_struct = paint_key ){
     paint_key = NULL;
     clearUndoDomains();
-
-    /* query save existing domains */
-    if( HGU_XmUserConfirm(globals.topl,
-			  "Before swtching to a new submission do you\n"
-			  "want to save existing domains?\n",
-			  "Yes", "No", 1) ){
-      /* install any domains currently in a painting view */
-      installViewDomains(view_struct);
-      save_all_domains_cb(w, NULL, call_data);
-      clear_all_domains_cb(w, NULL, call_data);
-    }
+    installViewDomains(view_struct);
   }
   else {
     if( global_view_list ){
@@ -339,6 +393,17 @@ XtPointer	call_data)
       view_struct = NULL;
     }
   }
+
+  /* query save existing domains then clear */
+  if( HGU_XmUserConfirm(globals.topl,
+			"Before swtching to a new submission do you\n"
+			"want to save existing domains?\n",
+			"Yes", "No", 1) ){
+    /* install any domains currently in a painting view */
+    save_all_domains_cb(w, NULL, call_data);
+  }
+  /* don't need to clear because a new reference object is being installed */
+  /* clear_all_domains_cb(w, NULL, call_data); */
 
   /* delete all views except 1 */
   vl1 = global_view_list;

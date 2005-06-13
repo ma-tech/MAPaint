@@ -815,6 +815,10 @@ void controls_io_write_cb(
   String		fileStr;
   FILE			*fp;
   WlzErrorNum		errNum;
+  char			*tmpS, *dateS, *hostS, *userS, tmpBuf[25];
+  BibFileRecord		*bibfileRecord;
+  static char		unknownS[] = "unknown";
+  time_t		tmpTime;
 
   /* call the disarm callbacks to remove any timeouts and avoid posting
      th emenu */
@@ -828,8 +832,52 @@ void controls_io_write_cb(
 				      "OK", "cancel", "MAPaintSectParams.bib",
 				      NULL, "*.bib") ){
     if( fp = fopen(fileStr, "w") ){
+      /* write a comment block and reference image record */
+      bibfileRecord = 
+	BibFileRecordMake("Ident", "0",
+			  BibFileFieldMakeVa("Text",
+					     "MAPaint 2D warp input parameters",
+					     "Version",	"1",
+					     NULL));
+      BibFileRecordWrite(fp, NULL, bibfileRecord);
+      BibFileRecordFree(&bibfileRecord);
+      
+      /* now a comment with user, machine, date etc. */
+      tmpS = getenv("USER");
+      (void )sprintf(tmpBuf, "User: %s", tmpS?tmpS:unknownS);
+      userS = AlcStrDup(tmpBuf);
+
+      tmpTime = time(NULL);
+      tmpS = ctime(&tmpTime);
+      *(tmpS + strlen(tmpS) - 1) = '\0';
+      (void )sprintf(tmpBuf, "Date: %s", tmpS?tmpS:unknownS);
+      dateS = AlcStrDup(tmpBuf);
+
+      tmpS = getenv("HOST");
+      (void )sprintf(tmpBuf, "Host: %s", tmpS?tmpS:unknownS);
+      hostS = AlcStrDup(tmpBuf);
+
+      bibfileRecord = 
+	BibFileRecordMake("Comment", "0",
+			  BibFileFieldMakeVa("Text", userS,
+					     "Text", dateS,
+					     "Text", hostS,
+					     NULL));
+      BibFileRecordWrite(fp, NULL, bibfileRecord);
+      BibFileRecordFree(&bibfileRecord);
+      AlcFree(userS);
+      AlcFree(dateS);
+      AlcFree(hostS);
+
+      /* if write a file record for the reference file */
+      if( globals.file ){
+	WlzEffBibWriteFileRecord(fp, "MAPaintReferenceFile",
+				 globals.file,
+				 globals.origObjExtType);
+      }
+
       if( WlzEffBibWrite3DSectionViewParamsRecord(fp, "Wlz3DSectionViewParams",
-					      wlzViewStr) != WLZ_ERR_NONE ){
+						  wlzViewStr) != WLZ_ERR_NONE ){
 	HGU_XmUserError(globals.topl,
 			"Save Section Parameters:\n"
 			"    Error in writing the bibfile\n"
