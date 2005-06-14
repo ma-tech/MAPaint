@@ -721,6 +721,28 @@ void rapidMapNextCb(
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
   String		bibfileStr;
 
+  /* rapid save of existing */
+  /* check if save required */
+  if( !warpGlobals.bibfileSavedFlg ){
+    switch( HGU_XmUserConfirm3(globals.topl,
+			  "Current bibfile and domains not saved.\n"
+			  "Do you want to save before reading the\n"
+			  "next warp bibfile?\n",
+			  "Yes", "No", "Cancel", 1) ){
+    case 0:
+      rapidMapSaveCb(widget, client_data, call_data);
+      break;
+
+    case 1:
+      /* do nothing */
+      break;
+
+    case 2:
+      /* cancel */
+      return;
+    }
+  }
+
   /* get next bibfile from bibfile-list say list empty */
   warpGlobals.bibfileListIndex++;
   if( warpGlobals.bibfileListIndex < warpGlobals.bibfileListCount ){
@@ -730,18 +752,6 @@ void rapidMapNextCb(
     /* end of list, call rapidMapSelect */
     rapidMapSelectCb(widget, client_data, call_data);
     return;
-  }
-
-  /* rapid save of existing */
-  /* check if save required */
-  if( !warpGlobals.bibfileSavedFlg ){
-    if( HGU_XmUserConfirm(globals.topl,
-			  "Current bibfile and domains not saved.\n"
-			  "Do you want to save before reading the\n"
-			  "next warp bibfile?\n",
-			  "Yes", "No", 1) ){
-      rapidMapSaveCb(widget, client_data, call_data);
-    }
   }
 
   /* rapid install next bibfile */
