@@ -1,4 +1,4 @@
-#pragma ident "MRC HGU $Id$"
+  #pragma ident "MRC HGU $Id$"
 /************************************************************************
 *   Copyright  :   1994 Medical Research Council, UK.                   *
 *                  All rights reserved.                                 *

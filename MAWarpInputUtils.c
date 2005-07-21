@@ -2237,14 +2237,12 @@ void warpIOWriteAffine(
 					       warpGlobals.srcYOffset,
 					       0, NULL);
 	t2 = WlzAffineTransformProduct(t1, warpGlobals.affine, NULL);
-
-/*	domain.t = warpGlobals.affine;*/
 	domain.t = t2;
 	values.core = NULL;
 	if( obj = WlzMakeMain(WLZ_AFFINE_TRANS, domain, values,
 			      NULL, NULL, NULL) ){
 	  WlzWriteObj(fp, obj);
-	  domain.core = NULL;
+	  obj->domain.core = NULL;
 	  WlzFreeObj(obj);
 	}
 	WlzFreeAffineTransform(t2);

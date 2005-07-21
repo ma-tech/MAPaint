@@ -309,10 +309,9 @@ LIBDIRS			= . \
 			../../External/Tiff/tiff-v3.5.7/libtiff \
 			../../External/Jpeg/jpeg-6b \
 			  $(HGU_LIB_DIR) \
-			  $(OPENGL_LIB_DIR) \
-			  $(X11_LIB_DIR) \
 			  $(MOTIF_LIB_DIR) \
-			/Users/richard/downloads/darwin-extras/langinfo
+			  $(OPENGL_LIB_DIR) \
+			  $(X11_LIB_DIR)
 endif
 ifeq ($(UNIXTYPE), IRIX646)
 LIBDIRS			=  \
@@ -375,7 +374,7 @@ EXTRA_LIBS		= tiff jpeg m SM ICE dl pthread
 X11LIBS         	= Xt Xmu Xp X11 Xext
 endif
 ifeq	 	($(UNIXTYPE), DARWIN)
-EXTRA_LIBS		= langinfo tiff jpeg m
+EXTRA_LIBS		= tiff jpeg m
 X11LIBS         	= Xt X11 Xmu Xp
 endif
 
