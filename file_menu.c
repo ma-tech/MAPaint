@@ -889,33 +889,32 @@ Widget	w,
 XtPointer	client_data,
 XtPointer	call_data)
 {
-    XmFileSelectionBoxCallbackStruct *cbs =
-	(XmFileSelectionBoxCallbackStruct *) call_data;
-    WlzEffFormat	image_type = (WlzEffFormat) client_data;
-    FILE		*fp;
-    String		icsfile;
+  XmFileSelectionBoxCallbackStruct *cbs =
+    (XmFileSelectionBoxCallbackStruct *) call_data;
+  WlzEffFormat	image_type = (WlzEffFormat) client_data;
+  FILE		*fp;
 
-    /* set hour glass cursor */
-    HGU_XmSetHourGlassCursor(globals.topl);
+  /* set hour glass cursor */
+  HGU_XmSetHourGlassCursor(globals.topl);
 
-    /* write the reference object */
-    if( globals.origObjType == WLZ_2D_DOMAINOBJ ){
-      WlzObject *tmpObj;
+  /* write the reference object */
+  if( globals.origObjType == WLZ_2D_DOMAINOBJ ){
+    WlzObject *tmpObj;
 
-      tmpObj = WlzMakeMain(WLZ_2D_DOMAINOBJ, 
-			   globals.orig_obj->domain.p->domains[0],
-			   globals.orig_obj->values.vox->values[0],
-			   NULL, NULL, NULL);
-      HGU_XmWriteExtFFObject(tmpObj, w, cbs, &image_type);
-      WlzFreeObj(tmpObj);
-    }
-    else {
-      HGU_XmWriteExtFFObject(globals.orig_obj, w, cbs, &image_type);
-    }
+    tmpObj = WlzMakeMain(WLZ_2D_DOMAINOBJ, 
+			 globals.orig_obj->domain.p->domains[0],
+			 globals.orig_obj->values.vox->values[0],
+			 NULL, NULL, NULL);
+    HGU_XmWriteExtFFObject(tmpObj, w, cbs, &image_type);
+    WlzFreeObj(tmpObj);
+  }
+  else {
+    HGU_XmWriteExtFFObject(globals.orig_obj, w, cbs, &image_type);
+  }
 
-    /* set hour glass cursor */
-    HGU_XmUnsetHourGlassCursor(globals.topl);
-    return;
+  /* set hour glass cursor */
+  HGU_XmUnsetHourGlassCursor(globals.topl);
+  return;
 }
 
 void quit_cb(

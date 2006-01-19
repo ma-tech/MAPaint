@@ -160,9 +160,10 @@ static String  fallback_resources[] = {
   "*write_obj_dialog.file_type.labelString:		Select image type:",
   "*write_obj_dialog.file_type.borderWidth:		0",
   "*object_props_dialog_popup.mappedWhenManaged:	False",
-  "*object_props_dialog.dialogTitle:		  Object Properties",
+  "*object_props_dialog.dialogTitle:		  Reference Object Properties",
   "*object_props_dialog*control.horizontalSpacing:    4",
   "*object_props_dialog*control.verticalSpacing:      4",
+  "*object_props_dialog*origObjTypeLabel.labelString:	Type:",
   "*object_props_dialog*frame1.title1.labelString:	Bounding box",
   "*object_props_dialog*form1*planes.labelString:	Planes (z):  ",
   "*object_props_dialog*form1*lines.labelString:	Lines (y):    ",
@@ -193,9 +194,7 @@ static String  fallback_resources[] = {
   "*write_domain_dialog.pattern:			*.wlz*",
   "*write_paint_volume_dialog_popup.mappedWhenManaged:	False",
   "*write_paint_volume_dialog.dialogTitle:	Write 3D Painted Volume",
-  "*write_paint_volume_dialog.pattern:	*.wlz*",
-  "*write_paint_volume_dialog.file_type.labelString:	Select image type:",
-  "*write_paint_volume_dialog.file_type.borderWidth:		0",
+  "*write_paint_volume_dialog*write_file_form.24bit.labelstring:24 bit output",
 
   /* save-restore resources */
   "*save_state_dialog.pattern:		*.rsc",

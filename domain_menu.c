@@ -15,11 +15,6 @@
 
 #include <MAPaint.h>
 
-static void image_type_cb(
-  Widget	w,
-  XtPointer	client_data,
-  XtPointer	call_data);
-
 void emageReviewCb(
   Widget	w,
   XtPointer	client_data,
@@ -29,42 +24,6 @@ extern Widget create_domain_controls_dialog(
   Widget	topl);
 
 /* menu item structures */
-
-static MenuItem file_type_menu_itemsP[] = {	/* file_menu items */
-  {"woolz", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   image_type_cb, (XtPointer) WLZEFF_FORMAT_WLZ,
-   myHGU_XmHelpStandardCb, SEC_READ_WRITE_DOMAINS_DIALOGS,
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"ics", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   image_type_cb, (XtPointer) WLZEFF_FORMAT_ICS,
-   myHGU_XmHelpStandardCb, "paint/paint.html#read_object",
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"den", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   image_type_cb, (XtPointer) WLZEFF_FORMAT_DEN,
-   myHGU_XmHelpStandardCb, "paint/paint.html#read_object",
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"vff", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   image_type_cb, (XtPointer) WLZEFF_FORMAT_VFF,
-   myHGU_XmHelpStandardCb, "paint/paint.html#read_object",
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"pic", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   image_type_cb, (XtPointer) WLZEFF_FORMAT_PIC,
-   myHGU_XmHelpStandardCb, "paint/paint.html#read_object",
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"vtk", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   image_type_cb, (XtPointer) WLZEFF_FORMAT_VTK,
-   myHGU_XmHelpStandardCb, "paint/paint.html#read_object",
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"slc", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   image_type_cb, (XtPointer) WLZEFF_FORMAT_SLC,
-   myHGU_XmHelpStandardCb, "paint/paint.html#read_object",
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  {"pgm", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
-   image_type_cb, (XtPointer) WLZEFF_FORMAT_PNM,
-   myHGU_XmHelpStandardCb, "paint/paint.html#read_object",
-   XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
-};
 
 static MenuItem select_menu_itemsP[] = {	/* select menu items */
 {"domain_1", &xmToggleButtonWidgetClass, 0, NULL, NULL, True,
@@ -1712,49 +1671,75 @@ void write_paint_object_cb(
     (XmFileSelectionBoxCallbackStruct *) call_data;
   WlzEffFormat	image_type = (WlzEffFormat) client_data;
   FILE		*fp;
-  String		icsfile;
+  Boolean	RGBFlg=False;
+  Widget	widget;
+  WlzObject	*obj;
+  WlzErrorNum	errNum;
 
-  /* get the file pointer or file name if ics format */
-  if((image_type == WLZEFF_FORMAT_ICS) ||
-     (image_type == WLZEFF_FORMAT_PNM) ||
-     (image_type == WLZEFF_FORMAT_BMP))
-  {
-    if( (icsfile = HGU_XmGetFileStr(globals.topl, cbs->value,
-				    cbs->dir)) == NULL )
-    {
-      return;
-    }
-    fp = NULL;
+  /* do nothing if no reference object */
+  if( globals.obj == NULL ){
+    /* should say something here */
+    HGU_XmUserError(globals.topl,
+		    "Write painted volume:\n"
+		    "    No painted volume to write,\n"
+		    "    Please read in a reference image.",
+		    XmDIALOG_FULL_APPLICATION_MODAL);    
+    return;
   }
-  else
-  {
-    if( (fp = HGU_XmGetFilePointer(globals.topl, cbs->value,
-				   cbs->dir, "wb")) == NULL )
-    {
-      return;
+
+  /* set hour glass cursor */
+  HGU_XmSetHourGlassCursor(globals.topl);
+
+  /* check for 24 bit */
+  if( widget =
+     XtNameToWidget(globals.topl,
+		    "*write_paint_volume_dialog*24bit") ){
+    XtVaGetValues(widget, XmNset, &RGBFlg, NULL);
+    if( RGBFlg ){
+      /* convert to 24bit with LUT */
+      obj = WlzIndexToRGBA(globals.obj, globals.colormap, &errNum);
     }
-    icsfile = NULL;
+    else {
+      obj = WlzMakeMain(globals.obj->type, globals.obj->domain,
+			globals.obj->values, NULL, NULL, &errNum);
+    }
   }
 
   /* write the reference object */
-  WlzEffWriteObj(fp, icsfile, globals.obj, image_type);
+  if( globals.origObjType == WLZ_2D_DOMAINOBJ ){
+    WlzObject *tmpObj;
 
-  /* close the file pointer if non NULL */
-  if( fp )
-  {
-    if( fclose( fp ) == EOF ){
-      HGU_XmUserError(globals.topl,
-		      "Write painted object:\n"
-		      "    Error in closing the object file\n"
-		      "    Please check disk space or quotas\n"
-		      "    Painted object not saved",
-		      XmDIALOG_FULL_APPLICATION_MODAL);
-    }
+    tmpObj = WlzMakeMain(WLZ_2D_DOMAINOBJ, 
+			 obj->domain.p->domains[0],
+			 obj->values.vox->values[0],
+			 NULL, NULL, NULL);
+    errNum = HGU_XmWriteExtFFObject(tmpObj, w, cbs, &image_type);
+    WlzFreeObj(tmpObj);
+  }
+  else {
+    errNum = HGU_XmWriteExtFFObject(obj, w, cbs, &image_type);
+  }
+  WlzFreeObj(obj);
+
+  /* check for write error */
+  if( errNum != WLZ_ERR_NONE ){
+    char errStrBuf[256];
+    const char *errStr, *msgStr;
+    errStr = WlzStringFromErrorNum(errNum, &msgStr);
+    sprintf(errStrBuf,
+	    "Write painted volume:\n"
+	    "    Failed to write painted volume.\n"
+	    "    Error returned: %s\n"
+	    "    Error message: %s\n"
+	    "Please try with a different output format,\n"
+	    "\"Woolz\" and \"Tiff\" are the safest choices.",
+	    errStr, msgStr);
+    HGU_XmUserError(globals.topl, errStrBuf,
+		    XmDIALOG_FULL_APPLICATION_MODAL);    
   }
 
-  /* update the FileSelectionBox */
-  XmFileSelectionDoSearch( w, NULL );
-  XtVaSetValues(w, XmNdirSpec, cbs->value, NULL);
+  /* set hour glass cursor */
+  HGU_XmUnsetHourGlassCursor(globals.topl);
 
   return;
 }
@@ -1826,7 +1811,7 @@ static void image_type_cb(
 int domain_menu_init(
   Widget	topl)
 {
-  Widget		widget, form, file_type_menu;
+  Widget		widget, form, rc, toggle;
   int			i, n;
   XtTranslations	trans_tb;
   Atom			import_list[1];
@@ -1923,21 +1908,29 @@ int domain_menu_init(
 
   /* create the write-paint volume file selection dialog */
   write_paint_volume_dialog =
-    XmCreateFileSelectionDialog( topl, "write_paint_volume_dialog", args, 1);
+    HGU_XmCreateExtFFObjectFSB(topl, "write_paint_volume_dialog",
+			       write_paint_object_cb,
+			       NULL);
+  if( rc = XtNameToWidget(write_paint_volume_dialog, "*.formatFormRC") ){
 
-  /* add a file type selection menu */
-  file_type_menu = HGU_XmBuildMenu(write_paint_volume_dialog, XmMENU_OPTION,
-				   "file_type", 0, XmTEAR_OFF_DISABLED,
-				   file_type_menu_itemsP);
-  XtManageChild( file_type_menu );
+    /* add a form to include conversion to 24bit */
+    form = XtVaCreateManagedWidget("write_file_form", xmFormWidgetClass,
+				   rc,
+				   XmNborderWidth,	0,
+				   NULL);
 
-  image_type_cb(write_paint_volume_dialog, (XtPointer) WLZEFF_FORMAT_WLZ,
-		NULL);
-  XtAddCallback(write_paint_volume_dialog, XmNcancelCallback, 
-		PopdownCallback, NULL);
-  XtAddCallback(write_paint_volume_dialog, XmNmapCallback,
-		FSBPopupCallback, NULL);
-  XtManageChild( write_paint_volume_dialog );
+    /* add 24bit toggle */
+    toggle = XtVaCreateManagedWidget("24bit", xmToggleButtonGadgetClass,
+				     form,
+				     XmNindicatorOn, 	True,
+				     XmNindicatorType,	XmN_OF_MANY,
+				     XmNset,		False,
+				     XmNtopAttachment,	XmATTACH_FORM,
+				     XmNleftAttachment,	XmATTACH_FORM,
+				     NULL);
+  }
+
+  HGU_XmExtFFObjectFSBSetType(write_paint_volume_dialog, WLZEFF_FORMAT_WLZ);
 
   HGU_XmSaveRestoreAddWidget( write_paint_volume_dialog, HGU_XmFSD_SaveFunc,
 			     (XtPointer) XtName(topl), NULL, NULL );

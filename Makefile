@@ -64,7 +64,6 @@ CSOURCES		= \
 			MAWarpSignalProc.c \
 			MAWarpSignalPostProcPage.c \
 			MAWarpSignalThresholdPage.c \
-			MAPMSnake.c \
 			NalgsDPSearch.c \
 			anatomy_menu.c \
 			domainControls.c \

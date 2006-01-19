@@ -71,6 +71,14 @@ void setup_obj_props_cb(
     HGU_XmSetSliderValue( widget, planedom->voxel_size[2] );
   }
 
+  /* get the object type */
+  if( (widget = XtNameToWidget(obj_props_dialog, "*origObjType")) ){
+    sprintf(str_buf, "%s", WlzStringFromObjTypeValue(globals.origObjType, NULL));
+    xmstr = XmStringCreateSimple(str_buf);
+    XtVaSetValues(widget, XmNlabelString, xmstr, NULL);
+    XmStringFree(xmstr);
+  }
+
   /* set the bounding box info */
   if( (widget = XtNameToWidget(obj_props_dialog, "*planes_vals")) ){
     sprintf(str_buf, "(%d, %d)", planedom->plane1, planedom->lastpl);
@@ -196,8 +204,41 @@ static void obj_props_set_cb(
   return;
 }
 
+void moreFactsCb(
+  Widget w,
+  XtPointer client_data,
+  XtPointer call_data)
+{
+  char 	*factsStr;
+
+  /* check for reference object */
+  if( globals.orig_obj == NULL ){
+    return;
+  }
+
+  /* create a temporary object for 2D case */
+  if( globals.origObjType == WLZ_2D_DOMAINOBJ ){
+    WlzObject *tmpObj;
+
+    tmpObj = WlzMakeMain(WLZ_2D_DOMAINOBJ, 
+			 globals.orig_obj->domain.p->domains[0],
+			 globals.orig_obj->values.vox->values[0],
+			 NULL, NULL, NULL);
+     WlzObjectFacts(tmpObj, NULL, &factsStr, 0);
+  }
+  else {
+    WlzObjectFacts(globals.orig_obj, NULL, &factsStr, 0);
+  }
+  HGU_XmUserMessage(w, factsStr, XmDIALOG_FULL_APPLICATION_MODAL);
+  AlcFree(factsStr);
+
+  return;
+}
+
+
 static ActionAreaItem   obj_props_dialog_actions[] = {
 {"Set",		NULL,		NULL},
+{"More",	moreFactsCb,		NULL},
 {"Dismiss",     NULL,           NULL},
 {"Help",        NULL,           NULL},
 };
@@ -212,7 +253,7 @@ Widget create_obj_props_dialog(
 
   dialog = HGU_XmCreateStdDialog(parent, "object_props_dialog",
 				 xmFormWidgetClass,
-				 obj_props_dialog_actions, 3);
+				 obj_props_dialog_actions, 4);
 
   if( (widg1 = XtNameToWidget(dialog, "*.Set")) != NULL ){
     XtAddCallback(widg1, XmNactivateCallback, obj_props_set_cb,
@@ -226,9 +267,24 @@ Widget create_obj_props_dialog(
 
   control = XtNameToWidget( dialog, "*.control" );
 
+  widg1 = XtVaCreateManagedWidget("origObjTypeLabel", xmLabelGadgetClass,
+				  control,
+				  XmNborderWidth,	0,
+				  XmNtopAttachment,	XmATTACH_FORM,
+				  XmNleftAttachment,	XmATTACH_FORM,
+				  NULL);
+  widg1 = XtVaCreateManagedWidget("origObjType", xmLabelGadgetClass, control,
+				  XmNborderWidth,	0,
+				  XmNtopAttachment,	XmATTACH_FORM,
+				  XmNleftAttachment,	XmATTACH_WIDGET,
+				  XmNleftWidget,	widg1,
+				  XmNrightAttachment,	XmATTACH_FORM,
+				  NULL);
+
   frame1 = XtVaCreateManagedWidget("frame1", xmFrameWidgetClass,
 				   control,
-				   XmNtopAttachment,	XmATTACH_FORM,
+				   XmNtopAttachment,	XmATTACH_WIDGET,
+				   XmNtopWidget,	widg1,
 				   XmNleftAttachment,	XmATTACH_FORM,
 				   XmNrightAttachment,	XmATTACH_FORM,
 				   NULL);

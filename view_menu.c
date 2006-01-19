@@ -394,6 +394,14 @@ void display_pointer_feedback_informationV(
       sprintf(str_buf, "%s(%d,%d,%d) %f: %s\n%s", spacesBuf, kol, line, plane,
 	      gVWSp->gVal[0].dbv, globals.domain_name[sel_domain], domainName);
       break;
+    case WLZ_GREY_RGBA:
+      sprintf(str_buf, "%s(%d,%d,%d) %d,%d,%d: %s\n%s",
+	      spacesBuf, kol, line, plane,
+	      WLZ_RGBA_RED_GET(gVWSp->gVal[0].rgbv),
+	      WLZ_RGBA_GREEN_GET(gVWSp->gVal[0].rgbv),
+	      WLZ_RGBA_BLUE_GET(gVWSp->gVal[0].rgbv),
+	      globals.domain_name[sel_domain], domainName);
+      break;
     }
     WlzGreyValueFreeWSp(gVWSp);
   }
