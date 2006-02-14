@@ -177,7 +177,7 @@ char *getEMAGE_Name(
   int	domain)
 {
   if((domain > 0) &&
-     (domain <= (emapNumSolidOverlays+emapNumWashOverlays)) ){
+     (domain <= (emageNumSolidOverlays+emageNumWashOverlays)) ){
     return emageName[domain-1];
   }
   return NULL;
@@ -187,7 +187,7 @@ char *getEMAGE_Filename(
   int	domain)
 {
   if((domain > 0) &&
-     (domain <= (emapNumSolidOverlays+emapNumWashOverlays)) ){
+     (domain <= (emageNumSolidOverlays+emageNumWashOverlays)) ){
     return emageFilename[domain-1];
   }
   return NULL;

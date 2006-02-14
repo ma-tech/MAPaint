@@ -405,8 +405,10 @@ void MAPaintDomainGetResourceValues(void)
   if( globals.emageFlg ){
     int i;
     for(i=1; i <= 10; i++){
-      globals.domain_name[i] = getEMAGE_Name(i);
-      globals.domain_filename[i] = getEMAGE_Filename(i);
+      if( getEMAGE_Name(i) != NULL ){
+	globals.domain_name[i] = getEMAGE_Name(i);
+	globals.domain_filename[i] = getEMAGE_Filename(i);
+      }
     }
   }
   return;

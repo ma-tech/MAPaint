@@ -138,7 +138,7 @@ void PMSnake(
   PMSnakeNlcSetup(NLCParams);
 
   /* call the dynamic programming search */
-  (void) NalgsDPSearch(num_mpts, 2*searchParams->range+1,
+  (void) AlgDPSearch(num_mpts, 2*searchParams->range+1,
 		       local_cost, optimal_cost,
 		       optimal_path, PMSnakeNlc);
 
@@ -223,7 +223,7 @@ void PMEdgeSnake(
   PMEdgeSnakeNlcSetup(NLCParams, direction);
 
   /* call the dynamic programming search */
-  (void) NalgsDPSearch(num_mpts, 2*searchParams->range+1,
+  (void) AlgDPSearch(num_mpts, 2*searchParams->range+1,
 		       local_cost, optimal_cost,
 		       optimal_path, PMSnakeNlc);
 

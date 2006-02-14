@@ -47,6 +47,7 @@ CSOURCES		= \
 			MARealignmentDialog.c \
 			MASaveSequenceDialog.c \
 			MAPaintSocket.c \
+			MAPMSnake.c \
 			MATrackDomain.c \
 			MAWarpInput2DDialog.c \
 			MAWarpInputUtils.c \
@@ -64,7 +65,6 @@ CSOURCES		= \
 			MAWarpSignalProc.c \
 			MAWarpSignalPostProcPage.c \
 			MAWarpSignalThresholdPage.c \
-			NalgsDPSearch.c \
 			anatomy_menu.c \
 			domainControls.c \
 			domain_menu.c \
@@ -108,6 +108,7 @@ CSOURCES		= \
 			MARealignmentDialog.c \
 			MASaveSequenceDialog.c \
 			MAPaintSocket.c \
+			MAPMSnake.c \
 			MATrackDomain.c \
 			MAWarpInput2DDialog.c \
 			MAWarpInputUtils.c \
@@ -125,8 +126,6 @@ CSOURCES		= \
 			MAWarpSignalProc.c \
 			MAWarpSignalPostProcPage.c \
 			MAWarpSignalThresholdPage.c \
-			MAPMSnake.c \
-			NalgsDPSearch.c \
 			anatomy_menu.c \
 			domainControls.c \
 			domain_menu.c \
@@ -169,6 +168,7 @@ CSOURCES		= \
 			MARealignmentDialog.c \
 			MASaveSequenceDialog.c \
 			MAPaintSocket.c \
+			MAPMSnake.c \
 			MATrackDomain.c \
 			MAWarpInput2DDialog.c \
 			MAWarpInputUtils.c \
@@ -186,8 +186,6 @@ CSOURCES		= \
 			MAWarpSignalProc.c \
 			MAWarpSignalPostProcPage.c \
 			MAWarpSignalThresholdPage.c \
-			MAPMSnake.c \
-			NalgsDPSearch.c \
 			anatomy_menu.c \
 			domainControls.c \
 			domain_menu.c \

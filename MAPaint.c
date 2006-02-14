@@ -621,14 +621,14 @@ main(
   XtAppAddActions(app_con, actions, XtNumber(actions));
 
   /* install signal and error handlers */
-  signal(SIGHUP,  non_abort_signal_handler);
+  /*signal(SIGHUP,  non_abort_signal_handler);
   signal(SIGINT,  non_abort_signal_handler);
   signal(SIGQUIT, abort_signal_handler);
   signal(SIGBUS,  abort_signal_handler);
   signal(SIGSEGV, abort_signal_handler);
   signal(SIGSYS,  abort_signal_handler);
   (void) XSetErrorHandler( XNonFatalErrorHandler );
-  (void) XSetIOErrorHandler( XFatalErrorHandler );
+  (void) XSetIOErrorHandler( XFatalErrorHandler );*/
     
   WM_DELETE_WINDOW = XmInternAtom(XtDisplay(topl),
 				 "WM_DELETE_WINDOW", False);
