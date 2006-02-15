@@ -538,7 +538,7 @@ Widget	topl)
 
     /* get the current working directory */
     if( dirstr = getcwd(lineBuf, 256) ){
-      globals.origDir = strdup(dirstr);
+      globals.origDir = AlcStrDup(dirstr);
     }
     else {
       globals.origDir = NULL;
@@ -576,7 +576,7 @@ Widget	topl)
 		    "%s/%s", globals.origDir, fileBuf);
 	  }
 	  else {
-	    warpGlobals.bibfileList[linecount] = strdup(fileBuf);
+	    warpGlobals.bibfileList[linecount] = AlcStrDup(fileBuf);
 	  }
 	  linecount++;
 	}

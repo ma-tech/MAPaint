@@ -495,7 +495,7 @@ char *HGU_XmPathToDirectory(
 
   if( pathStr ){
     if( strchr(pathStr, '/') ){
-      dirStr = strdup(pathStr);
+      dirStr = AlcStrDup(pathStr);
       strrchr(dirStr, '/')[0] = '\0';
     }
   }

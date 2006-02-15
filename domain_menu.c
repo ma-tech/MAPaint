@@ -1039,7 +1039,7 @@ void read_domain_cb(
     setDomain(obj, globals.current_domain, name_str);
     /* don't reset filename in EMAGE mode */
     if( !globals.emageFlg ){
-      globals.domain_filename[globals.current_domain] = strdup(name_str);
+      globals.domain_filename[globals.current_domain] = AlcStrDup(name_str);
     }
     WlzFreeObj(obj);
     AlcFree( (void *) name_str );
