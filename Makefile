@@ -17,8 +17,7 @@ include			../../Makefile.conf
 
 # Names of executables to be built (modify as required).
 EXECUTABLES		= \
-			MAPaint \
-			MAPaint.mesa
+			MAPaint
 ifeq ($(UNIXTYPE), DARWIN)
 EXECUTABLES		= \
 			MAPaint
