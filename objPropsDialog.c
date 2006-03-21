@@ -223,7 +223,8 @@ void moreFactsCb(
     tmpObj = WlzMakeMain(WLZ_2D_DOMAINOBJ, 
 			 globals.orig_obj->domain.p->domains[0],
 			 globals.orig_obj->values.vox->values[0],
-			 NULL, NULL, NULL);
+			 globals.orig_obj->plist,
+			 NULL, NULL);
      WlzObjectFacts(tmpObj, NULL, &factsStr, 0);
   }
   else {

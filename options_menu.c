@@ -592,6 +592,7 @@ Widget	topl)
 					       NULL, NULL, NULL), NULL);
       set_topl_title("dummy");
       globals.file = NULL;
+      globals.origObjType = WLZ_3D_DOMAINOBJ;
       install_paint_reference_object(dummyObj);
       WlzFreeObj(dummyObj);
 

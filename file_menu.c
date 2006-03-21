@@ -821,7 +821,7 @@ void read_reference_object_cb(
 					   NULL, &errNum) ){
 	values.vox->values[0] = WlzAssignValues(obj->values, NULL);
 	newObj = WlzMakeMain(WLZ_3D_DOMAINOBJ, domain, values,
-			     NULL, NULL, &errNum);
+			     obj->plist, NULL, &errNum);
 	WlzFreeObj(obj);
 	obj = newObj;
       }

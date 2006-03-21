@@ -1438,9 +1438,11 @@ int view_menu_init(
   char		*hostName;
   int		i, j;
 
+
   globals.gc_set = HGU_XCreateGC(dpy, win);
-  (void) HGU_XColourFromNameGC(dpy, globals.cmap, globals.gc_set,
-			       "green");
+/*  (void) HGU_XColourFromNameGC(dpy, globals.cmap, globals.gc_set,
+    "red");*/
+  (void) HGU_XColourGC(dpy, globals.gc_set, 0x00ffff00);
   gc_values.plane_mask = 255;
   XChangeGC(dpy, globals.gc_set, GCPlaneMask, &gc_values);
 

@@ -161,8 +161,8 @@ void theiler_stage_setup_cb(
 				  "to the required location.\n"
 				  "Usually this will be:\n"
 				  "/mnt/cdrom/Models - Linux\n"
-				  "/Volumes/MAData-\?\?/Models - Mac OSX\n"
-				  "/cdrom/MAData-\?\?/Models - Solaris\n",
+				  "/Volumes/MAData-*/Models - Mac OSX\n"
+				  "/cdrom/MAData-*/Models - Solaris\n",
 				  "OK", "cancel", testDir,
 				  testDir, NULL)) ){
 	HGU_XmUserError(globals.topl,
@@ -181,8 +181,8 @@ void theiler_stage_setup_cb(
 				   "Edinburgh Mouse Atlas reconstructions.\n"
 				   "If you have the CD-ROM this could be:\n"
 				   "Linux: /mnt/cdrom/Models\n"
-				   "Mac OSX: /Volumes/MAData-\?\?/Models\n"
-				   "Solaris:  /cdrom/MAData-\?\?/Models\n",
+				   "Mac OSX: /Volumes/MAData-*/Models\n"
+				   "Solaris:  /cdrom/MAData-*/Models\n",
 				   "OK", "cancel", testDir,
 				   testDir, NULL);
   }

@@ -311,6 +311,7 @@ typedef struct _PaintGlobals{
 
   /* view_menu globals */
   GC			gc_set;
+  WlzAffineTransform	*preTrans;
 
   /* options menu globals */
   PaintCmapStruct	*cmapstruct;
