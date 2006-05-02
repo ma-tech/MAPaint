@@ -31,7 +31,6 @@ RELEASE			= 1.0
 
 # List of all 'C' source files (modify as required).
 CSOURCES		= \
-			HGU_Tablet.c \
 			MAAutosaveDialog.c \
 			MAColormapDialog.c \
 			MAColormapUtils.c \
@@ -81,7 +80,6 @@ CSOURCES		= \
 			tools_interactive_geom.c \
 			tools_interactive_paint.c \
 			tools_morphological.c \
-			tools_tablet.c \
 			tools_edge_tracking.c \
 			tools_tracking.c \
 			view_disp_cb.c \
@@ -90,6 +88,8 @@ CSOURCES		= \
 			view_utils.c \
 			view2DPaintingCb.c \
 			viewFixedPointUtils.c
+#			HGU_Tablet.c \
+#			tools_tablet.c \
 
 ifeq ($(UNIXTYPE), LINUX2)
 CSOURCES		= \
