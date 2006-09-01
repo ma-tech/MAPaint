@@ -43,7 +43,7 @@ DomainSelection getSelectedDomainType(
   }
 
   sel_domain = imageValueToDomain
-    ((unsigned int ) *(((UBYTE *)view_struct->ximage->data) +
+    ((unsigned int ) *(((WlzUByte *)view_struct->ximage->data) +
 		       x + y * view_struct->ximage->bytes_per_line));
 
   return sel_domain;

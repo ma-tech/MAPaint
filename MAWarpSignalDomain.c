@@ -40,7 +40,7 @@ void warpSetSignalDomain(
   WlzPixelV	threshV, threshV1;
   WlzObject	*obj, *obj1;
   WlzCompoundArray	*cobj;
-  UINT		combineMode;
+  WlzUInt	combineMode;
 
   /* image processing sequence */
   if( warpGlobals.sgnlThreshObj == NULL ){

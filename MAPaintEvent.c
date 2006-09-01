@@ -137,7 +137,7 @@ WlzErrorNum MAPaintEventRemap(
 {
   WlzErrorNum		errNum=WLZ_ERR_NONE;
   MAPaintEventMapping	*eventMap;
-  UINT	modMask=ShiftMask|ControlMask|Mod1Mask|Mod2Mask;
+  WlzUInt	modMask=ShiftMask|ControlMask|Mod1Mask|Mod2Mask;
   int	quitLoop;
 
   /* check every remapping and find match for context,
@@ -521,7 +521,7 @@ static void eventRemapInputCb(
   MAPaintEventMapping	*eventMap=(MAPaintEventMapping *) client_data;
   XmDrawingAreaCallbackStruct
     *cbs=(XmDrawingAreaCallbackStruct *) call_data;
-  UINT	modMask=ShiftMask|ControlMask|Mod1Mask|Mod2Mask;
+  WlzUInt	modMask=ShiftMask|ControlMask|Mod1Mask|Mod2Mask;
 
   /* get event, if button press then reset event map */
   if( cbs->event ){

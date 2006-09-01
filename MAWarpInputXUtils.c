@@ -248,11 +248,11 @@ XImage	*warpCreateXImage(
   XWindowAttributes	win_att;
   Dimension		src_width, src_height, width, height;
   int			kOffset, lOffset;
-  UBYTE			*data, *dst_data, gammaLUT[256];
+  WlzUByte			*data, *dst_data, gammaLUT[256];
   int			i, j;
   WlzGreyValueWSpace	*gVWSp = NULL;
   int			cmpndFlg=0;
-  UINT			r, g, b, a;
+  WlzUInt		r, g, b, a;
   int			rIndx, gIndx, bIndx, aIndx;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
@@ -289,7 +289,7 @@ XImage	*warpCreateXImage(
 		NULL);
 
   if( gVWSp = WlzGreyValueMakeWSp(obj, &errNum) ){
-    if( dst_data = (UBYTE *) AlcMalloc(((win_att.depth == 8)?1:4)
+    if( dst_data = (WlzUByte *) AlcMalloc(((win_att.depth == 8)?1:4)
 				       *width*height*sizeof(char)) ){
       data = dst_data;
       rtnImage = XCreateImage(XtDisplay(winStruct->canvas),
@@ -573,7 +573,7 @@ void warpSetOvlyXImage(
 {
   XWindowAttributes	win_att;
   Dimension		width, height;
-  UBYTE			*data0, *data1, *dst_data, *data;
+  WlzUByte			*data0, *data1, *dst_data, *data;
   int			i, j, acc;
   double		a, b, c;
   int			rIndx, gIndx, bIndx, aIndx;
@@ -603,10 +603,10 @@ void warpSetOvlyXImage(
   width = winStruct->ovlyImages[0]->width;
   height = winStruct->ovlyImages[0]->height;
 
-  dst_data = (UBYTE *) AlcCalloc(4*width*height, sizeof(char));
+  dst_data = (WlzUByte *) AlcCalloc(4*width*height, sizeof(char));
   data = dst_data;
-  data0 = (UBYTE *) winStruct->ovlyImages[0]->data;
-  data1 = (UBYTE *) winStruct->ovlyImages[1]->data;
+  data0 = (WlzUByte *) winStruct->ovlyImages[0]->data;
+  data1 = (WlzUByte *) winStruct->ovlyImages[1]->data;
 
   winStruct->ximage = XCreateImage(XtDisplay(winStruct->canvas),
 				   win_att.visual, win_att.depth,

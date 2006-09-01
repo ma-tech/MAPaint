@@ -138,7 +138,7 @@ void sizeSelectTypeCb(
   int		numChildren;
   Widget	button, *children;
   int		xpos, ypos, i;
-  UINT		height, width, borderWidth, depth;
+  WlzUInt	height, width, borderWidth, depth;
   Dimension	gHeight, thickness;
   Pixmap	pixmap;
   Window	root;

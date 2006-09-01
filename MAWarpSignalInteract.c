@@ -222,7 +222,7 @@ void sgnlInteractSetHighLowControls(
   WlzPixelV	*pix2)
 {
   float		val1, val2;
-  UINT		r, g, b;
+  WlzUInt	r, g, b;
   WlzErrorNum	errNum=WLZ_ERR_NONE;
   Widget	slider, text;
   char		buf[64];

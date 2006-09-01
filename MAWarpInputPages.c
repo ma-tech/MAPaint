@@ -13,7 +13,7 @@
 *   Author Name :  richard						*
 *   Author Login:  richard@hgu.mrc.ac.uk				*
 *   Date        :  Tue Nov 23 10:53:56 2004				*
-*   $Revision$								*
+*   $Revision$							*
 *   $Name$								*
 *   Synopsis    : 							*
 *************************************************************************
@@ -40,6 +40,113 @@ extern void view_canvas_highlight(
 
 extern WlzErrorNum warpResetSignalObj(
   WlzObject		*obj);
+
+extern void tpTrackSaveCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data);
+
+void warpRedisplayOvly(void)
+{
+  if( warpGlobals.num_vtxs ){
+    warpDisplayTiePoints();
+    warpSetOvlyObject();
+    if( warpGlobals.ovly.ximage ){
+      AlcFree(warpGlobals.ovly.ximage->data);
+      warpGlobals.ovly.ximage->data = NULL;
+      XDestroyImage(warpGlobals.ovly.ximage);
+      warpGlobals.ovly.ximage = NULL;
+    }
+    if( warpGlobals.ovly.ovlyImages[0] ){
+      AlcFree(warpGlobals.ovly.ovlyImages[0]->data);
+      warpGlobals.ovly.ovlyImages[0]->data = NULL;
+      XDestroyImage(warpGlobals.ovly.ovlyImages[0]);
+      warpGlobals.ovly.ovlyImages[0] = NULL;
+    }
+    if( warpGlobals.ovly.ovlyImages[1] ){
+      AlcFree(warpGlobals.ovly.ovlyImages[1]->data);
+      warpGlobals.ovly.ovlyImages[1]->data = NULL;
+      XDestroyImage(warpGlobals.ovly.ovlyImages[1]);
+      warpGlobals.ovly.ovlyImages[1] = NULL;
+    }
+    warpSetOvlyXImage(&(warpGlobals.ovly));
+    XtCallCallbacks(warpGlobals.ovly.canvas, XmNexposeCallback,
+		    NULL);
+    XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
+		    NULL);
+    XtCallCallbacks(warpGlobals.src.canvas, XmNexposeCallback,
+		    NULL);
+  }
+
+  return;
+}
+
+int warpGetBibfileTiePoints(
+  char		*fileStr,
+  WlzDVertex2	**dstVtxs,
+  WlzDVertex2	**srcVtxs)
+{
+  FILE	*fp;
+  int	numVtxs=0;
+
+  /* open file */
+  if( fp = fopen(fileStr, "r") ){
+    BibFileRecord	*bibfileRecord;
+    BibFileError	bibFileErr;
+    char		*errMsg;
+
+    /* read the bibfile */
+    numVtxs = 0;
+    bibFileErr = BibFileRecordRead(&bibfileRecord, &errMsg, fp);
+    while( bibFileErr == BIBFILE_ER_NONE ){
+
+      /* read tie-points */
+      if( !strncmp(bibfileRecord->name, "WlzTiePointVtxs", 15) ){
+	int		index;
+	WlzDVertex3	dstVtx;
+	WlzDVertex3	srcVtx;
+	int		relFlg;
+
+	WlzEffBibParseTiePointVtxsRecord(bibfileRecord, &index,
+					 &dstVtx, &srcVtx, &relFlg);
+	if( relFlg ){
+	  dstVtx.vtX += warpGlobals.dst.obj->domain.i->kol1;
+	  dstVtx.vtY += warpGlobals.dst.obj->domain.i->line1;
+	  srcVtx.vtX -= warpGlobals.srcXOffset;
+	  srcVtx.vtY -= warpGlobals.srcYOffset;
+	}
+
+	/* add to vtx arrays */
+	numVtxs++;
+	if( *dstVtxs ){
+	  *dstVtxs = (WlzDVertex2 *) AlcRealloc(*dstVtxs,
+						sizeof(WlzDVertex2) * numVtxs);
+	}
+	else {
+	  *dstVtxs = (WlzDVertex2 *) AlcMalloc(sizeof(WlzDVertex2) * numVtxs);
+	}
+	if( *srcVtxs ){
+	  *srcVtxs = (WlzDVertex2 *) AlcRealloc(*srcVtxs,
+						sizeof(WlzDVertex2) * numVtxs);
+	}
+	else {
+	  *srcVtxs = (WlzDVertex2 *) AlcMalloc(sizeof(WlzDVertex2) * numVtxs);
+	}
+
+	(*dstVtxs)[numVtxs-1].vtX = dstVtx.vtX;
+	(*dstVtxs)[numVtxs-1].vtY = dstVtx.vtY;
+	(*srcVtxs)[numVtxs-1].vtX = srcVtx.vtX;
+	(*srcVtxs)[numVtxs-1].vtY = srcVtx.vtY;
+      }
+
+      BibFileRecordFree(&bibfileRecord);
+      bibFileErr = BibFileRecordRead(&bibfileRecord, &errMsg, fp);
+    }
+    (void) fclose(fp);
+  }
+
+  return numVtxs;
+}
 
 void warpMeshMethodCb(
   Widget		w,
@@ -473,6 +580,52 @@ void rapidMapPageSelectCb(
     }
   }
 
+  /* unset tie-point tracking flag */
+  warpGlobals.tpTrackingFlg = 0;
+
+  return;
+}
+
+void tpTrackPageSelectCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
+  Widget		warp_sgnl_frame, toggle;
+
+  /* check that the warp-import page is unmapped else call the
+     import callback */
+  if( warp_sgnl_frame = XtNameToWidget(view_struct->dialog,
+				       "*control*warp_sgnl_frame") ){
+    if( XtIsManaged(warp_sgnl_frame) ){
+      warpImportSignalCb(widget, client_data, call_data);
+    }
+  }
+
+  /* set auto-update to unselected */
+    if( toggle = XtNameToWidget(warpGlobals.warp2DInteractDialog,
+				"*.autoUpdate") ){
+      XtVaSetValues(toggle, XmNset, False, NULL);
+    }
+
+  /* set tie-point tracking flag */
+  warpGlobals.tpTrackingFlg = 1;
+  warpGlobals.tpTrackingInit = 0;
+
+  return;
+}
+
+void standardPageSelectCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
+
+  /* unset tie-point tracking flag */
+  warpGlobals.tpTrackingFlg = 0;
+
   return;
 }
 
@@ -760,6 +913,521 @@ void rapidMapNextCb(
   return;
 }
 
+static char *tpTrackGetBibfileName(
+  double	dist)
+{
+  char		*file;
+  int		plane;
+
+  if( !warpGlobals.tpTrackingInit ){
+    return NULL;
+  }
+
+  /* get the current plane number and set filename */
+  plane = dist;
+  file = (char *) AlcMalloc(sizeof(char) * 32);
+  sprintf(file, "tp_track_%04d_%04d.bib", plane, plane+1);
+  
+  return file;
+}
+
+static void tpTrackSetSrc(
+  ThreeDViewStruct	*view_struct)
+{
+  WlzObject	*srcObj;
+  WlzThreeDViewStruct	*wlzViewStr=view_struct->wlzViewStr;
+  Display		*dpy=XtDisplay(view_struct->canvas);
+  Window		win=XtWindow(view_struct->canvas);  
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
+  
+  if( wlzViewStr->dist >= wlzViewStr->maxvals.vtZ ){
+    /* end of object provide warning, clear tie-points & src image */
+    warp2DInteractDeleteAllCb(view_struct->dialog,
+			      (XtPointer) view_struct, NULL);
+    if( warpGlobals.src.obj ){
+      WlzFreeObj(warpGlobals.src.obj);
+      warpGlobals.src.obj = NULL;
+    }
+    warpSetXImage(&(warpGlobals.src));
+    warpCanvasExposeCb(warpGlobals.src.canvas,
+		       (XtPointer) &(warpGlobals.src),
+		       NULL);
+  }
+  else {
+    Wlz3DSectionIncrementDistance(wlzViewStr, 1.0);
+    if( srcObj = WlzGetSectionFromObject(globals.orig_obj, wlzViewStr,
+					       WLZ_INTERPOLATION_NEAREST,
+					       &errNum) ){
+      srcObj = WlzAssignObject(srcObj, &errNum);
+      warpGlobals.srcFile = "tpTracking";
+      warpGlobals.srcFileType = WLZEFF_FORMAT_WLZ;
+      warpGlobals.srcXOffset = -srcObj->domain.i->kol1;
+      warpGlobals.srcYOffset = -srcObj->domain.i->line1;
+      if( warpGlobals.src.obj ){
+	WlzFreeObj(warpGlobals.src.obj);
+	warpGlobals.src.obj = NULL;
+      }
+      warpGlobals.src.obj =
+	WlzAssignObject(WlzShiftObject(srcObj,
+				       warpGlobals.srcXOffset,
+				       warpGlobals.srcYOffset,
+				       0, &errNum), NULL);
+      WlzFreeObj(srcObj);
+
+      warpSetXImage(&(warpGlobals.src));
+      warpCanvasExposeCb(warpGlobals.src.canvas,
+			 (XtPointer) &(warpGlobals.src),
+			 NULL);
+      if( warpGlobals.meshTr ){
+	WlzMeshFreeTransform(warpGlobals.meshTr);
+      }
+      warpGlobals.meshTr = WlzMeshFromObj(warpGlobals.src.obj,
+					  warpGlobals.meshMthd,
+					  warpGlobals.meshMinDst,
+					  warpGlobals.meshMaxDst,
+					  &errNum);
+    }
+    else {
+      /* something wrong here */
+      fprintf(stderr, "tpTrackStartCb(): something wrong, no source image\n");
+      Wlz3DSectionIncrementDistance(wlzViewStr, -1.0);
+      return;
+    }
+    Wlz3DSectionIncrementDistance(wlzViewStr, -1.0);
+  }
+
+  return;
+}
+
+void tpTrackStartCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  WlzThreeDViewStruct	*wlzViewStr=view_struct->wlzViewStr;
+  Widget		slider;
+  Display		*dpy=XtDisplay(view_struct->canvas);
+  Window		win=XtWindow(view_struct->canvas);
+  WlzObject		*srcObj;
+  WlzCompoundArray	*cobj;
+  char			planeBuf[16], *startStr;
+  int			startPlane;
+  int			i, nPoints;
+  WlzDVertex2		*dstVtxs, *srcVtxs;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
+
+  /*  drop paint key and clear current domains */
+  if( paint_key == view_struct ){
+    paint_key = NULL;
+    clearUndoDomains();
+
+    /* clear the section view image */
+    if( view_struct->view_object ){
+      WlzFreeObj(view_struct->view_object);
+      view_struct->view_object = NULL;
+    }
+  }
+  else {
+    /* shouldn't get here */
+    return;
+  }
+
+  /* clear tie-points */
+  warp2DInteractDeleteAllCb(view_struct->dialog,
+			    (XtPointer) view_struct, NULL);
+
+  /* request start plane */
+  startPlane = globals.obj->domain.p->plane1;
+  sprintf(planeBuf, "%d", startPlane);
+  if( startStr = HGU_XmUserGetstr(widget,
+			      "Please type in the start plane:",
+			      "Continue",
+			      "Cancel",
+			      planeBuf) ){
+    if( sscanf(startStr, "%d", &startPlane) == 1 ){
+      if((startPlane < globals.obj->domain.p->plane1) ||
+	 (startPlane > globals.obj->domain.p->lastpl) ){
+	HGU_XmUserMessage(widget,
+		      "Invalid plane number, the plane value\n"
+		      "must be within the minimum and maximum\n"
+		      "plane values for the reference object\n\n"
+		      "Select \"Start\" to try again.",
+		      XmDIALOG_FULL_APPLICATION_MODAL);
+	return;
+      }
+    }
+    else {
+      HGU_XmUserMessage(widget,
+		    "Couldn't read the input value.\n\n"
+		    "Select \"Start\" to try again.",
+		    XmDIALOG_FULL_APPLICATION_MODAL);
+    }
+  }
+  else {
+    return;
+  }
+
+  /* tp tracking must be on x-y planes only therefore reset the
+     viewing angles to zero, fixed point to the origin, absolute
+     view mode. */
+  wlzViewStr->initialised = 0;
+  wlzViewStr->scale       = 1.0;
+  wlzViewStr->theta       = 0.0;
+  wlzViewStr->phi         = 0.0;
+  wlzViewStr->zeta        = 0.0;
+  wlzViewStr->fixed.vtX   = 0.0;
+  wlzViewStr->fixed.vtY   = 0.0;
+  wlzViewStr->fixed.vtZ   = 0.0;
+  wlzViewStr->dist        = startPlane;
+  wlzViewStr->up.vtX	  = 0.0;
+  wlzViewStr->up.vtY	  = 0.0;
+  wlzViewStr->up.vtZ	  = -1.0;
+  wlzViewStr->view_mode   = WLZ_ZETA_MODE;
+  setViewMode(view_struct, wlzViewStr->view_mode);
+  slider = XtNameToWidget(view_struct->dialog, "*.zeta_slider");
+  HGU_XmSetSliderValue
+    (slider, (float) (wlzViewStr->zeta * 180.0 / WLZ_M_PI));
+  reset_view_struct( view_struct );
+
+  /* redisplay */
+  XClearWindow(dpy, win);
+  display_view_cb(view_struct->dialog, (XtPointer) view_struct, NULL);
+  view_feedback_cb(view_struct->dialog, (XtPointer) view_struct, NULL);
+
+  /* re-acquire the view domains for painting */
+  getViewDomains(view_struct);
+
+  /* clear previous domains */
+  view_struct_clear_prev_obj( view_struct );
+
+  /* get the next section, i.e. distance+1 and set it as the source image */
+  tpTrackSetSrc(view_struct);
+
+  /* reset the destination image */
+  /* set the destination object and reset the ximage */
+  if( warpGlobals.dst.obj ){
+    WlzFreeObj(warpGlobals.dst.obj);
+  }
+  warpGlobals.dst.obj =
+    WlzAssignObject(WlzGetSectionFromObject(globals.orig_obj,
+					    view_struct->wlzViewStr,
+					    WLZ_INTERPOLATION_NEAREST,
+					    NULL),
+		    NULL);
+  warpSetXImage(&(warpGlobals.dst));
+  XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback, NULL);
+
+  /* reset the overlay object */
+  cobj = (WlzCompoundArray *) warpGlobals.ovly.obj;
+  if( cobj->o[0] ){
+    WlzFreeObj(cobj->o[0]);
+  }
+  cobj->o[0] = WlzAssignObject(warpGlobals.dst.obj, NULL);
+
+  /* check for a standard-named bibfile and read tie-points if found */
+  dstVtxs = srcVtxs = NULL;
+  nPoints = warpGetBibfileTiePoints(tpTrackGetBibfileName(wlzViewStr->dist),
+				    &dstVtxs, &srcVtxs);
+  if( nPoints > 0 ){
+    if( HGU_XmUserConfirm(widget,
+		      "Previous tie-points found, install?",
+		      "Yes", "No", 1) ){
+      warpGlobals.num_vtxs = nPoints;
+      for(i=0; i < nPoints; i++){
+	warpGlobals.dst_vtxs[i].vtX = dstVtxs[i].vtX
+	  - warpGlobals.dst.obj->domain.i->kol1;
+	warpGlobals.dst_vtxs[i].vtY = dstVtxs[i].vtY
+	  - warpGlobals.dst.obj->domain.i->line1;
+	warpGlobals.src_vtxs[i].vtX = srcVtxs[i].vtX
+	  + warpGlobals.srcXOffset;
+	warpGlobals.src_vtxs[i].vtY = srcVtxs[i].vtY
+	  + warpGlobals.srcYOffset;
+      }
+    }
+    AlcFree(dstVtxs);
+    AlcFree(srcVtxs);
+  }
+
+  /* calculate the warp transform and display */	
+  warpRedisplayOvly();
+
+  /* set warp dialog to the top */
+  paint_key = view_struct;
+
+  warpGlobals.tpTrackingInit = 1;
+  win = XtWindow(XtParent(warpGlobals.warp2DInteractDialog));
+  XRaiseWindow(dpy, win);
+  XFlush(dpy);
+  return;
+}
+
+void tpTrackNextCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  WlzThreeDViewStruct	*wlzViewStr=view_struct->wlzViewStr;
+  Display		*dpy=XtDisplay(view_struct->canvas);
+  Window		win=XtWindow(view_struct->canvas);
+  WlzCompoundArray	*cobj;
+  int			i, nPoints, vtxIdx;
+  WlzDVertex2		*dstVtxs, *srcVtxs;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
+
+  /* check if set up for tracking */
+  if( !warpGlobals.tpTrackingInit ){
+    return;
+  }
+
+  /* save current bibfile & tie-points */
+  tpTrackSaveCb(widget, client_data, call_data);
+
+  /* set tie-points to absolute values of source */
+  for(i=0; i < warpGlobals.num_vtxs; i++){
+    warpGlobals.src_vtxs[i].vtX -= warpGlobals.srcXOffset;
+    warpGlobals.src_vtxs[i].vtY -= warpGlobals.srcYOffset;
+    warpGlobals.dst_vtxs[i].vtX = warpGlobals.src_vtxs[i].vtX;
+    warpGlobals.dst_vtxs[i].vtY = warpGlobals.src_vtxs[i].vtY;
+  }  
+
+  /* set target plane to distance+1 i.e. source plane */
+  wlzViewStr->dist += 1.0;
+  reset_view_struct( view_struct );
+
+  /* redisplay */
+  XClearWindow(dpy, win);
+  display_view_cb(view_struct->dialog, (XtPointer) view_struct, NULL);
+  view_feedback_cb(view_struct->dialog, (XtPointer) view_struct, NULL);
+
+  /* re-acquire the view domains for painting */
+  getViewDomains(view_struct);
+
+  /* clear previous domains */
+  view_struct_clear_prev_obj( view_struct );
+
+  /* get the next section, i.e. distance+1 and set it as the source image */
+  tpTrackSetSrc(view_struct);
+
+  /* reset the destination image */
+  /* set the destination object and reset the ximage */
+  if( warpGlobals.dst.obj ){
+    WlzFreeObj(warpGlobals.dst.obj);
+  }
+  warpGlobals.dst.obj =
+    WlzAssignObject(WlzGetSectionFromObject(globals.orig_obj,
+					    view_struct->wlzViewStr,
+  					    WLZ_INTERPOLATION_NEAREST,
+					    NULL),
+		    NULL);
+  warpSetXImage(&(warpGlobals.dst));
+  XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback, NULL);
+
+  /* reset the overlay object */
+  cobj = (WlzCompoundArray *) warpGlobals.ovly.obj;
+  if( cobj->o[0] ){
+    WlzFreeObj(cobj->o[0]);
+  }
+  cobj->o[0] = WlzAssignObject(warpGlobals.dst.obj, NULL);
+
+  /* check for bibfile and read tie-points if found */
+  dstVtxs = srcVtxs = NULL;
+  nPoints = warpGetBibfileTiePoints(tpTrackGetBibfileName(wlzViewStr->dist),
+				    &dstVtxs, &srcVtxs);
+
+  /* ask if tie-points are to be merged */
+  if( nPoints > 0 ){
+    switch( HGU_XmUserConfirm3(widget,
+			  "Previous tie-points found,\n"
+			  "please select action:",
+			   "merge", "ignore", "replace", 0) ){
+    default:
+    case 0:
+      for(i=0; i < nPoints; i++){
+	/* check against existing */
+	if((vtxIdx = warpCloseDstVtx(dstVtxs[i].vtX,	
+				     dstVtxs[i].vtY)) > -1 ){
+	  /* don't add to the list */
+	  continue;
+	}
+	else {
+	  warpGlobals.dst_vtxs[warpGlobals.num_vtxs].vtX = dstVtxs[i].vtX;
+	  warpGlobals.dst_vtxs[warpGlobals.num_vtxs].vtY = dstVtxs[i].vtY;
+	  warpGlobals.src_vtxs[warpGlobals.num_vtxs].vtX = srcVtxs[i].vtX;
+	  warpGlobals.src_vtxs[warpGlobals.num_vtxs].vtY = srcVtxs[i].vtY;
+	  warpGlobals.num_vtxs++;
+	}
+      }
+      break;
+
+    case 1:
+      break;
+
+    case 2:
+      warp2DInteractDeleteAllCb(view_struct->dialog,
+			    (XtPointer) view_struct, NULL);
+      for(i=0; i < nPoints; i++){
+	warpGlobals.dst_vtxs[warpGlobals.num_vtxs].vtX = dstVtxs[i].vtX;
+	warpGlobals.dst_vtxs[warpGlobals.num_vtxs].vtY = dstVtxs[i].vtY;
+	warpGlobals.src_vtxs[warpGlobals.num_vtxs].vtX = srcVtxs[i].vtX;
+	warpGlobals.src_vtxs[warpGlobals.num_vtxs].vtY = srcVtxs[i].vtY;
+	warpGlobals.num_vtxs++;
+      }
+      break;
+
+    }
+    AlcFree(dstVtxs);
+    AlcFree(srcVtxs);
+  }
+    
+  /* Set tie-point off-sets */
+  for(i=0; i < warpGlobals.num_vtxs; i++){
+    warpGlobals.dst_vtxs[i].vtX -= warpGlobals.dst.obj->domain.i->kol1;
+    warpGlobals.dst_vtxs[i].vtY -= warpGlobals.dst.obj->domain.i->line1;
+    warpGlobals.src_vtxs[i].vtX += warpGlobals.srcXOffset;
+    warpGlobals.src_vtxs[i].vtY += warpGlobals.srcYOffset;
+  }  
+
+  /* calculate the warp transform and display */
+  warpRedisplayOvly();
+  win = XtWindow(XtParent(warpGlobals.warp2DInteractDialog));
+  XRaiseWindow(dpy, win);
+  XFlush(dpy);
+
+  return;
+}
+
+void tpTrackBackCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  WlzThreeDViewStruct	*wlzViewStr=view_struct->wlzViewStr;
+  Display		*dpy=XtDisplay(view_struct->canvas);
+  Window		win=XtWindow(view_struct->canvas);  
+  WlzCompoundArray	*cobj;
+  int			i, nPoints;
+  WlzDVertex2		*dstVtxs, *srcVtxs;
+  WlzErrorNum		errNum=WLZ_ERR_NONE;
+
+  /* check if set up for tracking */
+  if( !warpGlobals.tpTrackingInit ){
+    return;
+  }
+
+  /* save current bibfile & tie-points */
+  tpTrackSaveCb(widget, client_data, call_data);
+
+  /* remove tie-points */
+  warp2DInteractDeleteAllCb(view_struct->dialog,
+			    (XtPointer) view_struct, NULL);
+
+  /* set target plane to distance-1 */
+  wlzViewStr->dist -= 1.0;
+  reset_view_struct( view_struct );
+
+  /* redisplay */
+  XClearWindow(dpy, win);
+  display_view_cb(view_struct->dialog, (XtPointer) view_struct, NULL);
+  view_feedback_cb(view_struct->dialog, (XtPointer) view_struct, NULL);
+
+  /* re-acquire the view domains for painting */
+  getViewDomains(view_struct);
+
+  /* clear previous domains */
+  view_struct_clear_prev_obj( view_struct );
+
+  /* get the next section, i.e. distance+1 and set it as the source image */
+  tpTrackSetSrc(view_struct);
+
+  /* reset the destination image */
+  /* set the destination object and reset the ximage */
+  if( warpGlobals.dst.obj ){
+    WlzFreeObj(warpGlobals.dst.obj);
+  }
+  warpGlobals.dst.obj =
+    WlzAssignObject(WlzGetSectionFromObject(globals.orig_obj,
+					    view_struct->wlzViewStr,
+  					    WLZ_INTERPOLATION_NEAREST,
+					    NULL),
+		    NULL);
+  warpSetXImage(&(warpGlobals.dst));
+  XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback, NULL);
+
+  /* reset the overlay object */
+  cobj = (WlzCompoundArray *) warpGlobals.ovly.obj;
+  if( cobj->o[0] ){
+    WlzFreeObj(cobj->o[0]);
+  }
+  cobj->o[0] = WlzAssignObject(warpGlobals.dst.obj, NULL);
+
+  /* check for bibfile and read tie-points if found */
+  dstVtxs = srcVtxs = NULL;
+  nPoints = warpGetBibfileTiePoints(tpTrackGetBibfileName(wlzViewStr->dist),
+				    &dstVtxs, &srcVtxs);
+  if( nPoints > 0 ){	
+    warpGlobals.num_vtxs = nPoints;
+    for(i=0; i < nPoints; i++){
+      warpGlobals.dst_vtxs[i].vtX = dstVtxs[i].vtX
+	- warpGlobals.dst.obj->domain.i->kol1;
+      warpGlobals.dst_vtxs[i].vtY = dstVtxs[i].vtY
+	- warpGlobals.dst.obj->domain.i->line1;
+      warpGlobals.src_vtxs[i].vtX = srcVtxs[i].vtX
+	+ warpGlobals.srcXOffset;
+      warpGlobals.src_vtxs[i].vtY = srcVtxs[i].vtY
+	+ warpGlobals.srcYOffset;
+    }
+    AlcFree(dstVtxs);
+    AlcFree(srcVtxs);
+  }
+
+  /* calculate the warp transform and display */
+  warpRedisplayOvly();
+  win = XtWindow(XtParent(warpGlobals.warp2DInteractDialog));
+  XRaiseWindow(dpy, win);
+  XFlush(dpy);
+
+  return;
+}
+
+
+void tpTrackSaveCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  char		*file;
+  XmString	xmstr;
+  FILE		*fp;
+  int		confirmFlg;
+
+  /* just save current bibfile, this has a fixed naming convention,
+     and it assumed that the current working directory is appropriate.
+     However check for overwrite. */
+  if( !warpGlobals.tpTrackingInit ){
+    return;
+  }
+
+  /* save current warp params bibfile - create backup file */
+  if( file = tpTrackGetBibfileName(view_struct->wlzViewStr->dist) ){
+    if( xmstr = XmStringCreateSimple(file) ){
+      confirmFlg = 0;
+      if( fp = HGU_XmGetFilePointerBckCnfm(globals.topl, xmstr, NULL, "w",
+					   ".bak", &confirmFlg) ){
+	warpBibfileWrite(fp, view_struct);
+	fclose(fp);
+      }
+      XmStringFree(xmstr);
+    }
+    AlcFree(file);
+  }
+
+  return;
+}
+
 static ActionAreaItem   warp_controls_actions[] = {
 {"src_read",	NULL,		NULL},
 {"sgnl_read",	NULL,		NULL},
@@ -773,6 +1441,13 @@ static ActionAreaItem   warp_rapid_actions[] = {
 {"select",	NULL,		NULL},
 {"save",	NULL,		NULL},
 {"save as",	NULL,		NULL},
+};
+
+static ActionAreaItem   tp_tracking_actions[] = {
+{"start",	NULL,		NULL},
+{"next",	NULL,		NULL},
+{"back",	NULL,		NULL},
+{"save",	NULL,		NULL},
 };
 
 static MenuItem mesh_menu_itemsP[] = {		/* mesh_menu items */
@@ -840,6 +1515,7 @@ Widget createWarpStandardControlsPage(
 				   xmPushButtonWidgetClass, notebook,
 				   XmNnotebookChildType, XmMAJOR_TAB,
 				   NULL);
+  XtAddCallback(button, XmNactivateCallback, standardPageSelectCb, view_struct);
 
   /* now the controls */
   option_menu = HGU_XmBuildMenu(form, XmMENU_OPTION, "mesh_method", 0,
@@ -1035,6 +1711,82 @@ Widget createWarpRapidControlsPage(
 		  view_struct);
   }
 
+  XtManageChild(form);
+
+  return form;
+}
+
+Widget createTiePointTrackingControlsPage(
+  Widget		notebook,
+  ThreeDViewStruct	*view_struct)
+{
+  Widget	form, button;
+  Widget	label, buttons, widget;
+  XmString	xmstr;
+
+  form = XtVaCreateWidget("warptie_point_tracking_form",
+			  xmFormWidgetClass, 	notebook,
+			  XmNnotebookChildType, XmPAGE,
+			  NULL);  
+
+  button = XtVaCreateManagedWidget("TP Tracking",
+				   xmPushButtonWidgetClass, notebook,
+				   XmNnotebookChildType, XmMAJOR_TAB,
+				   NULL);
+  XtAddCallback(button, XmNactivateCallback, tpTrackPageSelectCb, view_struct);
+
+  /* label for warning message */
+  label = XtVaCreateManagedWidget("tp_track_label",
+				  xmLabelWidgetClass, form,
+				  XmNtopAttachment,	XmATTACH_FORM,
+				  XmNleftAttachment,	XmATTACH_FORM,
+				  XmNborderWidth,	1,
+				  XmNshadowThickness,	2,
+				  XmNalignment,		XmALIGNMENT_BEGINNING,
+				  NULL);
+  xmstr = XmStringCreateLtoR(
+    "Tie-point tracking mode:\n\n"
+    "  Tie-point tracks can only be started in the target window.\n"
+    "  Tie-points can only be deleted in the source window.\n"
+    "  Target tie-points can only be adjusted before the source vertex has been defined.\n"
+    "  Only the source vertex can be edited when both source and target are defined\n"
+    "\n",
+    XmSTRING_DEFAULT_CHARSET);
+  XtVaSetValues(label, XmNlabelString, xmstr, NULL);
+  XmStringFree(xmstr);
+
+  /* now some buttons */
+  buttons = HGU_XmCreateActionArea(form,
+				   tp_tracking_actions,
+				   XtNumber(tp_tracking_actions));
+
+  /* set the buttons attachments */
+  XtVaSetValues(buttons,
+		XmNtopAttachment,	XmATTACH_WIDGET,
+		XmNtopWidget,		label,
+		XmNleftAttachment,	XmATTACH_FORM,
+		XmNrightAttachment,	XmATTACH_FORM,
+		NULL);
+
+  /* now the callbacks */
+  if( widget = XtNameToWidget(buttons, "*.start") ){
+    XtAddCallback(widget, XmNactivateCallback, tpTrackStartCb,
+		  view_struct);
+  }
+  if( widget = XtNameToWidget(buttons, "*.next") ){
+    XtAddCallback(widget, XmNactivateCallback, tpTrackNextCb,
+		  view_struct);
+  }
+  if( widget = XtNameToWidget(buttons, "*.back") ){
+    XtAddCallback(widget, XmNactivateCallback, tpTrackBackCb,
+		  view_struct);
+  }
+  if( widget = XtNameToWidget(buttons, "*.save") ){
+    XtAddCallback(widget, XmNactivateCallback, tpTrackSaveCb,
+		  view_struct);
+  }
+
+   
   XtManageChild(form);
 
   return form;

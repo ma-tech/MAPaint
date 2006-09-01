@@ -90,6 +90,7 @@ typedef struct {
   WlzObject		*sgnlProcObj;
   WlzObject		*sgnlThreshObj;
   String		warpBibFile;
+  int			warpPanedFlg;
 
   /* destination canvas and affine transform */
   MAPaintImageWinStruct	dst;
@@ -137,7 +138,7 @@ typedef struct {
   int		threshRangeRGBLow[3];	/* colour threshold */
   int		threshRangeRGBHigh[3];
   WlzRGBAColorSpace	threshRGBSpace;	/* which colour space */
-  UINT		threshRGBCombination;	/* logical combination */
+  WlzUInt	threshRGBCombination;	/* logical combination */
   WlzPixelV	lowRGBPoint;	/* low-point for slice/box/ball */
   WlzPixelV	highRGBPoint;	/* high-point for slice/box/ball */
   double	colorEllipseEcc;	/* ball eccentricity */
@@ -158,6 +159,10 @@ typedef struct {
   int		bibfileListCount;
   int		bibfileListIndex;
   char		**bibfileList;
+
+  /* tie-point tracking controls */
+  int		tpTrackingFlg;
+  int		tpTrackingInit;
 
 } MAPaintWarp2DStruct;
 
@@ -192,6 +197,8 @@ extern void warpSetOvlyXImage(
 extern void warpSetOvlyXImages(
   MAPaintImageWinStruct *winStruct,
   int	imageIndex);
+
+extern void warpRedisplayOvly(void);
 
 extern WlzErrorNum WlzSetMeshAffineProduct(
   WlzMeshTransform	*meshTr,
@@ -436,6 +443,10 @@ extern Widget createWarpStandardControlsPage(
   ThreeDViewStruct	*view_struct);
 
 extern Widget createWarpRapidControlsPage(
+  Widget		notebook,
+  ThreeDViewStruct	*view_struct);
+
+extern Widget createTiePointTrackingControlsPage(
   Widget		notebook,
   ThreeDViewStruct	*view_struct);
 

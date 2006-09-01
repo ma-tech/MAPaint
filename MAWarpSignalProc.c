@@ -260,7 +260,7 @@ void mapWarpDataCb(
     bckgrnd.v.ubv = 0;
     size = ((tmpObj->domain.i->lastln - tmpObj->domain.i->line1 + 1) *
 	    (tmpObj->domain.i->lastkl - tmpObj->domain.i->kol1 + 1));
-    greyVals = (int *) AlcCalloc(size, sizeof(UBYTE));
+    greyVals = (int *) AlcCalloc(size, sizeof(WlzUByte));
     obj1 = WlzMakeRect(tmpObj->domain.i->line1, tmpObj->domain.i->lastln,
 		       tmpObj->domain.i->kol1, tmpObj->domain.i->lastkl,
 		       WLZ_GREY_UBYTE, greyVals, bckgrnd,

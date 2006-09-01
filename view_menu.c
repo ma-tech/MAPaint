@@ -319,7 +319,7 @@ void display_pointer_feedback_information(
   int			sel_domain;
 
   sel_domain = imageValueToDomain
-    ((unsigned int) *((UBYTE *) (view_struct->ximage->data + x +
+    ((unsigned int) *((WlzUByte *) (view_struct->ximage->data + x +
 				 y * view_struct->ximage->bytes_per_line)));
   display_pointer_feedback_informationV(view_struct, x, y, sel_domain);
   return;

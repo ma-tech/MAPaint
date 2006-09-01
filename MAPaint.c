@@ -333,6 +333,7 @@ static XrmOptionDescRec mapaint_options[] = {
   {"-emage",	".emage", XrmoptionNoArg, "True"},
   {"-noemage",	".emage", XrmoptionNoArg, "False"},
   {"-rapidMap",	".rapidMap", XrmoptionSkipArg, NULL},
+  {"-panedWarp",".panedWarp", XrmoptionNoArg, "False"},
 };
 
 main(

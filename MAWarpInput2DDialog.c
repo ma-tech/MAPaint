@@ -822,6 +822,7 @@ static Widget create2DWarpDialog(
   ThreeDViewStruct *view_struct)
 {
   Widget	dialog, control, child, button, toggle;
+  Widget	paned;
   Visual	*visual;
 
   /* create a dialog widget and get control form and 24-bit visual */
@@ -867,16 +868,34 @@ static Widget create2DWarpDialog(
 				   NULL);
 
   /* add children */
-  child = createWarpDisplayFrame(control, "warp_dst_frame", visual, 24);
-  XtVaSetValues(child,
-		XmNtopAttachment,	XmATTACH_WIDGET,
-		XmNtopWidget,		toggle,
-		XmNbottomAttachment,	XmATTACH_FORM,
-		XmNleftAttachment,	XmATTACH_POSITION,
-		XmNleftPosition,	0,
-		XmNrightAttachment,	XmATTACH_POSITION,
-		XmNrightPosition,	33,
-		NULL);
+  /* add a paned control to allow more control */
+  if( warpGlobals.warpPanedFlg ){
+    paned = XtVaCreateManagedWidget("warp_input_paned",
+				    xmPanedWindowWidgetClass, control,
+				    XmNtopAttachment,	XmATTACH_WIDGET,
+				    XmNtopWidget,	toggle,
+				    XmNbottomAttachment,XmATTACH_FORM,
+				    XmNleftAttachment,  XmATTACH_FORM,
+				    XmNrightAttachment,	XmATTACH_FORM,
+				    XmNorientation,	XmHORIZONTAL,
+				    NULL);
+  }
+  
+  if( warpGlobals.warpPanedFlg ){
+    child = createWarpDisplayFrame(paned, "warp_dst_frame", visual, 24);
+  }
+  else {
+    child = createWarpDisplayFrame(control, "warp_dst_frame", visual, 24);
+    XtVaSetValues(child,
+		  XmNtopAttachment,	XmATTACH_WIDGET,
+		  XmNtopWidget,		toggle,
+		  XmNbottomAttachment,	XmATTACH_FORM,
+		  XmNleftAttachment,	XmATTACH_POSITION,
+		  XmNleftPosition,	0,
+		  XmNrightAttachment,	XmATTACH_POSITION,
+		  XmNrightPosition,	33,
+		  NULL);
+  }
   warpGlobals.dst.canvas = XtNameToWidget(child, "*canvas");
   warpDisplayFramePopupItemsP[0].callback_data = &warpGlobals.dst;
   warpDisplayFramePopupItemsP[1].callback_data = &warpGlobals.dst;
@@ -943,16 +962,21 @@ static Widget create2DWarpDialog(
   XtAddCallback(button, XmNactivateCallback, warpDecrGammaCb,
 		(XtPointer) &(warpGlobals.dst));
 
-  child = createWarpDisplayFrame(control, "warp_src_frame", visual, 24);
-  XtVaSetValues(child,
-		XmNtopAttachment,	XmATTACH_WIDGET,
-		XmNtopWidget,		toggle,
-		XmNbottomAttachment,	XmATTACH_FORM,
-		XmNleftAttachment,	XmATTACH_POSITION,
-		XmNleftPosition,	33,
-		XmNrightAttachment,	XmATTACH_POSITION,
-		XmNrightPosition,	67,
-		NULL);
+  if( warpGlobals.warpPanedFlg ){
+    child = createWarpDisplayFrame(paned, "warp_src_frame", visual, 24);
+  }
+  else {
+    child = createWarpDisplayFrame(control, "warp_src_frame", visual, 24);
+    XtVaSetValues(child,
+		  XmNtopAttachment,	XmATTACH_WIDGET,
+		  XmNtopWidget,		toggle,
+		  XmNbottomAttachment,	XmATTACH_FORM,
+		  XmNleftAttachment,	XmATTACH_POSITION,
+		  XmNleftPosition,	33,
+		  XmNrightAttachment,	XmATTACH_POSITION,
+		  XmNrightPosition,	67,
+		  NULL);
+  }
   warpGlobals.src.canvas = XtNameToWidget(child, "*canvas");
   warpDisplayFramePopupItemsP[0].callback_data = &warpGlobals.src;
   warpDisplayFramePopupItemsP[1].callback_data = &warpGlobals.src;
@@ -1017,16 +1041,21 @@ static Widget create2DWarpDialog(
   XtAddCallback(button, XmNactivateCallback, warpDecrGammaCb,
 		(XtPointer) &(warpGlobals.src));
 
-  child = createWarpDisplayFrame(control, "warp_ovly_frame", visual, 24);
-  XtVaSetValues(child,
-		XmNtopAttachment,	XmATTACH_WIDGET,
-		XmNtopWidget,		toggle,
-		XmNbottomAttachment,	XmATTACH_FORM,
-		XmNleftAttachment,	XmATTACH_POSITION,
-		XmNleftPosition,	67,
-		XmNrightAttachment,	XmATTACH_POSITION,
-		XmNrightPosition,	100,
-		NULL);
+  if( warpGlobals.warpPanedFlg ){
+    child = createWarpDisplayFrame(paned, "warp_ovly_frame", visual, 24);
+  }
+  else {
+    child = createWarpDisplayFrame(control, "warp_ovly_frame", visual, 24);
+    XtVaSetValues(child,
+		  XmNtopAttachment,	XmATTACH_WIDGET,
+		  XmNtopWidget,		toggle,
+		  XmNbottomAttachment,	XmATTACH_FORM,
+		  XmNleftAttachment,	XmATTACH_POSITION,
+		  XmNleftPosition,	67,
+		  XmNrightAttachment,	XmATTACH_POSITION,
+		  XmNrightPosition,	100,
+		  NULL);
+  }
   warpGlobals.ovly.canvas = XtNameToWidget(child, "*canvas");
   warpOvlyDisplayFramePopupItemsP[0].callback_data = &warpGlobals.ovly;
   warpOvlyDisplayFramePopupItemsP[1].callback_data = &warpGlobals.ovly;
@@ -1119,6 +1148,14 @@ void warpNotebookPageChangedCb(
   return;
 }
 
+#define set_att_offset(field)   XtOffsetOf(MAPaintWarp2DStruct, field)
+
+static XtResource set_att_res[] = {
+{"warpPaned", "WarpPaned", XtRInt, sizeof(int),
+ set_att_offset(warpPanedFlg), XtRImmediate, (caddr_t) 1},
+};
+
+
 Widget createWarpInput2DDialog(
   Widget	topl)
 {
@@ -1210,6 +1247,9 @@ Widget createWarpInput2DDialog(
   /* major page 2 - rapid-map controls */
   page = createWarpRapidControlsPage(notebook, view_struct);
 
+  /* major page 3 - tie-point tracking controls */
+  page = createTiePointTrackingControlsPage(notebook, view_struct);
+
   /* create the signal controls frame */
   sgnl_controls = createWarpSgnlControlsFrame(control, "warp_sgnl_controls_frame",
 					      view_struct);
@@ -1243,8 +1283,11 @@ Widget createWarpInput2DDialog(
 		view_struct);
 
   /* set the interact dialog to NULL and set up structure */
+  XtGetApplicationResources(globals.topl, &warpGlobals, set_att_res,
+			    XtNumber(set_att_res), NULL, 0);
   warpGlobals.view_struct = view_struct;
   warpGlobals.warp2DInteractDialog = NULL;
+/*  warpGlobals.warpPanedFlg = 1;*/
   warpGlobals.srcFile = NULL;
   warpGlobals.srcFileType = WLZEFF_FORMAT_NONE;
   warpGlobals.sgnlFile = NULL;
@@ -1316,6 +1359,9 @@ Widget createWarpInput2DDialog(
 
   /* rapid map controls */
   warpGlobals.bibfileSavedFlg = 0;
+
+  /* tie-point tracking controls */
+  warpGlobals.tpTrackingFlg = 0;
 
   return( dialog );
 }

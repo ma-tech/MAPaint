@@ -2164,33 +2164,7 @@ void warpRapidIORead(
 
     /* calculate the warp transform and display */
     if( warpGlobals.num_vtxs || resetOvlyFlg){
-      warpDisplayTiePoints();
-      warpSetOvlyObject();
-      if( warpGlobals.ovly.ximage ){
-	AlcFree(warpGlobals.ovly.ximage->data);
-	warpGlobals.ovly.ximage->data = NULL;
-	XDestroyImage(warpGlobals.ovly.ximage);
-	warpGlobals.ovly.ximage = NULL;
-      }
-      if( warpGlobals.ovly.ovlyImages[0] ){
-	AlcFree(warpGlobals.ovly.ovlyImages[0]->data);
-	warpGlobals.ovly.ovlyImages[0]->data = NULL;
-	XDestroyImage(warpGlobals.ovly.ovlyImages[0]);
-	warpGlobals.ovly.ovlyImages[0] = NULL;
-      }
-      if( warpGlobals.ovly.ovlyImages[1] ){
-	AlcFree(warpGlobals.ovly.ovlyImages[1]->data);
-	warpGlobals.ovly.ovlyImages[1]->data = NULL;
-	XDestroyImage(warpGlobals.ovly.ovlyImages[1]);
-	warpGlobals.ovly.ovlyImages[1] = NULL;
-      }
-      warpSetOvlyXImage(&(warpGlobals.ovly));
-      XtCallCallbacks(warpGlobals.ovly.canvas, XmNexposeCallback,
-		      NULL);
-      XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
-		      NULL);
-      XtCallCallbacks(warpGlobals.src.canvas, XmNexposeCallback,
-		      NULL);
+      warpRedisplayOvly();
     }
 
     /* calculate the signal threshold object */

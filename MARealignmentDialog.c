@@ -1635,7 +1635,7 @@ void realignment_input_cb(
 	x = cbs->event->xbutton.x / wlzViewStr->scale;
 	y = cbs->event->xbutton.y / wlzViewStr->scale;
 	domain = imageValueToDomain
-	  ((unsigned int) *((UBYTE *) (view_struct->ximage->data + x +
+	  ((unsigned int) *((WlzUByte *) (view_struct->ximage->data + x +
 				       y * view_struct->ximage->bytes_per_line)));
 	origWidth = wlzViewStr->maxvals.vtX - wlzViewStr->minvals.vtX + 1;
 	x -= alignBufferSize;
@@ -1687,7 +1687,7 @@ void realignment_input_cb(
 	x = cbs->event->xmotion.x / wlzViewStr->scale;
 	y = cbs->event->xmotion.y / wlzViewStr->scale;
 	domain = imageValueToDomain
-	  ((unsigned int) *((UBYTE *) (view_struct->ximage->data + x +
+	  ((unsigned int) *((WlzUByte *) (view_struct->ximage->data + x +
 				       y * view_struct->ximage->bytes_per_line)));
 	origWidth = wlzViewStr->maxvals.vtX - wlzViewStr->minvals.vtX + 1;
 	x -= alignBufferSize;

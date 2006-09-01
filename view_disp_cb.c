@@ -93,7 +93,7 @@ static void display_scaled_image(
 {
   XImage		*scaled_image;
   XImage		*ximage = view_struct->ximage;
-  UBYTE			*scaled_data, *data, *line1data, *linedata;
+  WlzUByte			*scaled_data, *data, *line1data, *linedata;
   int			scale = (int) view_struct->wlzViewStr->scale;
   int			i, xp, yp;
   XWindowAttributes	win_att;
@@ -128,14 +128,14 @@ static void display_scaled_image(
     return;
   }
 
-  if( scaled_data = (UBYTE *) AlcMalloc(sizeof(UBYTE) * width_exp *
+  if( scaled_data = (WlzUByte *) AlcMalloc(sizeof(WlzUByte) * width_exp *
 					height_exp * scale * scale) ){
     scaled_image = XCreateImage(dpy, win_att.visual, win_att.depth,
 				ZPixmap, 0, (char *) scaled_data,
 				width_exp*scale,
 				height_exp*scale, 8, width_exp*scale);
 
-    data = (UBYTE *) view_struct->ximage->data;
+    data = (WlzUByte *) view_struct->ximage->data;
     for(yp=y_exp; yp < heightp; yp++)
     {
       linedata = data + (yp*view_struct->ximage->bytes_per_line) + x_exp;
@@ -189,7 +189,7 @@ static void display_scaled_down_image(
 {
   XImage		*scaled_image;
   XImage		*ximage = view_struct->ximage;
-  UBYTE			*scaled_data, *data, *linedata;
+  WlzUByte			*scaled_data, *data, *linedata;
   int			scale = (int) (1.0 / view_struct->wlzViewStr->scale);
   int			i, xp, yp;
   XWindowAttributes	win_att;
@@ -217,18 +217,18 @@ static void display_scaled_down_image(
   widthp = WLZ_MIN(widthp / scale, x_exp + width_exp);
   heightp = WLZ_MIN(heightp / scale, y_exp + height_exp);
 
-  if( scaled_data = (UBYTE *) AlcMalloc(sizeof(UBYTE) *
+  if( scaled_data = (WlzUByte *) AlcMalloc(sizeof(WlzUByte) *
 					width_exp * height_exp) ){
     scaled_image = XCreateImage(dpy, win_att.visual, win_att.depth,
 				ZPixmap, 0, (char *) scaled_data,
 				width_exp, height_exp, 8, width_exp);
 
-    data = (UBYTE *) view_struct->ximage->data;
+    data = (WlzUByte *) view_struct->ximage->data;
     for(yp=y_exp; yp < heightp; yp++)
     {
       linedata = data + (yp * scale * view_struct->ximage->bytes_per_line) +
 	x_exp * scale;
-      scaled_data = (UBYTE *) scaled_image->data + (yp-y_exp) * width_exp;
+      scaled_data = (WlzUByte *) scaled_image->data + (yp-y_exp) * width_exp;
       for(xp=x_exp; xp < widthp; xp++, scaled_data++, linedata += scale)
       {
 	*scaled_data = *linedata;

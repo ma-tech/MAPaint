@@ -201,19 +201,19 @@ void setGreyValuesFromObject(
 	switch( gwsp2.pixeltype ){
 	case WLZ_GREY_LONG:
 	  for(i=0; i < iwsp1.colrmn; i++){
-	    gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.lnp[i]);
+	    gwsp1.u_grintptr.ubp[i] = (WlzUByte) (gwsp2.u_grintptr.lnp[i]);
 	  }
 	  break;
 
 	case WLZ_GREY_INT:
 	  for(i=0; i < iwsp1.colrmn; i++){
-	    gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.inp[i]);
+	    gwsp1.u_grintptr.ubp[i] = (WlzUByte) (gwsp2.u_grintptr.inp[i]);
 	  }
 	  break;
 
 	case WLZ_GREY_SHORT:
 	  for(i=0; i < iwsp1.colrmn; i++){
-	    gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.shp[i]);
+	    gwsp1.u_grintptr.ubp[i] = (WlzUByte) (gwsp2.u_grintptr.shp[i]);
 	  }
 	  break;
 
@@ -225,13 +225,13 @@ void setGreyValuesFromObject(
 
 	case WLZ_GREY_FLOAT:
 	  for(i=0; i < iwsp1.colrmn; i++){
-	    gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.flp[i]);
+	    gwsp1.u_grintptr.ubp[i] = (WlzUByte) (gwsp2.u_grintptr.flp[i]);
 	  }
 	  break;
 
 	case WLZ_GREY_DOUBLE:
 	  for(i=0; i < iwsp1.colrmn; i++){
-	    gwsp1.u_grintptr.ubp[i] = (UBYTE) (gwsp2.u_grintptr.dbp[i]);
+	    gwsp1.u_grintptr.ubp[i] = (WlzUByte) (gwsp2.u_grintptr.dbp[i]);
 	  }
 	  break;
 	}

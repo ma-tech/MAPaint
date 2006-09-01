@@ -54,11 +54,11 @@ typedef struct _MAPaintEventMapping {
   MAPaintContext	context;
   MAPaintContextMode	mode;
   int			srcEventType;
-  UINT			srcButton;
-  UINT			srcModMask;
+  WlzUInt		srcButton;
+  WlzUInt		srcModMask;
   int			dstEventType;
-  UINT			dstButton;
-  UINT			dstModMask;
+  WlzUInt		dstButton;
+  WlzUInt		dstModMask;
   char			*helpStr;
   Widget		eventLabel;
   Widget		buttonLabel;

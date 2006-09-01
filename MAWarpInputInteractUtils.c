@@ -593,7 +593,7 @@ void warpDstCanvasInputCb(
   Widget	toggle;
   Boolean	autoUpdateFlg;
   int		i;
-  UINT		modMask=ShiftMask|ControlMask|LockMask|Mod1Mask|Mod2Mask|
+  WlzUInt	modMask=ShiftMask|ControlMask|LockMask|Mod1Mask|Mod2Mask|
     Mod3Mask|Mod4Mask;
 
   /* check there is an image */
@@ -673,7 +673,7 @@ void warpDstCanvasInputCb(
 	  break;
 
 	case TP_DST_DEFINED:
-	  /* reset vertex */
+	  /* reset vertex  - but not in tp-tracking mode */
 	  warpUndisplayVtx(&(warpGlobals.dst),
 			   warpGlobals.dst_vtxs[warpGlobals.num_vtxs]);
 	  warpGlobals.dst_vtxs[warpGlobals.num_vtxs] =
@@ -682,21 +682,27 @@ void warpDstCanvasInputCb(
 
 	case TP_SRC_DEFINED:
 	  /* set vertex, increment number of tie-points */
-	  warpGlobals.dst_vtxs[warpGlobals.num_vtxs] =
-	    warpDisplayTransBack(vtx, &(warpGlobals.dst));
-	  warpGlobals.tp_state = TP_SELECTED;
-	  warpGlobals.sel_vtx = warpGlobals.num_vtxs;
-	  warpGlobals.num_vtxs++;
-	  resetOvlyFlg = 1;
+	  /* in tp tracking mode could be breaking a track
+	     therefore not allowed */
+	  if( !warpGlobals.tpTrackingFlg ){
+	    warpGlobals.dst_vtxs[warpGlobals.num_vtxs] =
+	      warpDisplayTransBack(vtx, &(warpGlobals.dst));
+	    warpGlobals.tp_state = TP_SELECTED;
+	    warpGlobals.sel_vtx = warpGlobals.num_vtxs;
+	    warpGlobals.num_vtxs++;
+	    resetOvlyFlg = 1;
+	  }
 	  break;
 
 	case TP_SELECTED:
-	  /* reset vertex */
-	  warpUndisplayVtx(&(warpGlobals.dst),
-			   warpGlobals.dst_vtxs[warpGlobals.sel_vtx]);
-	  warpGlobals.dst_vtxs[warpGlobals.sel_vtx] =
-	    warpDisplayTransBack(vtx, &(warpGlobals.dst));
-	  resetOvlyFlg = 1;
+	  /* reset vertex  - but not in tp-tracking mode */
+	  if( !warpGlobals.tpTrackingFlg ){
+	    warpUndisplayVtx(&(warpGlobals.dst),
+			     warpGlobals.dst_vtxs[warpGlobals.sel_vtx]);
+	    warpGlobals.dst_vtxs[warpGlobals.sel_vtx] =
+	      warpDisplayTransBack(vtx, &(warpGlobals.dst));
+	    resetOvlyFlg = 1;
+	  }
 	  break;
 	}
 	warpDisplayTiePoints();
@@ -719,20 +725,23 @@ void warpDstCanvasInputCb(
 
 	case TP_SELECTED:
 	  /* delete vertex */
-	  warpUndisplayVtx(&(warpGlobals.dst),
-			   warpGlobals.dst_vtxs[warpGlobals.sel_vtx]);
-	  warpUndisplayVtx(&(warpGlobals.src),
-			   warpGlobals.src_vtxs[warpGlobals.sel_vtx]);
-	  warpGlobals.num_vtxs--;
-	  while( warpGlobals.sel_vtx < warpGlobals.num_vtxs ){
-	    warpGlobals.dst_vtxs[warpGlobals.sel_vtx] = 
-	      warpGlobals.dst_vtxs[warpGlobals.sel_vtx + 1];
-	    warpGlobals.src_vtxs[warpGlobals.sel_vtx] = 
-	      warpGlobals.src_vtxs[warpGlobals.sel_vtx + 1];
-	    warpGlobals.sel_vtx++;
+	  /* in tp tracking mode can only delete from source window */
+	  if( !warpGlobals.tpTrackingFlg ){
+	    warpUndisplayVtx(&(warpGlobals.dst),
+			     warpGlobals.dst_vtxs[warpGlobals.sel_vtx]);
+	    warpUndisplayVtx(&(warpGlobals.src),
+			     warpGlobals.src_vtxs[warpGlobals.sel_vtx]);
+	    warpGlobals.num_vtxs--;
+	    while( warpGlobals.sel_vtx < warpGlobals.num_vtxs ){
+	      warpGlobals.dst_vtxs[warpGlobals.sel_vtx] = 
+		warpGlobals.dst_vtxs[warpGlobals.sel_vtx + 1];
+	      warpGlobals.src_vtxs[warpGlobals.sel_vtx] = 
+		warpGlobals.src_vtxs[warpGlobals.sel_vtx + 1];
+	      warpGlobals.sel_vtx++;
+	    }
+	    warpGlobals.tp_state = TP_INACTIVE;
+	    resetOvlyFlg = 1;
 	  }
-	  warpGlobals.tp_state = TP_INACTIVE;
-	  resetOvlyFlg = 1;
 	  break;
 	}
 	warpDisplayTiePoints();
@@ -818,13 +827,15 @@ void warpDstCanvasInputCb(
 	break;
 
       case TP_SELECTED:
-	/* reset vertex */
-	warpUndisplayVtx(&(warpGlobals.dst),
-		      warpGlobals.dst_vtxs[warpGlobals.sel_vtx]);
-	warpGlobals.dst_vtxs[warpGlobals.sel_vtx] =
-	  warpDisplayTransBack(vtx, &(warpGlobals.dst));
-	warpDisplayTiePoints();
-	resetOvlyFlg = 1;
+	/* reset vertex  - but not in tp-tracking moode */
+	if( !warpGlobals.tpTrackingFlg ){
+	  warpUndisplayVtx(&(warpGlobals.dst),
+			   warpGlobals.dst_vtxs[warpGlobals.sel_vtx]);
+	  warpGlobals.dst_vtxs[warpGlobals.sel_vtx] =
+	    warpDisplayTransBack(vtx, &(warpGlobals.dst));
+	  warpDisplayTiePoints();
+	  resetOvlyFlg = 1;
+	}
 	break;
       }
     }
@@ -881,7 +892,7 @@ void warpSrcCanvasInputCb(
   Widget	toggle;
   Boolean	autoUpdateFlg;
   int		i;
-  UINT		modMask=ShiftMask|ControlMask|LockMask|Mod1Mask|Mod2Mask|
+  WlzUInt	modMask=ShiftMask|ControlMask|LockMask|Mod1Mask|Mod2Mask|
     Mod3Mask|Mod4Mask;
 
   /* check there is and image */
@@ -952,20 +963,24 @@ void warpSrcCanvasInputCb(
       case Button1:
 	switch( warpGlobals.tp_state ){
 	case TP_INACTIVE:
-	  /* set the src vertex */
-	  if( warpGlobals.num_vtxs < WARP_MAX_NUM_VTXS ){
-	    warpGlobals.src_vtxs[warpGlobals.num_vtxs] =
-	      warpDisplayTransBack(vtx, &(warpGlobals.src));
-	    warpGlobals.tp_state = TP_SRC_DEFINED;
+	  /* set the src vertex - but not in tp tracking mode */
+	  if( !warpGlobals.tpTrackingFlg ){
+	    if( warpGlobals.num_vtxs < WARP_MAX_NUM_VTXS ){
+	      warpGlobals.src_vtxs[warpGlobals.num_vtxs] =
+		warpDisplayTransBack(vtx, &(warpGlobals.src));
+	      warpGlobals.tp_state = TP_SRC_DEFINED;
+	    }
 	  }
 	  break;
 
 	case TP_SRC_DEFINED:
-	  /* reset vertex */
-	  warpUndisplayVtx(&(warpGlobals.src),
-			   warpGlobals.src_vtxs[warpGlobals.num_vtxs]);
-	  warpGlobals.src_vtxs[warpGlobals.num_vtxs] =
-	    warpDisplayTransBack(vtx, &(warpGlobals.src));
+	  /* reset vertex - but not in tp tracking mode */
+	  if( !warpGlobals.tpTrackingFlg ){
+	    warpUndisplayVtx(&(warpGlobals.src),
+			     warpGlobals.src_vtxs[warpGlobals.num_vtxs]);
+	    warpGlobals.src_vtxs[warpGlobals.num_vtxs] =
+	      warpDisplayTransBack(vtx, &(warpGlobals.src));
+	  }
 	  break;
 
 	case TP_DST_DEFINED:
