@@ -1437,14 +1437,28 @@ int view_menu_init(
   XGCValues	gc_values;
   char		*hostName;
   int		i, j;
+  XWindowAttributes	win_att;
 
 
+  /* check gc's */
+  if( XGetWindowAttributes(dpy, win, &win_att) == 0 ){
+    return 1;
+  }
+#if defined (__x86) || defined (__alpha)
+  gc_values.foreground = win_att.visual->red_mask;
+  gc_values.background = 0;
+  globals.gc_set = XCreateGC(dpy, win,
+			     GCForeground|GCBackground,
+			     &gc_values);
+#endif /* __x86 || __alpha */
+#if defined (__sparc) || defined (__mips) || defined (__ppc)
   globals.gc_set = HGU_XCreateGC(dpy, win);
 /*  (void) HGU_XColourFromNameGC(dpy, globals.cmap, globals.gc_set,
     "red");*/
   (void) HGU_XColourGC(dpy, globals.gc_set, 0x00ffff00);
   gc_values.plane_mask = 255;
   XChangeGC(dpy, globals.gc_set, GCPlaneMask, &gc_values);
+#endif /* __sparc || __mips */
 
   /* initialise the undo list */
   initUndoList(0);
