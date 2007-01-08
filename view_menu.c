@@ -1444,14 +1444,14 @@ int view_menu_init(
   if( XGetWindowAttributes(dpy, win, &win_att) == 0 ){
     return 1;
   }
-#if defined (__x86) || defined (__alpha)
+#if defined (__x86) || defined (__alpha)|| defined (__ppc)
   gc_values.foreground = win_att.visual->red_mask;
   gc_values.background = 0;
   globals.gc_set = XCreateGC(dpy, win,
 			     GCForeground|GCBackground,
 			     &gc_values);
 #endif /* __x86 || __alpha */
-#if defined (__sparc) || defined (__mips) || defined (__ppc)
+#if defined (__sparc) || defined (__mips)
   globals.gc_set = HGU_XCreateGC(dpy, win);
 /*  (void) HGU_XColourFromNameGC(dpy, globals.cmap, globals.gc_set,
     "red");*/
