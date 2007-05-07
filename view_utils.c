@@ -21,7 +21,7 @@ int init_view_struct(
   XWindowAttributes	win_att;
   Display		*dpy = XtDisplay(view_struct->canvas);
   Window		win = XtWindow(view_struct->canvas);
-  unsigned int		widthp, heightp;
+  unsigned int		widthp, heightp, widthb;
   Dimension		win_width, win_height;
   char			*data;
   WlzThreeDViewStruct	*wlzViewStr = view_struct->wlzViewStr;
@@ -60,10 +60,22 @@ int init_view_struct(
   /* set up the ximage */
   widthp  = wlzViewStr->maxvals.vtX - wlzViewStr->minvals.vtX + 1;
   heightp = wlzViewStr->maxvals.vtY - wlzViewStr->minvals.vtY + 1;
+  if(win_att.depth <= 8)
+  {
+    widthb = widthp;
+  }
+  else
+  {
+    widthb = widthp * 4; /* This assumes that there are 4 bytes per pixel. */
+  }
   view_struct->ximage = XCreateImage(dpy, win_att.visual, win_att.depth,
 				     ZPixmap, 0, NULL, widthp,
-				     heightp, 8, widthp);
-
+				     heightp, 8, widthb);
+  if(view_struct->ximage == NULL) {
+    MAPaintReportWlzError(globals.topl, "init_view_struct",
+    			  WLZ_ERR_PARAM_DATA);
+    return 1;
+  }
   /* resize the canvas */
   win_width = widthp * wlzViewStr->scale;
   win_height = heightp * wlzViewStr->scale;
