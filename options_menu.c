@@ -362,7 +362,7 @@ XtPointer	call_data)
       globals.currentPaintActionQuitFunc = MAPaintEdgeTracking2DQuit;
       newForm = form[6];
       break;
-#if !defined (LINUX2) && !defined (__ppc) && !defined (SUNOS5)
+#if !defined (LINUX2) && !defined (DARWIN) && !defined (SUNOS5)
     case MAPAINT_TABLET_2D:
       globals.currentPaintActionCbFunc = MAPaintTabletCb;
       globals.currentPaintActionInitFunc = MAPaintTabletInit;
@@ -423,7 +423,7 @@ static Widget create_tool_controls_dialog(
     (void) CreateAffineControls( control );
     (void) CreateTracking2DControls( control );
     (void) CreateEdgeTracking2DControls( control );
-#if !defined (LINUX2) && !defined (__ppc) && !defined (SUNOS5)
+#if !defined (LINUX2) && !defined (DARWIN) && !defined (SUNOS5)
     (void) CreateTabletControls( control );
 #endif /* LINUX2 */
 

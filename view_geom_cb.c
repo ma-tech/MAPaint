@@ -14,7 +14,7 @@
 *************************************************************/
 #include <stdio.h>
 #include <math.h>
-#ifndef __ppc
+#ifndef DARWIN
 #include <values.h>
 #endif
 

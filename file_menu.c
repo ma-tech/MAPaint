@@ -1136,14 +1136,14 @@ void file_menu_init(
       fprintf(stderr, "MAPaint: logging enabled to %s\n", globals.logfile);
       MAPaintLogData("Filename", globals.logfile, 0, NULL);
       MAPaintLogData("User", getenv("USER"), 0, NULL);
-#if defined (LINUX2) || defined (__ppc)
+#if defined (LINUX2) || defined (DARWIN)
       strcpy(timeBuf, "00/00/00");
 #else
       tmpTime = time(NULL);
       cftime(timeBuf, "%d/%m/%Y", &tmpTime);
 #endif /* LINUX2 */
       MAPaintLogData("Date", timeBuf, 0, NULL);
-#if defined (LINUX2) || defined (__ppc)
+#if defined (LINUX2) || defined (DARWIN)
       strcpy(timeBuf, "00.00");
 #else
       cftime(timeBuf, "%H.%M", &tmpTime);

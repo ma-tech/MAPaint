@@ -361,6 +361,9 @@ OBJECTS			= $(CSOURCES:%.c=%.o)
 # List of libraries to link (modify as required).
 EXTRA_LIBS		= tiff jpeg m gen
 X11LIBS         	= Xt Xmu X11 Xext
+OPENGLLIBS		= GLU GL
+MOTIFLIBS       	= Xm
+
 ifeq 		($(UNIXTYPE), SUNOS5)
 EXTRA_LIBS		= tiff jpeg m gen socket nsl
 X11LIBS         	= Xt Xmu X11  Xi Xext
@@ -372,10 +375,10 @@ endif
 ifeq	 	($(UNIXTYPE), DARWIN)
 EXTRA_LIBS		= tiff jpeg m
 X11LIBS         	= Xt X11 Xmu Xp
+OPENGLLIBS		= GLU
+MOTIFLIBS       	= Xm
 endif
 
-OPENGLLIBS		= GLU GL
-MOTIFLIBS       	= Xm
 LOCALLIBS		= hguGL HguXm HguX WlzExtFF Wlz bibfile Alg Alc
 LIBRARIES		= hguGL HguXm HguX WlzExtFF Wlz bibfile Alg Alc \
 			$(OPENGLLIBS) $(MOTIFLIBS) $(X11LIBS) $(EXTRA_LIBS)

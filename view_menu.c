@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
-#ifndef __ppc
+#ifndef DARWIN
 #include <values.h>
 #endif
 
