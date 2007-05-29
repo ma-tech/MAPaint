@@ -49,7 +49,7 @@ void HGU_XPutImage8To24(
   newdata = (unsigned char *) AlcMalloc(4*width*height*sizeof(char));
   new = XCreateImage(dpy, win_att.visual, win_att.depth,
 		     ZPixmap, 0, (char *) newdata,
-		     width, height, 32, 0);
+		     width, height, 32, width * 4);
 
   /* transfer data  via colormap to 24 bit  - use visual for colour masks */
   srcOff = 0;
@@ -91,6 +91,7 @@ static void display_scaled_image(
   int			heightp,
   XExposeEvent		*event)
 {
+  int			widthb;
   XImage		*scaled_image;
   XImage		*ximage = view_struct->ximage;
   WlzUByte			*scaled_data, *data, *line1data, *linedata;
@@ -130,10 +131,18 @@ static void display_scaled_image(
 
   if( scaled_data = (WlzUByte *) AlcMalloc(sizeof(WlzUByte) * width_exp *
 					height_exp * scale * scale) ){
+    if(win_att.depth <= 8)
+    {
+      widthb = width_exp * scale;
+    }
+    else
+    {
+      widthb = width_exp * scale * 4;
+    }
     scaled_image = XCreateImage(dpy, win_att.visual, win_att.depth,
 				ZPixmap, 0, (char *) scaled_data,
 				width_exp*scale,
-				height_exp*scale, 8, width_exp*scale);
+				height_exp*scale, 8, widthb);
 
     data = (WlzUByte *) view_struct->ximage->data;
     for(yp=y_exp; yp < heightp; yp++)
@@ -187,6 +196,7 @@ static void display_scaled_down_image(
   int			heightp,
   XExposeEvent		*event)
 {
+  int			widthb;
   XImage		*scaled_image;
   XImage		*ximage = view_struct->ximage;
   WlzUByte			*scaled_data, *data, *linedata;
@@ -219,9 +229,17 @@ static void display_scaled_down_image(
 
   if( scaled_data = (WlzUByte *) AlcMalloc(sizeof(WlzUByte) *
 					width_exp * height_exp) ){
+    if(win_att.depth <= 8)
+    {
+      widthb = width_exp;
+    }
+    else
+    {
+      widthb = width_exp * 4;
+    }
     scaled_image = XCreateImage(dpy, win_att.visual, win_att.depth,
 				ZPixmap, 0, (char *) scaled_data,
-				width_exp, height_exp, 8, width_exp);
+				width_exp, height_exp, 8, widthb);
 
     data = (WlzUByte *) view_struct->ximage->data;
     for(yp=y_exp; yp < heightp; yp++)
