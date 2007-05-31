@@ -64,7 +64,7 @@ int init_view_struct(
   widthb = widthp + widthp % (BitmapPad(dpy)>>3);
   view_struct->ximage = XCreateImage(dpy, win_att.visual, 8,
 				     ZPixmap, 0, NULL, widthp,
-				     heightp, BitmapPad(dpy), widthb);
+				     heightp, BitmapPad(dpy), 0);
   if(view_struct->ximage == NULL) {
     MAPaintReportWlzError(globals.topl, "init_view_struct",
     			  WLZ_ERR_PARAM_DATA);
