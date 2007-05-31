@@ -57,20 +57,14 @@ int init_view_struct(
 			 view_struct->wlzViewStr->zeta * 180.0 / WLZ_M_PI);
   }
 
-  /* set up the ximage */
+  /* set up the ximage - note the internal ximage is 8 bit but we must honour 
+     the bitmap-pad for the display */
   widthp  = wlzViewStr->maxvals.vtX - wlzViewStr->minvals.vtX + 1;
   heightp = wlzViewStr->maxvals.vtY - wlzViewStr->minvals.vtY + 1;
-  if(win_att.depth <= 8)
-  {
-    widthb = widthp;
-  }
-  else
-  {
-    widthb = widthp * 4; /* This assumes that there are 4 bytes per pixel. */
-  }
-  view_struct->ximage = XCreateImage(dpy, win_att.visual, win_att.depth,
+  widthb = widthp + widthp % (BitmapPad(dpy)>>3);
+  view_struct->ximage = XCreateImage(dpy, win_att.visual, 8,
 				     ZPixmap, 0, NULL, widthp,
-				     heightp, 8, widthb);
+				     heightp, BitmapPad(dpy), widthb);
   if(view_struct->ximage == NULL) {
     MAPaintReportWlzError(globals.topl, "init_view_struct",
     			  WLZ_ERR_PARAM_DATA);

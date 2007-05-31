@@ -246,7 +246,7 @@ XImage	*warpCreateXImage(
 {
   XImage		*rtnImage=NULL;
   XWindowAttributes	win_att;
-  Dimension		src_width, src_height, width, height;
+  Dimension		src_width, src_height, width, height, widthb;
   int			kOffset, lOffset;
   WlzUByte			*data, *dst_data, gammaLUT[256];
   int			i, j;
@@ -289,13 +289,14 @@ XImage	*warpCreateXImage(
 		NULL);
 
   if( gVWSp = WlzGreyValueMakeWSp(obj, &errNum) ){
-    if( dst_data = (WlzUByte *) AlcMalloc(((win_att.depth == 8)?1:4)
-				       *width*height*sizeof(char)) ){
-      data = dst_data;
+    widthb = ((win_att.depth == 8)?1:4)*width;
+    widthb += widthb % (BitmapPad(XtDisplay(winStruct->canvas))>>3);
+    if( dst_data = (WlzUByte *) AlcMalloc(widthb*height*sizeof(char)) ){
       rtnImage = XCreateImage(XtDisplay(winStruct->canvas),
 			      win_att.visual, win_att.depth,
 			      ZPixmap, 0, (char *) dst_data,
-			      width, height, 8, 0);
+			      width, height, BitmapPad(XtDisplay(winStruct->canvas)),
+			      widthb);
       
       /* establish rgb index values if 24 bit */
       if( win_att.depth == 24 ){
@@ -321,6 +322,7 @@ XImage	*warpCreateXImage(
 
       /* fill in the values */
       for(j=0; j < height; j++){
+	data = dst_data + j * widthb;
 	for(i=0; i < width; i++, data++){
 	  WlzDVertex2 vtx1, vtx2;
 	  vtx1.vtX = i;
@@ -572,7 +574,7 @@ void warpSetOvlyXImage(
   MAPaintImageWinStruct *winStruct)
 {
   XWindowAttributes	win_att;
-  Dimension		width, height;
+  Dimension		width, height, widthb;
   WlzUByte			*data0, *data1, *dst_data, *data;
   int			i, j, acc;
   double		a, b, c;
@@ -602,16 +604,18 @@ void warpSetOvlyXImage(
   }
   width = winStruct->ovlyImages[0]->width;
   height = winStruct->ovlyImages[0]->height;
+  widthb = (width*4) + (width*4) % (BitmapPad(XtDisplay(winStruct->canvas))>>3);
 
-  dst_data = (WlzUByte *) AlcCalloc(4*width*height, sizeof(char));
-  data = dst_data;
+  dst_data = (WlzUByte *) AlcCalloc(widthb*height, sizeof(char));
   data0 = (WlzUByte *) winStruct->ovlyImages[0]->data;
   data1 = (WlzUByte *) winStruct->ovlyImages[1]->data;
 
   winStruct->ximage = XCreateImage(XtDisplay(winStruct->canvas),
 				   win_att.visual, win_att.depth,
 				   ZPixmap, 0, (char *) dst_data,
-				   width, height, 8, 0);
+				   width, height,
+				   BitmapPad(XtDisplay(winStruct->canvas)),
+				   widthb);
 
   /* set up mixing factors */
   if( winStruct->mixRatio > 50.0){
@@ -638,121 +642,154 @@ void warpSetOvlyXImage(
  
   switch( winStruct->mixType ){
   case MA_OVERLAY_MIXTYPE_RG1:
-    for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[rIndx] = c * 255 + (1 - c) * data1[gIndx];
-      data[gIndx] = c * data0[gIndx] + (1 - c) * 255;
-      data[bIndx] = c * data0[gIndx] + (1 - c) * data1[gIndx];
-      data[aIndx] = 0;
+    for(j=0; j < height; j++){
+      data = dst_data + j * widthb;
+      for(i=0; i < width; i++, data += 4, data0 += 4, data1 += 4){
+	data[rIndx] = c * 255 + (1 - c) * data1[gIndx];
+	data[gIndx] = c * data0[gIndx] + (1 - c) * 255;
+	data[bIndx] = c * data0[gIndx] + (1 - c) * data1[gIndx];
+	data[aIndx] = 0;
+      }
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_RG2:
-    for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[rIndx] = a * (255 - data0[gIndx]);
-      data[gIndx] = b * (255 - data1[gIndx]);
-      data[bIndx] = 0;
-      data[aIndx] = 0;
+    for(j=0; j < height; j++){
+      data = dst_data + j * widthb;
+      for(i=0; i < width; i++, data += 4, data0 += 4, data1 += 4){
+	data[rIndx] = a * (255 - data0[gIndx]);
+	data[gIndx] = b * (255 - data1[gIndx]);
+	data[bIndx] = 0;
+	data[aIndx] = 0;
+      }
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_RB1:
-    for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[rIndx] = c * 255 + (1 - c) * data1[gIndx];
-      data[bIndx] = c * data0[gIndx] + (1-c) * 255;
-      data[gIndx] = c * data0[gIndx] + (1-c) * data1[gIndx];
-      data[aIndx] = 0;
+    for(j=0; j < height; j++){
+      data = dst_data + j * widthb;
+      for(i=0; i < width; i++, data += 4, data0 += 4, data1 += 4){
+	data[rIndx] = c * 255 + (1 - c) * data1[gIndx];
+	data[bIndx] = c * data0[gIndx] + (1-c) * 255;
+	data[gIndx] = c * data0[gIndx] + (1-c) * data1[gIndx];
+	data[aIndx] = 0;
+      }
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_RB2:
-    for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[rIndx] = a * (255 - data0[gIndx]);
-      data[bIndx] = b * (255 - data1[gIndx]);
-      data[gIndx] = 0;
-      data[aIndx] = 0;
+    for(j=0; j < height; j++){
+      data = dst_data + j * widthb;
+      for(i=0; i < width; i++, data += 4, data0 += 4, data1 += 4){
+	data[rIndx] = a * (255 - data0[gIndx]);
+	data[bIndx] = b * (255 - data1[gIndx]);
+	data[gIndx] = 0;
+	data[aIndx] = 0;
+      }
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_GB1:
-    for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[gIndx] = c * 255 + (1 - c) * data1[gIndx];
-      data[bIndx] = c * data0[gIndx] + (1-c) * 255;
-      data[rIndx] = c * data0[gIndx] + (1-c) * data1[gIndx];
-      data[aIndx] = 0;
+    for(j=0; j < height; j++){
+      data = dst_data + j * widthb;
+      for(i=0; i < width; i++, data += 4, data0 += 4, data1 += 4){
+	data[gIndx] = c * 255 + (1 - c) * data1[gIndx];
+	data[bIndx] = c * data0[gIndx] + (1-c) * 255;
+	data[rIndx] = c * data0[gIndx] + (1-c) * data1[gIndx];
+	data[aIndx] = 0;
+      }
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_GB2:
-    for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[gIndx] = a * (255 - data0[gIndx]);
-      data[bIndx] = b * (255 - data1[gIndx]);
-      data[rIndx] = 0;
-      data[aIndx] = 0;
+    for(j=0; j < height; j++){
+      data = dst_data + j * widthb;
+      for(i=0; i < width; i++, data += 4, data0 += 4, data1 += 4){
+	data[gIndx] = a * (255 - data0[gIndx]);
+	data[bIndx] = b * (255 - data1[gIndx]);
+	data[rIndx] = 0;
+	data[aIndx] = 0;
+      }
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_RNR:
-    for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[rIndx] = a * (255 - data0[gIndx]);
-      data[gIndx] = b * (255 - data1[gIndx]);
-      data[bIndx] = b * (255 - data1[gIndx]);
-      data[aIndx] = 0;
+    for(j=0; j < height; j++){
+      data = dst_data + j * widthb;
+      for(i=0; i < width; i++, data += 4, data0 += 4, data1 += 4){
+	data[rIndx] = a * (255 - data0[gIndx]);
+	data[gIndx] = b * (255 - data1[gIndx]);
+	data[bIndx] = b * (255 - data1[gIndx]);
+	data[aIndx] = 0;
+      }
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_GNG:
-    for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[gIndx] = a * (255 - data0[gIndx]);
-      data[rIndx] = b * (255 - data1[gIndx]);
-      data[bIndx] = b * (255 - data1[gIndx]);
-      data[aIndx] = 0;
+    for(j=0; j < height; j++){
+      data = dst_data + j * widthb;
+      for(i=0; i < width; i++, data += 4, data0 += 4, data1 += 4){
+	data[gIndx] = a * (255 - data0[gIndx]);
+	data[rIndx] = b * (255 - data1[gIndx]);
+	data[bIndx] = b * (255 - data1[gIndx]);
+	data[aIndx] = 0;
+      }
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_BNB:
-    for(i=0; i < width*height; i++, data += 4, data0 += 4, data1 += 4){
-      data[bIndx] = a * (255 - data0[gIndx]);
-      data[gIndx] = b * (255 - data1[gIndx]);
-      data[rIndx] = b * (255 - data1[gIndx]);
-      data[aIndx] = 0;
+    for(j=0; j < height; j++){
+      data = dst_data + j * widthb;
+      for(i=0; i < width; i++, data += 4, data0 += 4, data1 += 4){
+	data[bIndx] = a * (255 - data0[gIndx]);
+	data[gIndx] = b * (255 - data1[gIndx]);
+	data[rIndx] = b * (255 - data1[gIndx]);
+	data[aIndx] = 0;
+      }
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_DITHER1:
-    for(i=0, acc=0; i < width*height;
-	i++, data += 4, data0 += 4, data1 += 4){
-      acc += 255 - data0[gIndx];
-      if( acc > 127 ){
-	data[rIndx] = a * 255 + (1-a) * data1[rIndx];
-	data[gIndx] = (1-a) * data1[gIndx];
-	data[bIndx] = (1-a) * data1[bIndx];
-	acc -= 256;
+    for(j=0; j < height; j++){
+      data = dst_data + j * widthb;
+      for(i=0, acc=0; i < width;
+	  i++, data += 4, data0 += 4, data1 += 4){
+	acc += 255 - data0[gIndx];
+	if( acc > 127 ){
+	  data[rIndx] = a * 255 + (1-a) * data1[rIndx];
+	  data[gIndx] = (1-a) * data1[gIndx];
+	  data[bIndx] = (1-a) * data1[bIndx];
+	  acc -= 256;
+	}
+	else {
+	  data[rIndx] = b * data1[rIndx];
+	  data[gIndx] = b * data1[gIndx];
+	  data[bIndx] = b * data1[bIndx];
+	}
+	data[aIndx] = 0;
       }
-      else {
-	data[rIndx] = b * data1[rIndx];
-	data[gIndx] = b * data1[gIndx];
-	data[bIndx] = b * data1[bIndx];
-      }
-      data[aIndx] = 0;
     }
     break;
 
   case MA_OVERLAY_MIXTYPE_DITHER2:
-    for(i=0, acc=0; i < width*height;
-	i++, data += 4, data0 += 4, data1 += 4){
-      acc += 255 - data1[gIndx];
-      if( acc > 127 ){
-	data[rIndx] = b * 255 + (1-b) * data0[rIndx];
-	data[gIndx] = (1-b) * data0[gIndx];
-	data[bIndx] = (1-b) * data0[bIndx];
-	acc -= 256;
+    for(j=0; j < height; j++){
+      data = dst_data + j * widthb;
+      for(i=0, acc=0; i < width;
+	  i++, data += 4, data0 += 4, data1 += 4){
+	acc += 255 - data1[gIndx];
+	if( acc > 127 ){
+	  data[rIndx] = b * 255 + (1-b) * data0[rIndx];
+	  data[gIndx] = (1-b) * data0[gIndx];
+	  data[bIndx] = (1-b) * data0[bIndx];
+	  acc -= 256;
+	}
+	else {
+	  data[rIndx] = a * data0[rIndx];
+	  data[gIndx] = a * data0[gIndx];
+	  data[bIndx] = a * data0[bIndx];
+	}
+	data[aIndx] = 0;
       }
-      else {
-	data[rIndx] = a * data0[rIndx];
-	data[gIndx] = a * data0[gIndx];
-	data[bIndx] = a * data0[bIndx];
-      }
-      data[aIndx] = 0;
     }
     break;
 

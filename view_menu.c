@@ -557,7 +557,8 @@ void canvas_input_cb(
      break;
 
   case KeyPress:
-    switch( XLookupKeysym(&(cbs->event->xkey), 0) ){
+    switch( XLookupKeysym(&(cbs->event->xkey),
+			  (cbs->event->xkey.state)&0x1) ){
 	
     case XK_Right:
     case XK_KP_Right:
@@ -595,6 +596,24 @@ void canvas_input_cb(
       /* get a filename for the view image */
       break;
 
+    case XK_plus:
+      /* Zoom view */
+      break;
+
+    case XK_minus:
+      /* reduce window */
+      if( cbs->event->xkey.state == 0x10 ){
+	Widget	shell;
+	Dimension	shellHeight, shellWidth;
+
+	shell = XtParent(view_struct->dialog);
+	XtVaGetValues(shell, XmNheight, &shellHeight,
+		      XmNwidth, &shellWidth, NULL);
+	XtVaSetValues(shell, XmNheight, shellHeight/2,
+		      XmNwidth, shellWidth/2, NULL);
+      }
+
+      break;
     }
     break;
 
