@@ -318,6 +318,12 @@ void display_pointer_feedback_information(
 {
   int			sel_domain;
 
+  /* get x,y values since events now reported outside of the image window */
+  if((x < 0) || (x >= view_struct->ximage->width) ||
+     (y < 0) || (y >= view_struct->ximage->height)){
+    return;
+  }
+
   sel_domain = imageValueToDomain
     ((unsigned int) *((WlzUByte *) (view_struct->ximage->data + x +
 				 y * view_struct->ximage->bytes_per_line)));
