@@ -354,7 +354,7 @@ void MAPaintReportWlzError(
   String	srcStr,
   WlzErrorNum	wlzErr)
 {
-  char		msgBuf[256];
+  char		msgBuf[512];
   const char	*errStr, *msgStr;
 
   /* get the error and message strings */
