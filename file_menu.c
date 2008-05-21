@@ -564,7 +564,7 @@ void install_paint_reference_object(
       WlzGreyRange(globals.orig_obj, &min, &max);
       if( (min.v.lnv < 0) || (max.v.lnv > 255) ){
 	if( obj = WlzConvertPix(globals.orig_obj, WLZ_GREY_INT, &errNum) ){
-	  WlzGreySetRange(obj, min, max, Min, Max);
+	  WlzGreySetRange(obj, min, max, Min, Max, 0);
 	  bckgrnd = WlzGetBackground(obj, &errNum);
 	}
       }
@@ -573,7 +573,7 @@ void install_paint_reference_object(
       WlzGreyRange(globals.orig_obj, &min, &max);
       if( (min.v.inv < 0) || (max.v.inv > 255) ){
 	obj = WlzConvertPix(globals.orig_obj, WLZ_GREY_INT, &errNum);
-	WlzGreySetRange(obj, min, max, Min, Max);
+	WlzGreySetRange(obj, min, max, Min, Max, 0);
 	bckgrnd = WlzGetBackground(obj, &errNum);
       }
       break;
@@ -581,7 +581,7 @@ void install_paint_reference_object(
       WlzGreyRange(globals.orig_obj, &min, &max);
       if( (min.v.shv < 0) || (max.v.shv > 255) ){
 	if( obj = WlzConvertPix(globals.orig_obj, WLZ_GREY_SHORT, &errNum) ){
-	  WlzGreySetRange(obj, min, max, Min, Max);
+	  WlzGreySetRange(obj, min, max, Min, Max, 0);
 	  bckgrnd = WlzGetBackground(obj, &errNum);
 	}
       }
@@ -590,7 +590,7 @@ void install_paint_reference_object(
       WlzGreyRange(globals.orig_obj, &min, &max);
       if( (min.v.flv < 0) || (max.v.flv > 255) ){
 	if( obj = WlzConvertPix(globals.orig_obj, WLZ_GREY_INT, &errNum) ){
-	  WlzGreySetRange(obj, min, max, Min, Max);
+	  WlzGreySetRange(obj, min, max, Min, Max, 0);
 	  bckgrnd = WlzGetBackground(obj, &errNum);
 	}
       }
@@ -599,7 +599,7 @@ void install_paint_reference_object(
       WlzGreyRange(globals.orig_obj, &min, &max);
       if( (min.v.dbv < 0) || (max.v.dbv > 255) ){
 	if( obj = WlzConvertPix(globals.orig_obj, WLZ_GREY_INT, &errNum)){
-	  WlzGreySetRange(obj, min, max, Min, Max);
+	  WlzGreySetRange(obj, min, max, Min, Max, 0);
 	  bckgrnd = WlzGetBackground(obj, &errNum);
 	}
       }
@@ -639,7 +639,7 @@ void install_paint_reference_object(
     max.v.ubv = 255;
     Min.v.ubv = globals.cmapstruct->gmin;
     Max.v.ubv = globals.cmapstruct->gmax;
-    errNum = WlzGreySetRange(globals.obj, min, max, Min, Max);
+    errNum = WlzGreySetRange(globals.obj, min, max, Min, Max, 0);
   }
 
   /* also convert the background values */

@@ -160,7 +160,7 @@ set_grey_values_from_ref_object(
 	  if( errNum == WLZ_ERR_EOO ){
 	    errNum = WLZ_ERR_NONE;
 	  }
-	  WlzGreySetRange(objs[0], min, max, Min, Max);
+	  WlzGreySetRange(objs[0], min, max, Min, Max, 0);
 	  WlzFreeObj( objs[1] );
 	}
 	WlzFreeObj( objs[0] );
@@ -203,7 +203,7 @@ set_grey_values_from_ref_object(
 	    if( errNum == WLZ_ERR_EOO ){
 	      errNum = WLZ_ERR_NONE;
 	    }
-	    WlzGreySetRange(objs[0], min, max, Min, Max);
+	    WlzGreySetRange(objs[0], min, max, Min, Max, 0);
 	    WlzFreeObj( objs[1] );
 	  }
 	  WlzFreeObj( objs[0] );

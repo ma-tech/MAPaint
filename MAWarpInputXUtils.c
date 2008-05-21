@@ -125,7 +125,7 @@ WlzObject *warpTransformObj(
       if( tmpObj = WlzGreyModGradient(rtnObj, 3.0, &errNum) ){
 	WlzFreeObj(rtnObj);
 	rtnObj = tmpObj;
-	errNum = WlzGreyNormalise(rtnObj);
+	errNum = WlzGreyNormalise(rtnObj, 0);
       }
     }
   }
@@ -195,7 +195,7 @@ WlzObject *warpTransformObj(
       toggleFlg = False;
     }
     if( toggleFlg ){
-      errNum = WlzGreyNormalise(rtnObj);
+      errNum = WlzGreyNormalise(rtnObj, 0);
     }
   }
 

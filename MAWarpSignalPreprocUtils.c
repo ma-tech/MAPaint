@@ -53,7 +53,7 @@ void warpSetSignalProcObj(void)
 				"*warp_sgnl_controls_form*normalise") ){
       XtVaGetValues(toggle, XmNset, &setFlg, NULL);
       if( setFlg ){
-	errNum = WlzGreyNormalise(obj1);
+	errNum = WlzGreyNormalise(obj1, 0);
       }
     }
   }

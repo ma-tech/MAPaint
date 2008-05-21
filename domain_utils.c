@@ -241,7 +241,7 @@ void setGreyValuesFromObject(
       }
       WlzFreeObj( obj2 );
     }
-    WlzGreySetRange(obj1, min, max, Min, Max);
+    WlzGreySetRange(obj1, min, max, Min, Max, 0);
     WlzFreeObj( obj1 );
   }
 

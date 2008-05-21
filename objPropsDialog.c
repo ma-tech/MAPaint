@@ -148,7 +148,7 @@ static void obj_props_set_cb(
       max.v.ubv = 255;
       Min.v.ubv = globals.cmapstruct->gmin;
       Max.v.ubv = globals.cmapstruct->gmax;
-      WlzGreySetRange(globals.obj, min, max, Min, Max);
+      WlzGreySetRange(globals.obj, min, max, Min, Max, 0);
 
       /* also convert the background values */
       min = WlzGetBackground(globals.orig_obj, NULL);
