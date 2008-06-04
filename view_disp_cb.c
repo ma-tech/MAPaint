@@ -469,7 +469,6 @@ void display_view_cb(
 					      &errNum) ){
     WlzObject	*rectObj;
     WlzDomain	domain;
-
     domain.i = WlzMakeIntervalDomain(WLZ_INTERVALDOMAIN_RECT,
 				     WLZ_NINT(wlzViewStr->minvals.vtY),
 				     WLZ_NINT(wlzViewStr->maxvals.vtY),

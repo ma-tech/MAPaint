@@ -830,10 +830,13 @@ static void voxelRescaleCb(
     (XmToggleButtonCallbackStruct *) call_data;
 
   if( tbCbStruct->set ){
-    wlzViewStr->voxelRescaleFlg = 1;
+    wlzViewStr->voxelRescaleFlg = 0x1;
+    wlzViewStr->voxelSize[0] = globals.obj->domain.p->voxel_size[0];
+    wlzViewStr->voxelSize[1] = globals.obj->domain.p->voxel_size[1];
+    wlzViewStr->voxelSize[2] = globals.obj->domain.p->voxel_size[2];
   }
   else {
-    wlzViewStr->voxelRescaleFlg = 0;
+    wlzViewStr->voxelRescaleFlg  = 0;
   }
   reset_view_struct( view_struct );
 
