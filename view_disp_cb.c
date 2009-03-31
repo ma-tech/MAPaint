@@ -47,7 +47,13 @@ void HGU_XPutImage8To24(
 
   /* assume 24 bit required and so don't check the window attributes */
   data = (unsigned char *) ximage->data;
-  widthb = width*4 + (width*4) % (BitmapPad(dpy)>>3);
+
+  /* check padding */
+  widthb = width*4;
+  i = BitmapPad(dpy)>>3;
+  if( widthb%i ){
+    widthb += i  - widthb%i;
+  }
   newdata = (unsigned char *) AlcMalloc(widthb*height*sizeof(char));
   new = XCreateImage(dpy, win_att.visual, win_att.depth,
 		     ZPixmap, 0, (char *) newdata,
@@ -132,7 +138,12 @@ static void display_scaled_image(
     return;
   }
 
-  widthb = (width_exp*scale) + (width_exp*scale) % (BitmapPad(dpy)>>3);
+  widthb = (width_exp*scale);
+  i = BitmapPad(dpy)>>3;
+  if( widthb%i ){
+    widthb += i -  widthb%i;
+  }
+
   if( scaled_data = (WlzUByte *) AlcMalloc(sizeof(WlzUByte) * widthb *
 					height_exp * scale) ){
 
@@ -224,7 +235,12 @@ static void display_scaled_down_image(
   widthp = WLZ_MIN(widthp / scale, x_exp + width_exp);
   heightp = WLZ_MIN(heightp / scale, y_exp + height_exp);
 
-  widthb = width_exp + width_exp % (BitmapPad(dpy)>>3);
+  /* round up to an integer multiple of BitmapPad/8 */
+  i = BitmapPad(dpy)>>3;
+  widthb = width_exp;
+  if( width_exp % i ){
+    widthb += i - width_exp % i;
+  }
   if( scaled_data = (WlzUByte *) AlcMalloc(sizeof(WlzUByte) *
 					widthb * height_exp) ){
 

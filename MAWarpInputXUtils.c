@@ -290,7 +290,10 @@ XImage	*warpCreateXImage(
 
   if( gVWSp = WlzGreyValueMakeWSp(obj, &errNum) ){
     widthb = ((win_att.depth == 8)?1:4)*width;
-    widthb += widthb % (BitmapPad(XtDisplay(winStruct->canvas))>>3);
+    i = BitmapPad(XtDisplay(winStruct->canvas))>>3;
+    if( widthb%i ){
+      widthb += i - widthb%i;
+    }
     if( dst_data = (WlzUByte *) AlcMalloc(widthb*height*sizeof(char)) ){
       rtnImage = XCreateImage(XtDisplay(winStruct->canvas),
 			      win_att.visual, win_att.depth,
@@ -604,7 +607,11 @@ void warpSetOvlyXImage(
   }
   width = winStruct->ovlyImages[0]->width;
   height = winStruct->ovlyImages[0]->height;
-  widthb = (width*4) + (width*4) % (BitmapPad(XtDisplay(winStruct->canvas))>>3);
+  widthb = (width*4);
+  i = BitmapPad(XtDisplay(winStruct->canvas))>>3;
+  if( widthb%i ){
+    widthb += i - widthb%i;
+  }
 
   dst_data = (WlzUByte *) AlcCalloc(widthb*height, sizeof(char));
   data0 = (WlzUByte *) winStruct->ovlyImages[0]->data;

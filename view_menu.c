@@ -1265,7 +1265,7 @@ Widget create_view_window_dialog(
 
   /* now the orientation sliders */
   slider = HGU_XmCreateHorizontalSlider("phi_slider", form,
-					phi*180/WLZ_M_PI, 0.0, 180, 1,
+					phi*180/WLZ_M_PI, 0.0, 180, 2,
 					phi_cb, view_struct);
   XtVaSetValues(slider,
 		XmNtopAttachment,	XmATTACH_WIDGET,
@@ -1279,7 +1279,7 @@ Widget create_view_window_dialog(
   add_feedback_callbacks(scale, view_struct);
 
   slider = HGU_XmCreateHorizontalSlider("theta_slider", form,
-					theta*180/WLZ_M_PI, 0.0, 360, 1,
+					theta*180/WLZ_M_PI, 0.0, 360, 2,
 					theta_cb, view_struct);
   XtVaSetValues(slider,
 		XmNtopAttachment,	XmATTACH_WIDGET,
@@ -1293,7 +1293,7 @@ Widget create_view_window_dialog(
   add_feedback_callbacks(scale, view_struct);
 
   slider = HGU_XmCreateHorizontalSlider("zeta_slider", form,
-					0.0, 0.0, 360, 1,
+					0.0, 0.0, 360, 2,
 					zeta_cb, view_struct);
   XtVaSetValues(slider,
 		XmNtopAttachment,	XmATTACH_WIDGET,

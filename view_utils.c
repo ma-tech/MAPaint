@@ -21,7 +21,7 @@ int init_view_struct(
   XWindowAttributes	win_att;
   Display		*dpy = XtDisplay(view_struct->canvas);
   Window		win = XtWindow(view_struct->canvas);
-  unsigned int		widthp, heightp, widthb;
+  unsigned int		i, widthp, heightp, widthb;
   Dimension		win_width, win_height;
   char			*data;
   WlzThreeDViewStruct	*wlzViewStr = view_struct->wlzViewStr;
@@ -61,12 +61,15 @@ int init_view_struct(
      the bitmap-pad for the display */
   widthp  = wlzViewStr->maxvals.vtX - wlzViewStr->minvals.vtX + 1;
   heightp = wlzViewStr->maxvals.vtY - wlzViewStr->minvals.vtY + 1;
-  widthb = widthp + widthp % (BitmapPad(dpy)>>3);
+  i = BitmapPad(dpy)>>3;
+  if( widthb%i ){
+    widthb += i - widthb%i;
+  }
   view_struct->ximage = XCreateImage(dpy, win_att.visual, 8,
 				     ZPixmap, 0, NULL, widthp,
 				     heightp, BitmapPad(dpy), 0);
   if(view_struct->ximage == NULL) {
-    MAPaintReportWlzError(globals.topl, "init_view_struct",
+    MAPaintReportWlzError(globals.topl, "init_Inview_struct",
     			  WLZ_ERR_PARAM_DATA);
     return 1;
   }
@@ -384,7 +387,7 @@ void installViewDomains(
   WlzIntervalWSpace	iwsp;
   WlzGreyWSpace		gwsp;
   WlzGreyValueWSpace	*gVWSp = NULL;
-  double		x, y, z;
+  float			x, y, z;
   int			xp, yp;
   int			i;
   ViewListEntry		*vl = global_view_list;
@@ -403,17 +406,16 @@ void installViewDomains(
     while((errNum == WLZ_ERR_NONE) &&
 	  ((errNum = WlzNextGreyInterval( &iwsp )) == WLZ_ERR_NONE) )
     {
-      yp = iwsp.linpos - iwsp.linbot;
-      for(i=0; i <iwsp.colrmn; i++){
-	xp = iwsp.lftpos - iwsp.intdmn->kol1 + i;
+      yp = iwsp.linpos - WLZ_NINT(wlzViewStr->minvals.vtY);
+      for(i=iwsp.lftpos; i <= iwsp.rgtpos; i++){
+	xp = i - WLZ_NINT(wlzViewStr->minvals.vtX);
 	x = wlzViewStr->xp_to_x[xp] + wlzViewStr->yp_to_x[yp];
 	y = wlzViewStr->xp_to_y[xp] + wlzViewStr->yp_to_y[yp];
 	z = wlzViewStr->xp_to_z[xp] + wlzViewStr->yp_to_z[yp];
-	x = WLZ_NINT(x);
-	y = WLZ_NINT(y);
-	z = WLZ_NINT(z);
-	WlzGreyValueGet(gVWSp, z, y, x);
-	*(gVWSp->gPtr[0].ubp) = *(gwsp.u_grintptr.ubp+i);
+
+	WlzGreyValueGet(gVWSp, WLZ_NINT(z), WLZ_NINT(y), WLZ_NINT(x));
+	*(gVWSp->gPtr[0].ubp) = *(gwsp.u_grintptr.ubp);
+	gwsp.u_grintptr.ubp++;
       }
     }
     if( errNum == WLZ_ERR_EOO ){
