@@ -1,24 +1,46 @@
-  #pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas Project					*
-*   File       :   MAWarpInput2DDialog.c				*
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Fri Jun 11 14:13:51 1999				*
-*   $Revision$							*
-*   $Name$			*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MAWarpInput2DDialog_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAWarpInput2DDialog.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:46:37 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,6 +74,10 @@ extern void warpImportSignalCb(
   XtPointer	client_data,
   XtPointer	call_data);
 
+extern Widget createWarpBibfileSelectButtonsFrame(
+  Widget		parent,
+  ThreeDViewStruct 	*view_struct);
+
 static Widget create2DWarpDialog(Widget parent,
 				 ThreeDViewStruct *view_struct);
 
@@ -69,9 +95,9 @@ void warpInput2DCb(
 {
   Widget	dialog, widget;
 
-  if( dialog = createWarpInput2DDialog(globals.topl) ){
-    if( widget = XtNameToWidget(globals.topl,
-				"*options_menu*warp_input_2d") ){
+  if((dialog = createWarpInput2DDialog(globals.topl))){
+    if((widget = XtNameToWidget(globals.topl,
+				"*options_menu*warp_input_2d"))){
       XtSetSensitive(widget, False);
     }
     XtManageChild(dialog);
@@ -100,7 +126,7 @@ static void warpSetupCb(
 	  create2DWarpDialog(globals.topl, view_struct);
 
 	/* add a new dismiss callback to destroy the warp dialog */
-	if( button = XtNameToWidget(dialog, "*.dismiss") ){
+	if((button = XtNameToWidget(dialog, "*.dismiss"))){
 	  XtAddCallback(button, XmNactivateCallback,
 			destroy_cb, XtParent(warpGlobals.warp2DInteractDialog));
 	}
@@ -128,10 +154,10 @@ static void warpControlsCb(
 {
   ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
   WlzThreeDViewStruct	*wlzViewStr=view_struct->wlzViewStr;
-  Widget		shell, dialog, cntrlFrame, cntrlForm, magFncForm;
+  Widget		shell, dialog, cntrlFrame, cntrlForm;
   Widget		warp_sgnl_frame;
   int			wasManaged;
-  Dimension		shellHeight, shellWidth, viewFrameWidth;
+  Dimension		shellHeight, shellWidth;
   Dimension		cntrlFormHeight, cntrlFormWidth;
   WlzCompoundArray	*cobj;
 
@@ -358,7 +384,7 @@ static  void warp2DInteractDismissCb(
   XmToggleButtonCallbackStruct	cbs;
 
   /* get the warp controls toggle */
-  if( toggle = XtNameToWidget(globals.topl, "*warp_input_2d_frame_title") ){
+  if((toggle = XtNameToWidget(globals.topl, "*warp_input_2d_frame_title"))){
     XtVaSetValues(toggle, XmNset, False, NULL);
     cbs.set = False;
     XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
@@ -489,8 +515,6 @@ void warp2DInteractDeleteSelectedCb(
   XtPointer		client_data,
   XtPointer		call_data)
 {
-  XmPushButtonCallbackStruct
-    *cbs = (XmPushButtonCallbackStruct *) call_data;
   int		resetOvlyFlg=0;
   int		i, j;
 
@@ -560,8 +584,6 @@ void warp2DInteractDeleteLastCb(
   XtPointer		client_data,
   XtPointer		call_data)
 {
-  XmPushButtonCallbackStruct
-    *cbs = (XmPushButtonCallbackStruct *) call_data;
   int		resetOvlyFlg=0;
 
   switch( warpGlobals.tp_state ){
@@ -632,8 +654,6 @@ void warp2DInteractDeleteAllCb(
   XtPointer		client_data,
   XtPointer		call_data)
 {
-  XmPushButtonCallbackStruct
-    *cbs = (XmPushButtonCallbackStruct *) call_data;
   int		resetOvlyFlg=0;
 
   switch( warpGlobals.tp_state ){
@@ -730,7 +750,7 @@ static MenuItem warpDisplayFramePopupItemsP[] = {
    warpCanvasMeshCb, NULL,
    myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 static MenuItem overlayMethodsItemsP[] = {
@@ -778,7 +798,7 @@ static MenuItem overlayMethodsItemsP[] = {
    warpSetOvlyMethodCb, (XtPointer) MA_OVERLAY_MIXTYPE_DITHER2,
    myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 static MenuItem warpOvlyDisplayFramePopupItemsP[] = { 
@@ -814,7 +834,7 @@ static MenuItem warpOvlyDisplayFramePopupItemsP[] = {
    NULL, NULL,
    myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_ENABLED, True, True, &(overlayMethodsItemsP[0])},
-  NULL,
+  {NULL},
 };
 
 static Widget create2DWarpDialog(
@@ -822,7 +842,7 @@ static Widget create2DWarpDialog(
   ThreeDViewStruct *view_struct)
 {
   Widget	dialog, control, child, button, toggle;
-  Widget	paned;
+  Widget	paned=NULL;
   Visual	*visual;
 
   /* create a dialog widget and get control form and 24-bit visual */
@@ -866,6 +886,14 @@ static Widget create2DWarpDialog(
 				   XmNleftWidget,	button,
 				   XmNset,	False,
 				   NULL);
+
+  /* add in the rapid-map and express-map bibfile convenience buttons */
+  child = createWarpBibfileSelectButtonsFrame(control, view_struct);
+  XtVaSetValues(child,
+		XmNtopAttachment,	XmATTACH_FORM,
+		XmNrightAttachment,	XmATTACH_FORM,
+		NULL);
+  XtUnmanageChild(child);
 
   /* add children */
   /* add a paned control to allow more control */
@@ -1143,8 +1171,6 @@ void warpNotebookPageChangedCb(
   XtPointer	client_data,
   XtPointer	call_data)
 {
-  XmNotebookCallbackStruct *cbs=(XmNotebookCallbackStruct *) call_data;
-
   return;
 }
 
@@ -1163,10 +1189,9 @@ Widget createWarpInput2DDialog(
   WlzDVertex3		fixed;
   ThreeDViewStruct	*view_struct;
   Widget	control, frame, form, title, controls_frame, section_frame;
-  Widget	option_menu, button, buttons, radio_box, label, widget;
-  Widget	toggle, slider, scale, sgnl_controls;
+  Widget	widget;
+  Widget	sgnl_controls;
   Widget	notebook, page;
-  float		fval, fmin, fmax;
   Visual	*visual;
   int		i;
 
@@ -1234,7 +1259,7 @@ Widget createWarpInput2DDialog(
 				     XmNleftAttachment, XmATTACH_FORM,
 				     XmNrightAttachment, XmATTACH_FORM,
 				     NULL);
-  if( widget = XtNameToWidget(notebook, "*PageScroller") ){
+  if((widget = XtNameToWidget(notebook, "*PageScroller"))){
     XtUnmanageChild(widget);
   }
   XtAddCallback(notebook, XmNpageChangedCallback,
@@ -1247,7 +1272,10 @@ Widget createWarpInput2DDialog(
   /* major page 2 - rapid-map controls */
   page = createWarpRapidControlsPage(notebook, view_struct);
 
-  /* major page 3 - tie-point tracking controls */
+  /* major page 3 - express-map controls */
+  page = createWarpExpressControlsPage(notebook, view_struct);
+
+  /* major page 4 - tie-point tracking controls */
   page = createTiePointTrackingControlsPage(notebook, view_struct);
 
   /* create the signal controls frame */
@@ -1354,10 +1382,11 @@ Widget createWarpInput2DDialog(
   WLZ_RGBA_RGBA_SET(warpGlobals.lowRGBPoint.v.rgbv,255,255,255,255);
   warpGlobals.highRGBPoint.type = WLZ_GREY_RGBA;
   WLZ_RGBA_RGBA_SET(warpGlobals.highRGBPoint.v.rgbv,255,255,255,255);
+
 /*  warpGlobals.colorEllipseEcc = 1.0;*/
   warpGlobals.lastThresholdPageNum = -1;
 
-  /* rapid map controls */
+  /* rapid-map and express-map controls */
   warpGlobals.bibfileSavedFlg = 0;
 
   /* tie-point tracking controls */

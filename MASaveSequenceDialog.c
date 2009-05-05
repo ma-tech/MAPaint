@@ -1,22 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   							*
-*   File       :   MAAutosaveDialog.c					*
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Fri Mar  6 10:23:32 1998				*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MASaveSeque_ceDialog_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MASaveSequenceDialog.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:47:05 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -105,19 +129,19 @@ void saveSeqSliderCb(
   int		i,  j;
 
   /* get the data strings */
-  if( widget = XtNameToWidget(rowWidgets[rowIndx], "*.command") ){
+  if((widget = XtNameToWidget(rowWidgets[rowIndx], "*.command"))){
     XtVaGetValues(widget, XmNvalue, &commandStr, NULL);
   }
   else {
     commandStr = "import";
   }
-  if( widget = XtNameToWidget(rowWidgets[rowIndx], "*.window") ){
+  if((widget = XtNameToWidget(rowWidgets[rowIndx], "*.window"))){
     XtVaGetValues(widget, XmNvalue, &winStr, NULL);
   }
   else {
     winStr = "root";
   }
-  if( widget = XtNameToWidget(rowWidgets[rowIndx], "*.filename") ){
+  if((widget = XtNameToWidget(rowWidgets[rowIndx], "*.filename"))){
     XtVaGetValues(widget, XmNvalue, &fileStr, NULL);
     strcpy(fileBuf, fileStr);
     for(i=0, j=strlen(fileStr); i < strlen(fileStr); i++){
@@ -186,19 +210,19 @@ void saveSeqStartCb(
   char			*timeStr;
 
   /* make the controls insensitive */
-  if( widget = XtNameToWidget(save_seq_dialog, "*.control") ){
+  if((widget = XtNameToWidget(save_seq_dialog, "*.control"))){
     XtSetSensitive(widget, False);
   }
-  if( widget = XtNameToWidget(save_seq_dialog, "*.Start") ){
+  if((widget = XtNameToWidget(save_seq_dialog, "*.Start"))){
     XtSetSensitive(widget, False);
   }
-  if( widget = XtNameToWidget(save_seq_dialog, "*.New") ){
+  if((widget = XtNameToWidget(save_seq_dialog, "*.New"))){
     XtSetSensitive(widget, False);
   }
-  if( widget = XtNameToWidget(save_seq_dialog, "*.Delete") ){
+  if((widget = XtNameToWidget(save_seq_dialog, "*.Delete"))){
     XtSetSensitive(widget, False);
   }
-  if( widget = XtNameToWidget(save_seq_dialog, "*.Dismiss") ){
+  if((widget = XtNameToWidget(save_seq_dialog, "*.Dismiss"))){
     XtSetSensitive(widget, False);
   }
 
@@ -207,7 +231,7 @@ void saveSeqStartCb(
 
     /* check the toggle */
     set = False;
-    if( toggle = XtNameToWidget(rowWidgets[i], "*.toggle") ){
+    if((toggle = XtNameToWidget(rowWidgets[i], "*.toggle"))){
       XtVaGetValues(toggle, XmNset, &set, NULL);
     }
     if( set == False ){
@@ -217,7 +241,7 @@ void saveSeqStartCb(
     /* add the slider callbacks */
     if( rowSliders[i] ){
       sequenceIndxs[i] = 0;
-      if( scale = XtNameToWidget(rowSliders[i], "*.scale") ){
+      if((scale = XtNameToWidget(rowSliders[i], "*.scale"))){
 	XtAddCallback(scale, XmNvalueChangedCallback,
 		      saveSeqSliderCb, (XtPointer) i);
 	XtVaGetValues(scale, XmNdragCallback, &dragList, NULL);
@@ -233,7 +257,7 @@ void saveSeqStartCb(
       timeoutIds[i] = 0;
 
       /* get the time interval */
-      if( widget = XtNameToWidget(rowWidgets[i], "*.interval") ){
+      if((widget = XtNameToWidget(rowWidgets[i], "*.interval"))){
 	XtVaGetValues(widget, XmNvalue, &timeStr, NULL);
       }
       else {
@@ -253,7 +277,7 @@ void saveSeqStartCb(
   }
   
   /* make the stop button sensitive */
-  if( widget = XtNameToWidget(save_seq_dialog, "*.Stop") ){
+  if((widget = XtNameToWidget(save_seq_dialog, "*.Stop"))){
     XtSetSensitive(widget, True);
   }
   return;
@@ -270,7 +294,7 @@ void saveSeqStopCb(
   Boolean		set;
 
   /* make the stop button insensitive */
-  if( widget = XtNameToWidget(save_seq_dialog, "*.Stop") ){
+  if((widget = XtNameToWidget(save_seq_dialog, "*.Stop"))){
     XtSetSensitive(widget, False);
   }
 
@@ -279,7 +303,7 @@ void saveSeqStopCb(
 
     /* check the toggle */
     set = False;
-    if( toggle = XtNameToWidget(rowWidgets[i], "*.toggle") ){
+    if((toggle = XtNameToWidget(rowWidgets[i], "*.toggle"))){
       XtVaGetValues(toggle, XmNset, &set, NULL);
     }
     if( set == False ){
@@ -289,7 +313,7 @@ void saveSeqStopCb(
     /* add the slider callbacks */
     if( rowSliders[i] ){
       sequenceIndxs[i] = 0;
-      if( scale = XtNameToWidget(rowSliders[i], "*.scale") ){
+      if((scale = XtNameToWidget(rowSliders[i], "*.scale"))){
 	XtRemoveCallback(scale, XmNvalueChangedCallback,
 			 saveSeqSliderCb, (XtPointer) i);
 	XtVaGetValues(scale, XmNdragCallback, &dragList, NULL);
@@ -309,19 +333,19 @@ void saveSeqStopCb(
   }
   
   /* make the controls insensitive */
-  if( widget = XtNameToWidget(save_seq_dialog, "*.control") ){
+  if((widget = XtNameToWidget(save_seq_dialog, "*.control"))){
     XtSetSensitive(widget, True);
   }
-  if( widget = XtNameToWidget(save_seq_dialog, "*.Start") ){
+  if((widget = XtNameToWidget(save_seq_dialog, "*.Start"))){
     XtSetSensitive(widget, True);
   }
-  if( widget = XtNameToWidget(save_seq_dialog, "*.New") ){
+  if((widget = XtNameToWidget(save_seq_dialog, "*.New"))){
     XtSetSensitive(widget, True);
   }
-  if( widget = XtNameToWidget(save_seq_dialog, "*.Delete") ){
+  if((widget = XtNameToWidget(save_seq_dialog, "*.Delete"))){
     XtSetSensitive(widget, True);
   }
-  if( widget = XtNameToWidget(save_seq_dialog, "*.Dismiss") ){
+  if((widget = XtNameToWidget(save_seq_dialog, "*.Dismiss"))){
     XtSetSensitive(widget, True);
   }
 
@@ -338,7 +362,7 @@ void saveSeqNewCb(
   Widget	slider;
   char		*commandStr, *fileStr;
   char		timeStr[8], windowStr[16];
-  Window	window;
+  Window	window=0;
   Cursor		cursor;
   XmAnyCallbackStruct	*cbs = (XmAnyCallbackStruct *) call_data;
 
@@ -360,7 +384,7 @@ void saveSeqNewCb(
 				    "required slider must be visible\n",
 				    "OK", "Slider", commandDefStr)) ){
     /* get the slider widget pointer */
-    if( slider = XmTrackingEvent(globals.topl, cursor, False, cbs->event) ){
+    if((slider = XmTrackingEvent(globals.topl, cursor, False, cbs->event))){
       XSync(XtDisplayOfObject(w), False);
       if(strcmp(XtName(slider), "Scrollbar")){
 	XFreeCursor(XtDisplayOfObject(w), cursor);
@@ -399,10 +423,10 @@ void saveSeqNewCb(
 				   "below then click the left button when\n"
 				   "the cursor is over the required window\n",
 				   "OK", "Select", "root")) ){
-    if( slider = XmTrackingEvent(globals.topl, cursor, False, cbs->event) ){
+    if((slider = XmTrackingEvent(globals.topl, cursor, False, cbs->event))){
       window = XtWindow(get_window_widget(slider));
     }
-    sprintf(windowStr, "0x%x", GetWMWindow(XtDisplayOfObject(w), window));
+    sprintf(windowStr, "0x%x", (unsigned int) GetWMWindow(XtDisplayOfObject(w), window));
   }
   else {
     sprintf(windowStr, "%s", fileStr);
@@ -486,9 +510,8 @@ void saveSeqNewCb(
 Widget create_save_seq_dialog(
   Widget	topl)
 {
-  Widget	dialog, control, slider, text_line, widget;
-  Widget	top_rc, row_rc;
-  float		val, minval, maxval;
+  Widget	dialog, control, widget;
+  Widget	row_rc;
 
   dialog = HGU_XmCreateStdDialog(topl, "save_seq_dialog",
 				 xmFormWidgetClass,

@@ -1,12 +1,47 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-* Project:	MRC HGU General IP and Display Utilities		*
-* Title:	paint_utils.c						*
-* Author:	Richard Baldock, MRC Human Genetics Unit		*
-* Copyright:	Medical Research Council, UK.				*
-* Date:		
-* Synopsis:	
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _paint_utils_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         paint_utils.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:31:48 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -80,8 +115,6 @@ Window			win,
 XtPointer		client_data,
 XEvent			*event)
 {
-  XtAppContext	app_con;
-
   XtDispatchEvent( event );
 
   return( globals.paint_action_quit_flag );
@@ -97,7 +130,7 @@ String			help_str)
     return( 0 );
 }
 
-set_grey_values_from_ref_object(
+int set_grey_values_from_ref_object(
   WlzObject	*obj,
   WlzObject	*ref_obj)
 {
@@ -106,7 +139,7 @@ set_grey_values_from_ref_object(
   WlzVoxelValues	*voxvals1, *voxvals2;
   WlzIntervalWSpace	iwsp1, iwsp2;
   WlzGreyWSpace	gwsp1, gwsp2;
-  int			x, y, z, l, k, p;
+  int			p;
   WlzPixelV		min, max, Min, Max;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
@@ -137,16 +170,20 @@ set_grey_values_from_ref_object(
 
   if( errNum == WLZ_ERR_NONE ){
     switch( obj->type ){
+    default:
+      errNum = WLZ_ERR_OBJECT_TYPE;
+      break;
+
     case WLZ_2D_DOMAINOBJ:
-      if(objs[0] = WlzMakeMain(WLZ_2D_DOMAINOBJ,
+      if((objs[0] = WlzMakeMain(WLZ_2D_DOMAINOBJ,
 			       new_obj->domain,
 			       globals.obj->values,
-			       NULL, NULL, &errNum)){
+				NULL, NULL, &errNum))){
 
-	if(objs[1] = WlzMakeMain(WLZ_2D_DOMAINOBJ,
+	if((objs[1] = WlzMakeMain(WLZ_2D_DOMAINOBJ,
 				 new_obj->domain,
 				 ref_obj->values,
-				 NULL, NULL, &errNum)){
+				  NULL, NULL, &errNum))){
 	  errNum = WlzInitGreyScan( objs[0], &iwsp1, &gwsp1 );
 	  errNum |= WlzInitGreyScan( objs[1], &iwsp2, &gwsp2 );
 	  while((errNum == WLZ_ERR_NONE) &&
@@ -180,15 +217,15 @@ set_grey_values_from_ref_object(
 	  continue;
 	}
 
-	if( objs[0] = WlzMakeMain(WLZ_2D_DOMAINOBJ,
+	if((objs[0] = WlzMakeMain(WLZ_2D_DOMAINOBJ,
 				  pdom->domains[p - pdom->plane1],
 				  voxvals1->values[p - pdom1->plane1],
-				  NULL, NULL, &errNum) ){
+				  NULL, NULL, &errNum))){
 
-	  if( objs[1] = WlzMakeMain(WLZ_2D_DOMAINOBJ,
+	  if((objs[1] = WlzMakeMain(WLZ_2D_DOMAINOBJ,
 				    pdom->domains[p - pdom->plane1],
 				    voxvals2->values[p - pdom2->plane1],
-				    NULL, NULL, &errNum) ){
+				    NULL, NULL, &errNum))){
 
 	    errNum = WlzInitGreyScan( objs[0], &iwsp1, &gwsp1 );
 	    errNum |= WlzInitGreyScan( objs[1], &iwsp2, &gwsp2 );
@@ -234,7 +271,7 @@ static int set_grey_values_from_domain3D(
   WlzVoxelValues	*voxvaltb;
   WlzIntervalWSpace	iwsp;
   WlzGreyWSpace		gwsp;
-  int			x, y, z, l, k, p;
+  int			k, p;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check the object */
@@ -266,10 +303,10 @@ static int set_grey_values_from_domain3D(
     if( pdom->domains[p - pdom->plane1].core == NULL )
       continue;
 
-    if( obj1 = WlzMakeMain(WLZ_2D_DOMAINOBJ,
+    if((obj1 = WlzMakeMain(WLZ_2D_DOMAINOBJ,
 			   pdom->domains[p - pdom->plane1],
 			   voxvaltb->values[p - pdom1->plane1],
-			   NULL, NULL, &errNum) ){
+			   NULL, NULL, &errNum))){
 
       errNum = WlzInitGreyScan( obj1, &iwsp, &gwsp );
       while((errNum == WLZ_ERR_NONE) &&
@@ -299,12 +336,10 @@ int set_grey_values_from_domain(
   unsigned int		col,
   unsigned int		planes)
 {
-  WlzObject		*obj1, *new_obj;
-  WlzPlaneDomain	*pdom, *pdom1;
-  WlzVoxelValues	*voxvaltb;
+  WlzObject		*new_obj;
   WlzIntervalWSpace	iwsp;
   WlzGreyWSpace		gwsp;
-  int			x, y, z, l, k, p;
+  int			k;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check the object */
@@ -322,7 +357,7 @@ int set_grey_values_from_domain(
   }
 
   /* scan through the new domain */
-  if( new_obj = WlzIntersect2(obj, destObj, &errNum) ){
+  if((new_obj = WlzIntersect2(obj, destObj, &errNum))){
 
     new_obj = WlzAssignObject(new_obj, NULL);
     if( WlzArea(new_obj, &errNum) > 0 ){

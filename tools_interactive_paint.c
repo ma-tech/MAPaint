@@ -1,18 +1,47 @@
-#pragma ident "MRC HGU $Id$"
-/*****************************************************************************
-* Copyright   :    Medical Research Council, UK.                             *
-*                  Human Genetics Unit,                                      *
-*                  Western General Hospital.                                 *
-*                  Edinburgh.                                                *
-******************************************************************************
-* Project     :    Mouse Atlas Project					     *
-* File        :    tools_interactive_paint.c				     *
-******************************************************************************
-* Author Name :    Richard Baldock					     *
-* Author Login:    richard@hgu.mrc.ac.uk				     *
-* Date        :    Fri Jun 24 13:20:32 1994				     *
-* Synopsis    : 							     *
-*****************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _tools_inter_ctive_paint_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         tools_interactive_paint.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:33:30 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -26,8 +55,8 @@ extern WlzPolygonDomain *HGU_XGetPolyDomain(Display		*dpy,
 
 #define stipple_width 8
 #define stipple_height 8
-static unsigned char stipple_bits[] = {
-   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+/*static unsigned char stipple_bits[] = {
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};*/
 
 static void thresh_conn_cb(Widget	w,
 			   XtPointer	client_data,
@@ -54,7 +83,7 @@ static MenuItem thresh_conn_items[] = {	/* threshold connectivity items */
      thresh_conn_cb, (XtPointer) WLZ_8_CONNECTED,
      myHGU_XmHelpStandardCb, "",
      XmTEAR_OFF_DISABLED, False, False, NULL},
-NULL,
+{NULL},
 };
 
 static MenuItem paint_shape_items[] = {	/* paint shape items */
@@ -66,7 +95,7 @@ static MenuItem paint_shape_items[] = {	/* paint shape items */
      paint_shape_cb, (XtPointer) HGU_XBLOBTYPE_SQUARE,
      myHGU_XmHelpStandardCb, "",
      XmTEAR_OFF_DISABLED, False, False, NULL},
-NULL,
+{NULL},
 };
 
 static MenuItem draw_cursor_items[] = {	/* draw cursor items */
@@ -82,7 +111,7 @@ static MenuItem draw_cursor_items[] = {	/* draw cursor items */
      draw_cursor_cb, (XtPointer) HGU_XCURSOR_POINTER,
      myHGU_XmHelpStandardCb, "",
      XmTEAR_OFF_DISABLED, False, False, NULL},
-NULL,
+{NULL},
 };
 
 static XtResource paintCursorRes[] = {
@@ -99,7 +128,6 @@ static int		paint_blob_border = 0;
 static HGU_XBlobType	paint_blob_type = HGU_XBLOBTYPE_CIRCLE;
 static HGU_XCursorType	draw_cursor_type = HGU_XCURSOR_POINT;
 static HGU_XInteractCallbacks		paint_callbacks;
-static HGU_XGridConstraint		paint_constraint;
 static WlzObject *cursorObj=NULL;
 static Cursor	cursor;
 
@@ -162,13 +190,16 @@ static void setBlobCursor(
     cursorObj = WlzMakeCircleObject((double) radius + 0.3, 0.0, 0.0, &errNum);
     break;
   case HGU_XBLOBTYPE_SQUARE:
-    if( cursorDom.i = WlzMakeIntervalDomain(WLZ_INTERVALDOMAIN_RECT,
+    if((cursorDom.i = WlzMakeIntervalDomain(WLZ_INTERVALDOMAIN_RECT,
 					    -radius, radius, -radius, radius,
-					    &errNum) ){
+					    &errNum))){
       cursorVals.core = NULL;
       cursorObj = WlzMakeMain(WLZ_2D_DOMAINOBJ, cursorDom, cursorVals,
 			      NULL, NULL, NULL);
     }
+    break;
+
+  default:
     break;
   }
 
@@ -370,12 +401,11 @@ void MAPaintDraw2DCb(
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   XmAnyCallbackStruct	*cbs = (XmAnyCallbackStruct *) call_data;
-  int			x, y;
   DomainSelection	currDomain;
   int			delFlag;
   WlzObject		*obj, *obj1;
   WlzPolygonDomain	*poly, *startPoly;
-  WlzFVertex2		fpVtx;
+  WlzFVertex2		fpVtx, *fpVtxP;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* when left button pressed, get the polyline and install
@@ -402,8 +432,9 @@ void MAPaintDraw2DCb(
       /* get the polyline, rescale as required */
       fpVtx.vtX = cbs->event->xbutton.x;
       fpVtx.vtY = cbs->event->xbutton.y;
+      fpVtxP = &fpVtx;
       startPoly = WlzAssignPolygonDomain(
-	WlzMakePolygonDomain(WLZ_POLYGON_FLOAT, 1, (WlzIVertex2 *) &fpVtx,
+	WlzMakePolygonDomain(WLZ_POLYGON_FLOAT, 1, (WlzIVertex2 *) fpVtxP,
 			     1, 1, NULL), NULL);
       globals.paint_action_quit_flag = 0;
       poly = HGU_XGetPolyDomain(XtDisplay(view_struct->canvas),
@@ -414,7 +445,7 @@ void MAPaintDraw2DCb(
       /* define the new domain */
       if( poly ){
 	/* rescale and shift the object here */
-	if( obj = WlzPolyToObj(poly, WLZ_SIMPLE_FILL, &errNum) ){
+	if((obj = WlzPolyToObj(poly, WLZ_SIMPLE_FILL, &errNum))){
 	  WlzFreePolyDmn(poly);
 	  if( wlzViewStr->scale > 0.95 ){
 	    obj1 = WlzIntRescaleObj(obj, WLZ_NINT(wlzViewStr->scale), 0, &errNum);
@@ -573,7 +604,6 @@ void MAPaintPaintBall2DCb(
   XmAnyCallbackStruct	*cbs = (XmAnyCallbackStruct *) call_data;
   int			delX, delY;
   WlzObject		*obj, *obj1;
-  WlzFVertex2		fpVtx;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /*  */
@@ -603,8 +633,8 @@ void MAPaintPaintBall2DCb(
       /* use the cursor object to increment the domain */
       delX = (int) cbs->event->xbutton.x - 1;
       delY = (int) cbs->event->xbutton.y - 1;
-      if( obj = WlzAssignObject(WlzShiftObject(cursorObj, delX, delY,
-					       0, &errNum), NULL) ){
+      if((obj = WlzAssignObject(WlzShiftObject(cursorObj, delX, delY,
+					       0, &errNum), NULL))){
 					   
 	if( wlzViewStr->scale > 0.95 ){
 	  obj1 = WlzIntRescaleObj(obj, WLZ_NINT(wlzViewStr->scale), 0, &errNum);
@@ -661,8 +691,8 @@ void MAPaintPaintBall2DCb(
        (cbs->event->xmotion.state & (Button1Mask|Button2Mask)) ){
       delX = (int) cbs->event->xmotion.x - 1;
       delY = (int) cbs->event->xmotion.y - 1;
-      if( obj = WlzAssignObject(WlzShiftObject(cursorObj, delX, delY,
-					       0, &errNum), NULL) ){
+      if((obj = WlzAssignObject(WlzShiftObject(cursorObj, delX, delY,
+					       0, &errNum), NULL))){
 					   
 	if( wlzViewStr->scale > 0.95 ){
 	  obj1 = WlzIntRescaleObj(obj, WLZ_NINT(wlzViewStr->scale), 0, &errNum);
@@ -757,10 +787,10 @@ static void thresholdCanvasMotionEventHandler(
     /* attempt to reset */
     if( view_struct->view_object == NULL ){
       WlzObject *tmpObj;
-      if( tmpObj = WlzGetSectionFromObject(globals.orig_obj,
+      if((tmpObj = WlzGetSectionFromObject(globals.orig_obj,
 					   view_struct->wlzViewStr,
 					   WLZ_INTERPOLATION_NEAREST,
-					   &errNum) ){
+					   &errNum))){
 	view_struct->view_object = WlzAssignObject(tmpObj, NULL);
       }
       else {
@@ -822,6 +852,9 @@ static void thresholdCanvasMotionEventHandler(
 		     dVal, dVal-thresh_range_size,
 		     dVal+thresh_range_size);
       break;
+
+    default:
+      break;
     }
     XtVaSetValues(view_struct->text, XmNvalue, g_str, NULL);
     break;
@@ -874,9 +907,9 @@ void MAPaintThreshold2DInit(
      grey-value workspace */
   if( view_struct->view_object == NULL ){
     WlzObject *tmpObj;
-    if( tmpObj = WlzGetSectionFromObject(globals.orig_obj,
+    if((tmpObj = WlzGetSectionFromObject(globals.orig_obj,
 					 view_struct->wlzViewStr,
-					 WLZ_INTERPOLATION_NEAREST, &errNum) ){
+					 WLZ_INTERPOLATION_NEAREST, &errNum))){
       view_struct->view_object = WlzAssignObject(tmpObj, NULL);
     }
     else {
@@ -884,8 +917,8 @@ void MAPaintThreshold2DInit(
       return;
     }
   }
-  if( threshold_gVWSp = WlzGreyValueMakeWSp(view_struct->view_object,
-					    &errNum) ){
+  if((threshold_gVWSp = WlzGreyValueMakeWSp(view_struct->view_object,
+					    &errNum))){
 
     /* set an event handler to display the current grey-value */
     XtAddEventHandler(view_struct->canvas, PointerMotionMask, False,
@@ -922,8 +955,7 @@ static WlzObject *get_thresh_obj(
     int		thresh_up,
     int		thresh_down)
 {
-  WlzObject	*obj1, *obj2, **obj_list;
-  WlzGreyP	greyp;
+  WlzObject	*obj1, *obj2=NULL, **obj_list;
   WlzPixelV	threshV;
   WlzGreyType	gtype;
   WlzGreyValueWSpace	*gVWSp = NULL;
@@ -955,6 +987,8 @@ static WlzObject *get_thresh_obj(
       break;
     case WLZ_GREY_DOUBLE:
       threshV.v.inv = (int) ((*(gVWSp->gVal)).dbv);
+      break;
+    default:
       break;
     }
     WlzGreyValueFreeWSp(gVWSp);
@@ -1075,9 +1109,9 @@ void MAPaintThreshold2DCb(
       initial_thresh_range_size = thresh_range_size;
 
       /* get the threshold object */
-      if( widget = XtNameToWidget
+      if((widget = XtNameToWidget
 	 (globals.topl,
-	  "*tool_control_dialog*threshold_form1.constrained_threshold") ){
+	  "*tool_control_dialog*threshold_form1.constrained_threshold"))){
 	XtVaGetValues(widget, XmNset, &constrainedFlg, NULL);
       }
       else {
@@ -1087,10 +1121,10 @@ void MAPaintThreshold2DCb(
       /* check the view object */
       if( view_struct->view_object == NULL ){
 	WlzObject *tmpObj;
-	if( tmpObj = WlzGetSectionFromObject(globals.orig_obj,
+	if((tmpObj = WlzGetSectionFromObject(globals.orig_obj,
 					     view_struct->wlzViewStr,
 					     WLZ_INTERPOLATION_NEAREST,
-					     &errNum) ){
+					     &errNum))){
 	  view_struct->view_object = WlzAssignObject(tmpObj, NULL);
 	}
 	else {
@@ -1103,8 +1137,8 @@ void MAPaintThreshold2DCb(
 	  WlzGreyValueFreeWSp(threshold_gVWSp);
 	}
 
-	if( (threshold_gVWSp = WlzGreyValueMakeWSp(view_struct->view_object,
-						   &errNum)) == NULL ){
+	if(((threshold_gVWSp = WlzGreyValueMakeWSp(view_struct->view_object,
+						   &errNum)) == NULL)){
 	  MAPaintReportWlzError(globals.topl, "MAPaintThreshold2DCb",
 				errNum);
 	  return;
@@ -1113,18 +1147,18 @@ void MAPaintThreshold2DCb(
 
       if( constrainedFlg == True ){
 	obj1 = NULL;
-	if( paintBallCurrDomain ==
+	if((paintBallCurrDomain ==
 	   getSelectedDomainType(thresholdInitialX, thresholdInitialY,
-				 view_struct) ){
+				 view_struct))){
 	  obj1 = get_domain_from_object(view_struct->painted_object,
 					paintBallCurrDomain);
 	  setDomainIncrement(obj1, view_struct, paintBallCurrDomain, 1);
 	}
 	  
-	if( threshObj = WlzAssignObject(
+	if((threshObj = WlzAssignObject(
 	  getSelectedRegion(thresholdInitialX,
 			    thresholdInitialY,
-			    view_struct), NULL) ){
+			    view_struct), NULL))){
 	  threshObj->values =
 	    WlzAssignValues(view_struct->view_object->values, NULL);
 	}
@@ -1143,9 +1177,9 @@ void MAPaintThreshold2DCb(
       }
 
       /* check smoothing */
-      if( widget = XtNameToWidget
+      if((widget = XtNameToWidget
 	 (globals.topl,
-	  "*tool_control_dialog*threshold_form1.smoothed_threshold") ){
+	  "*tool_control_dialog*threshold_form1.smoothed_threshold"))){
 	XtVaGetValues(widget, XmNset, &smoothFlg, NULL);
       }
       else {
@@ -1153,8 +1187,8 @@ void MAPaintThreshold2DCb(
       }
       if( smoothFlg ){
 	/* maybe use the recursive filter here */
-	if( obj1 = WlzGauss2(threshObj, thresh_smooth_size, thresh_smooth_size,
-			     0, 0, &errNum) ){
+	if((obj1 = WlzGauss2(threshObj, thresh_smooth_size, thresh_smooth_size,
+			     0, 0, &errNum))){
 	  obj1 = WlzAssignObject(obj1, NULL);
 	  WlzFreeObj(threshObj);
 	  threshObj = obj1;
@@ -1315,7 +1349,7 @@ Widget	CreateDrawPaintBallControls(
   Widget	parent)
 {
   Widget	form, form1, frame, label, widget;
-  Widget	option_menu, toggle, slider, scale, button;
+  Widget	option_menu, toggle, scale, button;
   float		val, minval, maxval;
   String	cursorStr;
   char		strBuf[32];
@@ -1369,7 +1403,7 @@ Widget	CreateDrawPaintBallControls(
 			    paintCursorRes, XtNumber(paintCursorRes),
 			    NULL, 0);
   sprintf(strBuf, "*.%s", cursorStr);
-  if( button = XtNameToWidget(option_menu, strBuf) ){
+  if((button = XtNameToWidget(option_menu, strBuf))){
     XtVaSetValues(option_menu, XmNmenuHistory, button, NULL);
     XtCallCallbacks(button, XmNactivateCallback, NULL);
   }
@@ -1422,7 +1456,7 @@ Widget	CreateDrawPaintBallControls(
 Widget	CreateThresholdControls(
   Widget	parent)
 {
-  Widget	form, form1, frame, label, widget, option_menu, slider;
+  Widget	form, form1, frame, label, widget, option_menu;
   Widget	toggle;
   float		val, minval, maxval;
 

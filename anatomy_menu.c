@@ -1,22 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas Project					*
-*   File       :   anatomy_menu.c					*
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Mon Feb 16 08:23:00 1998				*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _anatomy_menu_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         anatomy_menu.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:52:45 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,7 +52,7 @@
 #include <MAPaint.h>
 
 static MenuItem anatomy_menu_itemsP[] = {	/* anatomy_menu items */
-  NULL,
+  {NULL},
 };
 
 MenuItem	*anatomy_menu_items = &(anatomy_menu_itemsP[0]);
@@ -137,7 +161,6 @@ void read_anatomy_cb(
   XtPointer	call_data)
 {
   String	fileStr = (String) client_data;
-  char		anatStr[64];
   FILE		*fp;
   WlzObject	*anatObj;
 
@@ -206,12 +229,12 @@ void read_anatomy_cb(
   else {
     Widget	toggle;
     /* set the toggle to be checked */
-    if( toggle = XtNameToWidget(globals.topl,
-				"*domain_menu*threed_display_domain") ){
+    if( (toggle = XtNameToWidget(globals.topl,
+				 "*domain_menu*threed_display_domain")) ){
       XtVaSetValues(toggle, XmNset, True, NULL);
     }
   }
-  if( anatObj = get_domain_from_object(globals.obj, globals.current_domain) ){
+  if((anatObj = get_domain_from_object(globals.obj, globals.current_domain))){
     MAOpenGLDisplayDomainIndex(anatObj, globals.current_domain);
     MAOpenGLDrawScene( globals.canvas );
     WlzFreeObj(anatObj);
@@ -317,7 +340,7 @@ MenuItem *createAnatomyMenuItems(
 	  }
 	}
 
-	if( fp = fopen(objFileStr, "r") ){
+	if( (fp = fopen(objFileStr, "rb")) ){
 	  anatObjItems[numAnatObjItems].domain = WlzReadObj(fp, NULL);
 	  (void) fclose(fp);
 	}

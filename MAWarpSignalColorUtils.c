@@ -1,24 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas MAPaint					*
-*   File       :   MAWarpSignalColorUtils.c				*
-*************************************************************************
-*   Author Name :  richard						*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Tue Nov 11 08:02:11 2003				*
-*   $Revision$								*
-*   $Name$								*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MAWarpSigna_colorUtils_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAWarpSignalColorUtils.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:41:30 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,16 +61,16 @@ void warpSetThreshColorTypeSensitive(
 {
   Widget	toggle;
 
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_notebook*threshold_single_page*red") ){
+  if((toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_notebook*threshold_single_page*red"))){
     XtSetSensitive(toggle, sensitive);
   }
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_notebook*threshold_single_page*green") ){
+  if((toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_notebook*threshold_single_page*green"))){
     XtSetSensitive(toggle, sensitive);
   }
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_notebook*threshold_single_page*blue") ){
+  if((toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_notebook*threshold_single_page*blue"))){
     XtSetSensitive(toggle, sensitive);
   }
 
@@ -64,6 +86,7 @@ void warpSetThreshColorTypeToggles(
 
   /* set up the strings */
   switch( colSpc ){
+  default:
   case WLZ_RGBA_SPACE_RGB:
     xmstrR = XmStringCreateSimple("red");
     xmstrG = XmStringCreateSimple("green");
@@ -92,25 +115,25 @@ void warpSetThreshColorTypeToggles(
     break;
   }
 
-  if( toggle = 
+  if((toggle = 
      XtNameToWidget(globals.topl,
-		    "*warp_sgnl_notebook*threshold_single_page*red") ){
+		    "*warp_sgnl_notebook*threshold_single_page*red"))){
     XtVaSetValues(toggle, XmNlabelString, xmstrR, NULL);
     XtRemoveAllCallbacks(toggle, XmNvalueChangedCallback);
     XtAddCallback(toggle, XmNvalueChangedCallback,
 		  thresholdChannelSelectCb, (XtPointer) chanR);
   }
-  if( toggle = 
+  if((toggle = 
      XtNameToWidget(globals.topl,
-		    "*warp_sgnl_notebook*threshold_single_page*green") ){
+		    "*warp_sgnl_notebook*threshold_single_page*green"))){
     XtVaSetValues(toggle, XmNlabelString, xmstrG, NULL);
     XtRemoveAllCallbacks(toggle, XmNvalueChangedCallback);
     XtAddCallback(toggle, XmNvalueChangedCallback,
 		  thresholdChannelSelectCb, (XtPointer) chanG);
   }
-  if( toggle = 
+  if((toggle = 
      XtNameToWidget(globals.topl,
-		    "*warp_sgnl_notebook*threshold_single_page*blue") ){
+		    "*warp_sgnl_notebook*threshold_single_page*blue"))){
     XtVaSetValues(toggle, XmNlabelString, xmstrB, NULL);
     XtRemoveAllCallbacks(toggle, XmNvalueChangedCallback);
     XtAddCallback(toggle, XmNvalueChangedCallback,
@@ -137,8 +160,10 @@ void warpColorSpaceCb(
 
   /* reset the selected channel */
   switch( colSpc ){
+  default:
   case WLZ_RGBA_SPACE_RGB:
     switch( warpGlobals.threshColorChannel ){
+    default:
     case WLZ_RGBA_CHANNEL_RED:
     case WLZ_RGBA_CHANNEL_HUE:
     case WLZ_RGBA_CHANNEL_CYAN:
@@ -158,6 +183,7 @@ void warpColorSpaceCb(
     break;
   case WLZ_RGBA_SPACE_HSB:
     switch( warpGlobals.threshColorChannel ){
+    default:
     case WLZ_RGBA_CHANNEL_RED:
     case WLZ_RGBA_CHANNEL_HUE:
     case WLZ_RGBA_CHANNEL_CYAN:
@@ -177,6 +203,7 @@ void warpColorSpaceCb(
     break;
   case WLZ_RGBA_SPACE_CMY:
     switch( warpGlobals.threshColorChannel ){
+    default:
     case WLZ_RGBA_CHANNEL_RED:
     case WLZ_RGBA_CHANNEL_HUE:
     case WLZ_RGBA_CHANNEL_CYAN:

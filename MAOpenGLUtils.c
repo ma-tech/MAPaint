@@ -1,22 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas Project					*
-*   File       :   MAOpenGLUtils.c					*
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Wed Feb 25 06:58:08 1998				*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MAOpenGLUtils_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAOpenGLUtils.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:48:36 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -243,7 +267,6 @@ void MAOpenGLDrawScene(Widget canvasW)
   GLdouble	theta;
   ViewListEntry	*vl = global_view_list;
   int		i;
-  XEvent	event;
 
   /* check for queued timer events */
 /*  if( XtAppPending(globals.app_con) & XtIMTimer )
@@ -385,9 +408,8 @@ void MAOpenGLDisplaySection(
   if( view_struct->controlFlag & 
      (MAPAINT_MASK_VIEWFB_MODE|MAPAINT_TEMPLATE_VIEWFB_MODE|
       MAPAINT_SWITCH_VIEWFB_MODE) ){
-    WlzObject	*templ, *mask, *poly, *tmpObj;
+    WlzObject	*templ, *mask=NULL;
     WlzDomain	domain;
-    WlzValues	values;
     WlzIntervalWSpace	iwsp;
     int		lineFlg;
     WlzErrorNum	errNum;
@@ -408,7 +430,7 @@ void MAOpenGLDisplaySection(
     }
     else {
       /* transform the 3D vertex sequence back to section coordinates */
-      WlzDVertex2	vtxs2[12];
+      WlzDVertex2	vtxs2[12], *dVtxsP;
       WlzDVertex3	vtxs3[12];
 
       /* create a polygon object and convert to a domain */
@@ -420,13 +442,14 @@ void MAOpenGLDisplaySection(
 	vtxs2[vtxCntr].vtY = vtxs3[vtxCntr].vtY;
 	vtxCntr++;
       }
+      dVtxsP = (WlzDVertex2 *) (&vtxs2[0]);
       domain.poly = WlzMakePolygonDomain(WLZ_POLYGON_DOUBLE, num_vtxs,
-				   (WlzIVertex2 *) (&vtxs2[0]),
+				   (WlzIVertex2 *) dVtxsP,
 				   num_vtxs, 1, &errNum);
-      if( templ = WlzPolyToObj(domain.poly, WLZ_SIMPLE_FILL, &errNum) ){
+      if((templ = WlzPolyToObj(domain.poly, WLZ_SIMPLE_FILL, &errNum))){
 	templ = WlzAssignObject(templ, NULL);
-	if( mask = WlzDiffDomain(templ, view_struct->masked_object,
-				 &errNum) ){
+	if((mask = WlzDiffDomain(templ, view_struct->masked_object,
+				 &errNum))){
 	  mask = WlzAssignObject(mask, NULL);
 	}
 	WlzFreeObj(templ);

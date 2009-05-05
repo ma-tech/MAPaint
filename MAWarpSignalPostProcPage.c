@@ -1,30 +1,54 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas MAPaint					*
-*   File       :   MAWarpSignalPostProcPage.c				*
-*************************************************************************
-*   Author Name :  richard						*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Tue Dec 16 18:25:51 2003				*
-*   $Revision$						*
-*   $Name$								*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MAWarpSignalPostPr_cPage_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAWarpSignalPostProcPage.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:42:34 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
 
 #include <MAPaint.h>
 #include <MAWarp.h>
+
+#include <Xm/XmP.h>
 
 typedef enum _MAPaintOperatorType{
   MAPAINT_OP_ERODE,
@@ -137,7 +161,7 @@ void sizeSelectTypeCb(
   /* for testing option menu */
   int		numChildren;
   Widget	button, *children;
-  int		xpos, ypos, i;
+  int		xpos, ypos;
   WlzUInt	height, width, borderWidth, depth;
   Dimension	gHeight, thickness;
   Pixmap	pixmap;
@@ -147,10 +171,10 @@ void sizeSelectTypeCb(
   XFontStruct	*font;
 
   /* some code here to pick apart the option menu */
-  if( button = XtNameToWidget(option_menu, "*xmCascadeButtonGadget") ){
+  if((button = XtNameToWidget(option_menu, "*xmCascadeButtonGadget"))){
     fprintf(stderr, "CascadeButtonGadget found\n");
   }
-  if( button = XtNameToWidget(option_menu, "*xmCascadeButton") ){
+  if((button = XtNameToWidget(option_menu, "*xmCascadeButton"))){
     fprintf(stderr, "CascadeButton found\n");
   }
   XtVaGetValues(option_menu,
@@ -174,10 +198,10 @@ void sizeSelectTypeCb(
 		XmNshadowThickness, &thickness,
 		NULL);
   fprintf(stderr, "OptionButton: height: %d\n", gHeight);
-  fprintf(stderr, "OptionButton: cascadePixmap: Ox%x\n", pixmap);
+  fprintf(stderr, "OptionButton: cascadePixmap: Ox%x\n", (unsigned int) pixmap);
   if( fl ){
-
-    _XmFontListGetDefaultFont(fl, &font);
+    XmeRenderTableGetDefaultFont(fl, &font);
+/*    _XmFontListGetDefaultFont(fl, &font);*/
     fprintf(stderr, "font hieghts: %d, %d\n", font->ascent, font->descent);
   }
   fprintf(stderr, "OptionButton: shadowThickness: %d\n", thickness);
@@ -255,7 +279,7 @@ void postProcUndoCb(
   /* free existing domain and replace with top
      of undo stack, do not delete if it is the last domain
   */
-  if( tmpObj = WlzObjListObj(sgnlPostProcUndoList) ){
+  if((tmpObj = WlzObjListObj(sgnlPostProcUndoList))){
     warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
     if( warpGlobals.sgnlObj ){
       WlzObjListPush(sgnlPostProcRedoList, warpGlobals.sgnlObj);
@@ -278,7 +302,7 @@ void postProcRedoCb(
   WlzObject	*tmpObj;
   /* push current to undo stack and pop redo object */
 
-  if( tmpObj = WlzObjListObj(sgnlPostProcRedoList) ){
+  if((tmpObj = WlzObjListObj(sgnlPostProcRedoList))){
     warpCanvasExposeCb(w, (XtPointer) &(warpGlobals.sgnl), NULL);
     if( warpGlobals.sgnlObj ){
       WlzObjListPush(sgnlPostProcUndoList, warpGlobals.sgnlObj);
@@ -299,7 +323,7 @@ void postProcMorphCb(
   XtPointer	call_data)
 {
   MAPaintOperatorType	opType=(MAPaintOperatorType) client_data;
-  WlzObject		*seObj, *newDomain, *tmpObj;
+  WlzObject		*seObj, *newDomain=NULL, *tmpObj;
   WlzConnectType	conn;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
@@ -310,6 +334,7 @@ void postProcMorphCb(
 
   /* build the structuring element */
   seObj = NULL;
+  conn = WLZ_4_CONNECTED;
   switch( warpGlobals.seType ){
   case MAPAINT_8_CONN_SE:
     conn = WLZ_8_CONNECTED;
@@ -324,9 +349,6 @@ void postProcMorphCb(
       seObj = WlzMakeCircleObject((double) warpGlobals.seElemRadius,
 				  0.0, 0.0, &errNum);
     }
-    else {
-      conn = WLZ_4_CONNECTED;
-    }    
     break;
 
   case MAPAINT_SQUARE_SE:
@@ -335,10 +357,12 @@ void postProcMorphCb(
 				     (double) warpGlobals.seElemRadius,
 				     0.0, 0.0, &errNum);
     }
-    else {
-      conn = WLZ_4_CONNECTED;
-    }    
     break;
+
+  case MAPAINT_SPHERE_SE:
+  case MAPAINT_CUBE_SE:
+  default:
+    return;
   }
 
   /* apply the required operation */
@@ -363,7 +387,7 @@ void postProcMorphCb(
 
   case MAPAINT_OP_OPEN:
     if( seObj ){
-      if( tmpObj = WlzStructErosion(warpGlobals.sgnlObj, seObj, &errNum) ){
+      if((tmpObj = WlzStructErosion(warpGlobals.sgnlObj, seObj, &errNum))){
 	newDomain = WlzStructDilation(tmpObj, seObj, &errNum);
       }
       else {
@@ -371,7 +395,7 @@ void postProcMorphCb(
       }
     }
     else {
-      if( tmpObj = WlzErosion(warpGlobals.sgnlObj, conn, &errNum) ){
+      if((tmpObj = WlzErosion(warpGlobals.sgnlObj, conn, &errNum))){
 	newDomain = WlzDilation(tmpObj, conn, &errNum);
       }
       else {
@@ -385,7 +409,7 @@ void postProcMorphCb(
 
   case MAPAINT_OP_CLOSE:
     if( seObj ){
-      if( tmpObj = WlzStructDilation(warpGlobals.sgnlObj, seObj, &errNum) ){
+      if((tmpObj = WlzStructDilation(warpGlobals.sgnlObj, seObj, &errNum))){
 	newDomain = WlzStructErosion(tmpObj, seObj, &errNum);
       }
       else {
@@ -393,7 +417,7 @@ void postProcMorphCb(
       }
     }
     else {
-      if( tmpObj = WlzDilation(warpGlobals.sgnlObj, conn, &errNum) ){
+      if((tmpObj = WlzDilation(warpGlobals.sgnlObj, conn, &errNum))){
 	newDomain = WlzErosion(tmpObj, conn, &errNum);
       }
       else {
@@ -468,7 +492,7 @@ static MenuItem struct_elem_itemsP[] = {   /* structuring element menu items */
    warpPostProcSE_Cb, (XtPointer) MAPAINT_SQUARE_SE,
    myHGU_XmHelpStandardCb, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 static MenuItem size_select_itemsP[] = {   /* size select menu items */
@@ -480,7 +504,7 @@ static MenuItem size_select_itemsP[] = {   /* size select menu items */
    sizeSelectTypeCb, (XtPointer) 1,
    myHGU_XmHelpStandardCb, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 static MenuItem smooth_filter_itemsP[] = {   /* smooth filter menu items */
@@ -492,7 +516,7 @@ static MenuItem smooth_filter_itemsP[] = {   /* smooth filter menu items */
    smoothSelectTypeCb, (XtPointer) 1,
    myHGU_XmHelpStandardCb, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 Widget createSignalPostProcPage(

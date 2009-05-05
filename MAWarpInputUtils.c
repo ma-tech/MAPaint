@@ -1,34 +1,56 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Woolz Library					*
-*   File       :   MAWarpInputUtils.c					*
-*************************************************************************
-* This module has been copied from the original woolz library and       *
-* modified for the public domain distribution. The original authors of  *
-* the code and the original file headers and comments are in the        *
-* HISTORY file.                                                         *
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Mon Nov 29 13:30:38 1999				*
-*   $Revision$						*
-*   $Name$								*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MAWarpInputUtils_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAWarpInputUtils.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:45:50 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <err.h>
 
 #include <MAPaint.h>
 #include <MAWarp.h>
@@ -38,6 +60,13 @@ extern Widget warp_read_sgnl_dialog;
 extern WlzObject *mapaintWarpObj(
   WlzObject	*obj,
   WlzInterpolationType	interpType);
+extern void read_reference_object_cb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data);
+extern WlzErrorNum warpResetSignalObj(
+  WlzObject		*obj);
+
 
 WlzErrorNum WlzSetMeshAffineProduct(
   WlzMeshTransform	*meshTr,
@@ -84,15 +113,12 @@ WlzErrorNum WlzSetMeshAffineProduct(
 void warpSetOvlyObject(void)
 {
   WlzAffineTransform	*trans;
-  WlzObject		*transObj, *tmpPoly;
+  WlzObject		*transObj;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
   WlzCompoundArray	*cobj;
   WlzDVertex2		srcVtxs[WARP_MAX_NUM_VTXS];
   WlzDVertex2		dstVtxs[WARP_MAX_NUM_VTXS];
   int 			i, badElm, polyOrder=4;
-  WlzDomain		domain;
-  WlzValues		values;
-  WlzDVertex2		*transVtxs, tmpVtx;
   double		delta;
   int			invertFlg;
 
@@ -144,9 +170,9 @@ void warpSetOvlyObject(void)
 
   /* if < 4 tie-points, apply  transform to the source object */
   if( warpGlobals.num_vtxs < 4 ){
-    if( transObj = WlzAffineTransformObj(warpGlobals.src.obj,
+    if((transObj = WlzAffineTransformObj(warpGlobals.src.obj,
 					 trans, WLZ_INTERPOLATION_NEAREST,
-					 &errNum) ){
+					 &errNum))){
       if( warpGlobals.ovly.obj ){
 	cobj = (WlzCompoundArray *) warpGlobals.ovly.obj;
 	if( cobj->n > 1 ){
@@ -182,7 +208,7 @@ void warpSetOvlyObject(void)
   }
 
   /* apply the inverse transform to the dst tie-points */
-  if( trans = WlzAffineTransformInverse(warpGlobals.affine, &errNum) ){
+  if((trans = WlzAffineTransformInverse(warpGlobals.affine, &errNum))){
     for(i=0; i < warpGlobals.num_vtxs; i++){
       dstVtxs[i] = WlzAffineTransformVertexD2(trans, dstVtxs[i], &errNum);
     }
@@ -350,10 +376,10 @@ void warpSetOvlyObject(void)
   WlzFreeObj(tmpPoly);*/
 
   /* apply to the original object and reset the overlay object */
-  if( transObj = WlzMeshTransformObj(warpGlobals.src.obj,
+  if((transObj = WlzMeshTransformObj(warpGlobals.src.obj,
 				     warpGlobals.meshTr,
 				     WLZ_INTERPOLATION_NEAREST,
-				     &errNum) ){
+				     &errNum))){
     /* if inverted then need to do the affine transform here
        and transform the mesh so it will display properly */
     if( invertFlg ){
@@ -405,7 +431,7 @@ void warpInput2DDestroyCb(
   Widget		widget;
   ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
 
-  if( widget = XtNameToWidget(globals.topl, "*options_menu*warp_input_2d") ){
+  if((widget = XtNameToWidget(globals.topl, "*options_menu*warp_input_2d"))){
     XtSetSensitive(widget, True);
   }
 
@@ -439,13 +465,11 @@ void warpBibfileWrite(
   ThreeDViewStruct	*view_struct)
 {
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
-  String		fileStr;
   int			i;
   BibFileRecord		*bibfileRecord;
   static char		unknownS[] = "unknown";
   time_t		tmpTime;
   char			*tmpS,
-    *idxS = NULL,
     *dateS = NULL,
     *hostS = NULL,
     *userS = NULL,
@@ -556,24 +580,24 @@ void warpBibfileWrite(
   }
 
   /* write the signal pre-processing and filter transform parameters */
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*normalise") ){
+  if((toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*normalise"))){
     XtVaGetValues(toggle, XmNset, &normFlg, NULL);
   }
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*histo_equalise") ){
+  if((toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*histo_equalise"))){
     XtVaGetValues(toggle, XmNset, &histoFlg, NULL);
   }
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*shade_correction") ){
+  if((toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*shade_correction"))){
     XtVaGetValues(toggle, XmNset, &shadeFlg, NULL);
   }
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*gauss_smooth") ){
+  if((toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*gauss_smooth"))){
     XtVaGetValues(toggle, XmNset, &gaussFlg, NULL);
   }
-  if( slider = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*gauss_width") ){
+  if((slider = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*gauss_width"))){
     width = HGU_XmGetSliderValue(slider);
   }
   if( WlzEffBibWriteWarpInputSegmentationParamsRecord
@@ -668,7 +692,7 @@ void warpIOWrite(
   FILE			*fp;
 
   /* get a filename for the warp parameters */
-  if( fileStr =
+  if((fileStr =
      HGU_XmUserGetFilenameT
      (globals.topl,
       "WRITE WARP PARAMETERS:\n\n"
@@ -677,10 +701,10 @@ void warpIOWrite(
       "OK", "cancel",
       warpGlobals.warpBibFile? 
       warpGlobals.warpBibFile:"MAPaintWarpParams.bib",
-      NULL, "*.bib", "Write Warp Parameters") ){
+      NULL, "*.bib", "Write Warp Parameters"))){
     XmString	xmstr;
-    if( xmstr = XmStringCreateSimple(fileStr) ){
-      if( fp = HGU_XmGetFilePointer(globals.topl, xmstr, NULL, "w") ){
+    if((xmstr = XmStringCreateSimple(fileStr))){
+      if((fp = HGU_XmGetFilePointer(globals.topl, xmstr, NULL, "w"))){
 
 	if( warpGlobals.warpBibFile ){
 	  AlcFree( warpGlobals.warpBibFile );
@@ -728,7 +752,7 @@ void warpIORead(
   int			resetOvlyFlg=0;
 
   /* get a filename for the warp parameters */
-  if( fileStr = 
+  if((fileStr = 
      HGU_XmUserGetFilenameT
      (globals.topl,
       "READ WARP FILE:\n\n"
@@ -738,10 +762,10 @@ void warpIORead(
       "OK", "cancel",
       warpGlobals.warpBibFile? 
       warpGlobals.warpBibFile:"MAPaintWarpParams.bib",
-      NULL, "*.bib", "Read Warp Parameters") ){
+      NULL, "*.bib", "Read Warp Parameters"))){
     warp2DInteractDeleteAllCb(w, client_data, call_data);
 
-    if( fp = fopen(fileStr, "r") ){
+    if((fp = fopen(fileStr, "r"))){
       BibFileRecord	*bibfileRecord;
       BibFileError	bibFileErr;
       char		*errMsg;
@@ -915,26 +939,26 @@ void warpIORead(
 						  &meshMinDst, &meshMaxDst);
 	  /* set the parameters, note in this version the basisFnType 
 	     is not set  - now it is */
-	  if( option_menu = XtNameToWidget(view_struct->dialog,
-					   "*.mesh_function") ){
+	  if((option_menu = XtNameToWidget(view_struct->dialog,
+					   "*.mesh_function"))){
 	    switch( wlzFnType ){
 	    default:
 	    case WLZ_FN_BASIS_2DMQ:
-	      if( widget = XtNameToWidget(option_menu, "*.multiquadric") ){
+	      if((widget = XtNameToWidget(option_menu, "*.multiquadric"))){
 		XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
 		XtCallCallbacks(widget, XmNactivateCallback, NULL);
 	      }
 	      break;
 
 	    case WLZ_FN_BASIS_2DTPS:
-	      if( widget = XtNameToWidget(option_menu, "*.thin-plate spline") ){
+	      if((widget = XtNameToWidget(option_menu, "*.thin-plate spline"))){
 		XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
 		XtCallCallbacks(widget, XmNactivateCallback, NULL);
 	      }
 	      break;
 
 	    case WLZ_FN_BASIS_2DPOLY:
-	      if( widget = XtNameToWidget(option_menu, "*.polynomial") ){
+	      if((widget = XtNameToWidget(option_menu, "*.polynomial"))){
 		XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
 		XtCallCallbacks(widget, XmNactivateCallback, NULL);
 	      }
@@ -944,26 +968,26 @@ void warpIORead(
 	  }
 	
 	  /* set the affine transform type */
-	  if( option_menu = XtNameToWidget(view_struct->dialog,
-					   "*.affine_type") ){
+	  if((option_menu = XtNameToWidget(view_struct->dialog,
+					   "*.affine_type"))){
 	    switch( affineType ){
 	    default:
 	    case WLZ_TRANSFORM_2D_NOSHEAR:
-	      if( widget = XtNameToWidget(option_menu, "*.noshear") ){
+	      if((widget = XtNameToWidget(option_menu, "*.noshear"))){
 		XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
 		XtCallCallbacks(widget, XmNactivateCallback, NULL);
 	      }
 	      break;
 
 	    case WLZ_TRANSFORM_2D_REG:
-	      if( widget = XtNameToWidget(option_menu, "*.rigid") ){
+	      if((widget = XtNameToWidget(option_menu, "*.rigid"))){
 		XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
 		XtCallCallbacks(widget, XmNactivateCallback, NULL);
 	      }
 	      break;
 
 	    case WLZ_TRANSFORM_2D_AFFINE:
-	      if( widget = XtNameToWidget(option_menu, "*.affine") ){
+	      if((widget = XtNameToWidget(option_menu, "*.affine"))){
 		XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
 		XtCallCallbacks(widget, XmNactivateCallback, NULL);
 	      }
@@ -973,19 +997,19 @@ void warpIORead(
 	  }
 		
 	  /* set the mesh generation method */
-	  if( option_menu = XtNameToWidget(view_struct->dialog,
-					   "*.mesh_method") ){
+	  if((option_menu = XtNameToWidget(view_struct->dialog,
+					   "*.mesh_method"))){
 	    switch( meshMthd ){
 	    default:
 	    case WLZ_MESH_GENMETHOD_BLOCK:
-	      if( widget = XtNameToWidget(option_menu, "*.block") ){
+	      if((widget = XtNameToWidget(option_menu, "*.block"))){
 		XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
 		XtCallCallbacks(widget, XmNactivateCallback, NULL);
 	      }
 	      break;
 
 	    case WLZ_MESH_GENMETHOD_GRADIENT:
-	      if( widget = XtNameToWidget(option_menu, "*.gradient") ){
+	      if((widget = XtNameToWidget(option_menu, "*.gradient"))){
 		XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
 		XtCallCallbacks(widget, XmNactivateCallback, NULL);
 	      }
@@ -993,12 +1017,12 @@ void warpIORead(
 	    }
 	  }
 
-	  if( slider = XtNameToWidget(view_struct->dialog,
-					   "*.mesh_min_dist") ){
+	  if((slider = XtNameToWidget(view_struct->dialog,
+				      "*.mesh_min_dist"))){
 	    HGU_XmSetSliderValue(slider, (float) meshMinDst);
 	  }
-	  if( slider = XtNameToWidget(view_struct->dialog,
-					   "*.mesh_max_dist") ){
+	  if((slider = XtNameToWidget(view_struct->dialog,
+				      "*.mesh_max_dist"))){
 	    HGU_XmSetSliderValue(slider, (float) meshMaxDst);
 	  }
 	  resetOvlyFlg = 1;
@@ -1078,7 +1102,7 @@ void warpIORead(
 			    &fileStr, &fileType);
 
 	  /* read the image and install */
-	  if( obj = WlzEffReadObj(NULL, fileStr, fileType, 0, &errNum) ){
+	  if((obj = WlzEffReadObj(NULL, fileStr, fileType, 0, &errNum))){
 	    if((obj->type == WLZ_2D_DOMAINOBJ) &&
 	       (obj->values.core != NULL)){
 	      warpGlobals.srcFile = fileStr;
@@ -1125,7 +1149,7 @@ void warpIORead(
 			    &fileStr, &fileType);
 
 	  /* read the image and install */
-	  if( obj = WlzEffReadObj(NULL, fileStr, fileType, 0, &errNum) ){
+	  if((obj = WlzEffReadObj(NULL, fileStr, fileType, 0, &errNum))){
 	    warpGlobals.sgnlFile = fileStr;
 	    warpGlobals.sgnlFileType = fileType;
 	    if( warpGlobals.sgnl.obj ){
@@ -1161,36 +1185,36 @@ void warpIORead(
 							  &width,
 							  &threshLow,
 							  &threshHigh);
-	  if( toggle = XtNameToWidget(globals.topl,
-				      "*warp_sgnl_controls_form*normalise") ){
+	  if((toggle = XtNameToWidget(globals.topl,
+				      "*warp_sgnl_controls_form*normalise"))){
 	    XtVaSetValues(toggle, XmNset, normFlg, NULL);
 	  }
-	  if( toggle = XtNameToWidget(globals.topl,
-				      "*warp_sgnl_controls_form*histo_equalise") ){
+	  if((toggle = XtNameToWidget(globals.topl,
+				      "*warp_sgnl_controls_form*histo_equalise"))){
 	    XtVaSetValues(toggle, XmNset, histoFlg, NULL);
 	  }
-	  if( toggle =
+	  if((toggle =
 	     XtNameToWidget(globals.topl,
-			    "*warp_sgnl_controls_form*shade_correction") ){
+			    "*warp_sgnl_controls_form*shade_correction"))){
 	    XtVaSetValues(toggle, XmNset, shadeFlg, NULL);
 	  }
-	  if( toggle = XtNameToWidget(globals.topl,
-				      "*warp_sgnl_controls_form*gauss_smooth") ){
+	  if((toggle = XtNameToWidget(globals.topl,
+				      "*warp_sgnl_controls_form*gauss_smooth"))){
 	    XtVaSetValues(toggle, XmNset, gaussFlg, NULL);
 	  }
-	  if( slider = XtNameToWidget(globals.topl,
-				      "*warp_sgnl_controls_form*gauss_width") ){
+	  if((slider = XtNameToWidget(globals.topl,
+				      "*warp_sgnl_controls_form*gauss_width"))){
 	    HGU_XmSetSliderValue(slider, width);
 	  }
-	  if( slider =
+	  if((slider =
 	     XtNameToWidget(globals.topl,
-			    "*warp_sgnl_controls_form*thresh_range_low") ){
+			    "*warp_sgnl_controls_form*thresh_range_low"))){
 	    HGU_XmSetSliderValue(slider, (float) threshLow);
 	    warpGlobals.threshRangeLow = threshLow;
 	  }
-	  if( slider =
+	  if((slider =
 	     XtNameToWidget(globals.topl,
-			    "*warp_sgnl_controls_form*thresh_range_high") ){
+			    "*warp_sgnl_controls_form*thresh_range_high"))){
 	    HGU_XmSetSliderValue(slider, (float) threshHigh);
 	    warpGlobals.threshRangeHigh = threshHigh;
 	  }
@@ -1201,7 +1225,7 @@ void warpIORead(
 		     "MAPaintWarpInputThresholdParams", 31) ){
 	  Widget	radio_box, toggle, slider;
 	  Widget	notebook, option_menu, button;
-	  char		*tmpStr;
+	  char		*tmpStr=NULL;
 	  int		i;
 	  XmToggleButtonCallbackStruct cbs;
 
@@ -1249,29 +1273,29 @@ void warpIORead(
 
 	  /* reset simple controls */
 	  /* do modes before threshold controls */
-	  if( toggle = XtNameToWidget(globals.topl,
-				      "*warp_sgnl_controls_form*global_thresh") ){
+	  if((toggle = XtNameToWidget(globals.topl,
+				      "*warp_sgnl_controls_form*global_thresh"))){
 	    XtVaSetValues(toggle, XmNset, threshParamStr.globalThreshFlg, NULL);
 	    cbs.set = threshParamStr.globalThreshFlg;
 	    XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
 	  }
-	  if( toggle = 
+	  if((toggle = 
 	     XtNameToWidget(globals.topl,
-			    "*warp_sgnl_controls_form*incremental_thresh") ){
+			    "*warp_sgnl_controls_form*incremental_thresh"))){
 	    XtVaSetValues(toggle, XmNset, threshParamStr.incrThreshFlg, NULL);
 	    cbs.set = threshParamStr.incrThreshFlg;
 	    XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
 	  }
-	  if( toggle =
+	  if((toggle =
 	     XtNameToWidget(globals.topl,
-			    "*warp_sgnl_controls_form*pick_mode_thresh") ){
+			    "*warp_sgnl_controls_form*pick_mode_thresh"))){
 	    XtVaSetValues(toggle, XmNset, threshParamStr.pickThreshFlg, NULL);
 	    cbs.set = threshParamStr.pickThreshFlg;
 	    XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
 	  }
-	  if( toggle =
+	  if((toggle =
 	     XtNameToWidget(globals.topl,
-			    "*warp_sgnl_controls_form*distance_mode_thresh") ){
+			    "*warp_sgnl_controls_form*distance_mode_thresh"))){
 	    XtVaSetValues(toggle, XmNset, threshParamStr.distanceThreshFlg, NULL);
 	    cbs.set = threshParamStr.distanceThreshFlg;
 	    XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
@@ -1279,62 +1303,62 @@ void warpIORead(
   
 	  /* reset the threshold and interact controls */
 	  /* single colour mode */
-	  if( slider =
+	  if((slider =
 	     XtNameToWidget(globals.topl,
-			    "*warp_sgnl_controls_form*thresh_range_low") ){
+			    "*warp_sgnl_controls_form*thresh_range_low"))){
 	    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeLow);
 	  }
-	  if( slider =
+	  if((slider =
 	     XtNameToWidget(globals.topl,
-			    "*warp_sgnl_controls_form*thresh_range_high") ){
+			    "*warp_sgnl_controls_form*thresh_range_high"))){
 	    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeHigh);
 	  }
 	  
 	  /* multi-colour mode */
-	  if( slider =
+	  if((slider =
 	     XtNameToWidget(globals.topl,
-			    "*warp_sgnl_controls_form*thresh_range_red_low") ){
+			    "*warp_sgnl_controls_form*thresh_range_red_low"))){
 	    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBLow[0]);
 	  }
-	  if( slider =
+	  if((slider =
 	     XtNameToWidget(globals.topl,
-			    "*warp_sgnl_controls_form*thresh_range_red_high") ){
+			    "*warp_sgnl_controls_form*thresh_range_red_high"))){
 	    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBHigh[0]);
 	  }
-	  if( slider =
+	  if((slider =
 	     XtNameToWidget(globals.topl,
-			    "*warp_sgnl_controls_form*thresh_range_green_low") ){
+			    "*warp_sgnl_controls_form*thresh_range_green_low"))){
 	    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBLow[1]);
 	  }
-	  if( slider =
+	  if((slider =
 	     XtNameToWidget(globals.topl,
-			    "*warp_sgnl_controls_form*thresh_range_green_high") ){
+			    "*warp_sgnl_controls_form*thresh_range_green_high"))){
 	    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBHigh[1]);
 	  }
-	  if( slider =
+	  if((slider =
 	     XtNameToWidget(globals.topl,
-			    "*warp_sgnl_controls_form*thresh_range_blue_low") ){
+			    "*warp_sgnl_controls_form*thresh_range_blue_low"))){
 	    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBLow[2]);
 	  }
-	  if( slider =
+	  if((slider =
 	     XtNameToWidget(globals.topl,
-			    "*warp_sgnl_controls_form*thresh_range_blue_high") ){
+			    "*warp_sgnl_controls_form*thresh_range_blue_high"))){
 	    HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBHigh[2]);
 	  }
 
 	  /* interactive mode */
-	  if( slider =
+	  if((slider =
 	     XtNameToWidget(globals.topl,
-  			    "*warp_sgnl_controls_form*thresh_eccentricity") ){
+  			    "*warp_sgnl_controls_form*thresh_eccentricity"))){
 	    HGU_XmSetSliderValue(slider, (float) warpGlobals.colorEllipseEcc);
 	  }
-	  if( slider = XtNameToWidget(globals.topl,
-				      "*warp_sgnl_controls_form*thresh_radius") ){
+	  if((slider = XtNameToWidget(globals.topl,
+				      "*warp_sgnl_controls_form*thresh_radius"))){
 	    HGU_XmSetSliderValue(slider, (float) 10.0);
 	  }
-	  if( radio_box = 
+	  if((radio_box = 
 	     XtNameToWidget(globals.topl,
-			    "*warp_sgnl_controls_form*threshold_interact_rc") ){
+			    "*warp_sgnl_controls_form*threshold_interact_rc"))){
 	    switch( threshParamStr.thresholdType ){
 	    default:
 	    case WLZ_RGBA_THRESH_SLICE:
@@ -1372,9 +1396,9 @@ void warpIORead(
 	    tmpStr = "threshold_interactive_page";
 	    break;
 	  }
-	  if( notebook = XtNameToWidget(warpGlobals.sgnlControls,
-				  "*warp_sgnl_notebook") ){
-	    int	minPageNum, maxPageNum, pageNum;
+	  if((notebook = XtNameToWidget(warpGlobals.sgnlControls,
+					"*warp_sgnl_notebook"))){
+	    int	minPageNum, maxPageNum;
 	    XtVaGetValues(notebook,
 			  XmNfirstPageNumber, &minPageNum,
 			  XmNlastPageNumber, &maxPageNum,
@@ -1398,9 +1422,9 @@ void warpIORead(
 
 	  /* colour space - affects channel selectors and callbacks */
 	  warpGlobals.threshRGBSpace = threshParamStr.threshRGBSpace;
-	  if( option_menu =
+	  if((option_menu =
 	     XtNameToWidget(globals.topl,
-			    "*warp_sgnl_controls_form*color_space") ){
+			    "*warp_sgnl_controls_form*color_space"))){
 	    switch( warpGlobals.threshRGBSpace ){
 	    default:
 	    case WLZ_RGBA_SPACE_RGB:
@@ -1421,9 +1445,9 @@ void warpIORead(
 
 	  /* colour channel - now recalculate the signal domain from scratch */
 	  warpGlobals.threshColorChannel = threshParamStr.threshColorChannel;
-	  if( radio_box =
+	  if((radio_box =
 	     XtNameToWidget(globals.topl,
-			    "*warp_sgnl_controls_form*threshold_channel_rc") ){
+			    "*warp_sgnl_controls_form*threshold_channel_rc"))){
 	    switch( threshParamStr.threshColorChannel ){
 	    default:
 	    case WLZ_RGBA_CHANNEL_GREY:
@@ -1496,6 +1520,9 @@ void warpIORead(
       }
 
     }
+
+    expressMapStatusChange(-1);
+
   }
 
   return;
@@ -1517,9 +1544,15 @@ void warpRapidIORead(
   WlzEffBibWarpInputThresholdParamsStruct	threshParamStr;
   int			resetOvlyFlg=0;
   Widget		w = view_struct->dialog;
+  int			status, isreg;
+  struct stat		sb;
+
+  /* check status */
+  status = stat(fileStr, &sb);
+  isreg = S_ISREG(sb.st_mode);
 
   /* open file */
-  if( fp = fopen(fileStr, "r") ){
+  if((fp = fopen(fileStr, "r"))){
     BibFileRecord	*bibfileRecord;
     BibFileError	bibFileErr;
     char		*errMsg;
@@ -1634,26 +1667,26 @@ void warpRapidIORead(
 						&meshMinDst, &meshMaxDst);
 	/* set the parameters, note in this version the basisFnType 
 	   is not set  - now it is */
-	if( option_menu = XtNameToWidget(view_struct->dialog,
-					 "*.mesh_function") ){
+	if((option_menu = XtNameToWidget(view_struct->dialog,
+					 "*.mesh_function"))){
 	  switch( wlzFnType ){
 	  default:
 	  case WLZ_FN_BASIS_2DMQ:
-	    if( widget = XtNameToWidget(option_menu, "*.multiquadric") ){
+	    if((widget = XtNameToWidget(option_menu, "*.multiquadric"))){
 	      XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
 	      XtCallCallbacks(widget, XmNactivateCallback, NULL);
 	    }
 	    break;
 
 	  case WLZ_FN_BASIS_2DTPS:
-	    if( widget = XtNameToWidget(option_menu, "*.thin-plate spline") ){
+	    if((widget = XtNameToWidget(option_menu, "*.thin-plate spline"))){
 	      XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
 	      XtCallCallbacks(widget, XmNactivateCallback, NULL);
 	    }
 	    break;
 
 	  case WLZ_FN_BASIS_2DPOLY:
-	    if( widget = XtNameToWidget(option_menu, "*.polynomial") ){
+	    if((widget = XtNameToWidget(option_menu, "*.polynomial"))){
 	      XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
 	      XtCallCallbacks(widget, XmNactivateCallback, NULL);
 	    }
@@ -1663,26 +1696,26 @@ void warpRapidIORead(
 	}
 	
 	/* set the affine transform type */
-	if( option_menu = XtNameToWidget(view_struct->dialog,
-					 "*.affine_type") ){
+	if((option_menu = XtNameToWidget(view_struct->dialog,
+					 "*.affine_type"))){
 	  switch( affineType ){
 	  default:
 	  case WLZ_TRANSFORM_2D_NOSHEAR:
-	    if( widget = XtNameToWidget(option_menu, "*.noshear") ){
+	    if((widget = XtNameToWidget(option_menu, "*.noshear"))){
 	      XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
 	      XtCallCallbacks(widget, XmNactivateCallback, NULL);
 	    }
 	    break;
 
 	  case WLZ_TRANSFORM_2D_REG:
-	    if( widget = XtNameToWidget(option_menu, "*.rigid") ){
+	    if((widget = XtNameToWidget(option_menu, "*.rigid"))){
 	      XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
 	      XtCallCallbacks(widget, XmNactivateCallback, NULL);
 	    }
 	    break;
 
 	  case WLZ_TRANSFORM_2D_AFFINE:
-	    if( widget = XtNameToWidget(option_menu, "*.affine") ){
+	    if((widget = XtNameToWidget(option_menu, "*.affine"))){
 	      XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
 	      XtCallCallbacks(widget, XmNactivateCallback, NULL);
 	    }
@@ -1692,19 +1725,19 @@ void warpRapidIORead(
 	}
 		
 	/* set the mesh generation method */
-	if( option_menu = XtNameToWidget(view_struct->dialog,
-					 "*.mesh_method") ){
+	if((option_menu = XtNameToWidget(view_struct->dialog,
+					 "*.mesh_method"))){
 	  switch( meshMthd ){
 	  default:
 	  case WLZ_MESH_GENMETHOD_BLOCK:
-	    if( widget = XtNameToWidget(option_menu, "*.block") ){
+	    if((widget = XtNameToWidget(option_menu, "*.block"))){
 	      XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
 	      XtCallCallbacks(widget, XmNactivateCallback, NULL);
 	    }
 	    break;
 
 	  case WLZ_MESH_GENMETHOD_GRADIENT:
-	    if( widget = XtNameToWidget(option_menu, "*.gradient") ){
+	    if((widget = XtNameToWidget(option_menu, "*.gradient"))){
 	      XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
 	      XtCallCallbacks(widget, XmNactivateCallback, NULL);
 	    }
@@ -1712,12 +1745,12 @@ void warpRapidIORead(
 	  }
 	}
 
-	if( slider = XtNameToWidget(view_struct->dialog,
-				    "*.mesh_min_dist") ){
+	if((slider = XtNameToWidget(view_struct->dialog,
+				    "*.mesh_min_dist"))){
 	  HGU_XmSetSliderValue(slider, (float) meshMinDst);
 	}
-	if( slider = XtNameToWidget(view_struct->dialog,
-				    "*.mesh_max_dist") ){
+	if((slider = XtNameToWidget(view_struct->dialog,
+				    "*.mesh_max_dist"))){
 	  HGU_XmSetSliderValue(slider, (float) meshMaxDst);
 	}
 	resetOvlyFlg = 1;
@@ -1786,7 +1819,7 @@ void warpRapidIORead(
 				 &fileStr, &fileType);
 
 	/* read the image and install */
-	if( obj = WlzEffReadObj(NULL, fileStr, fileType, 0, &errNum) ){
+	if((obj = WlzEffReadObj(NULL, fileStr, fileType, 0, &errNum))){
 	  if((obj->type == WLZ_2D_DOMAINOBJ) &&
 	     (obj->values.core != NULL)){
 	    warpGlobals.srcFile = fileStr;
@@ -1833,7 +1866,7 @@ void warpRapidIORead(
 				 &fileStr, &fileType);
 
 	/* read the image and install */
-	if( obj = WlzEffReadObj(NULL, fileStr, fileType, 0, &errNum) ){
+	if((obj = WlzEffReadObj(NULL, fileStr, fileType, 0, &errNum))){
 	  if( obj->type == WLZ_2D_DOMAINOBJ ){
 	    warpGlobals.sgnlFile = fileStr;
 	    warpGlobals.sgnlFileType = fileType;
@@ -1864,36 +1897,36 @@ void warpRapidIORead(
 							&width,
 							&threshLow,
 							&threshHigh);
-	if( toggle = XtNameToWidget(globals.topl,
-				    "*warp_sgnl_controls_form*normalise") ){
+	if((toggle = XtNameToWidget(globals.topl,
+				    "*warp_sgnl_controls_form*normalise"))){
 	  XtVaSetValues(toggle, XmNset, normFlg, NULL);
 	}
-	if( toggle = XtNameToWidget(globals.topl,
-				    "*warp_sgnl_controls_form*histo_equalise") ){
+	if((toggle = XtNameToWidget(globals.topl,
+				    "*warp_sgnl_controls_form*histo_equalise"))){
 	  XtVaSetValues(toggle, XmNset, histoFlg, NULL);
 	}
-	if( toggle =
+	if((toggle =
 	   XtNameToWidget(globals.topl,
-			  "*warp_sgnl_controls_form*shade_correction") ){
+			  "*warp_sgnl_controls_form*shade_correction"))){
 	  XtVaSetValues(toggle, XmNset, shadeFlg, NULL);
 	}
-	if( toggle = XtNameToWidget(globals.topl,
-				    "*warp_sgnl_controls_form*gauss_smooth") ){
+	if((toggle = XtNameToWidget(globals.topl,
+				    "*warp_sgnl_controls_form*gauss_smooth"))){
 	  XtVaSetValues(toggle, XmNset, gaussFlg, NULL);
 	}
-	if( slider = XtNameToWidget(globals.topl,
-				    "*warp_sgnl_controls_form*gauss_width") ){
+	if((slider = XtNameToWidget(globals.topl,
+				    "*warp_sgnl_controls_form*gauss_width"))){
 	  HGU_XmSetSliderValue(slider, width);
 	}
-	if( slider =
+	if((slider =
 	   XtNameToWidget(globals.topl,
-			  "*warp_sgnl_controls_form*thresh_range_low") ){
+			  "*warp_sgnl_controls_form*thresh_range_low"))){
 	  HGU_XmSetSliderValue(slider, (float) threshLow);
 	  warpGlobals.threshRangeLow = threshLow;
 	}
-	if( slider =
+	if((slider =
 	   XtNameToWidget(globals.topl,
-			  "*warp_sgnl_controls_form*thresh_range_high") ){
+			  "*warp_sgnl_controls_form*thresh_range_high"))){
 	  HGU_XmSetSliderValue(slider, (float) threshHigh);
 	  warpGlobals.threshRangeHigh = threshHigh;
 	}
@@ -1904,7 +1937,7 @@ void warpRapidIORead(
 		   "MAPaintWarpInputThresholdParams", 31) ){
 	Widget	radio_box, toggle, slider;
 	Widget	notebook, option_menu, button;
-	char		*tmpStr;
+	char		*tmpStr=NULL;
 	int		i;
 	XmToggleButtonCallbackStruct cbs;
 
@@ -1952,29 +1985,29 @@ void warpRapidIORead(
 
 	/* reset simple controls */
 	/* do modes before threshold controls */
-	if( toggle = XtNameToWidget(globals.topl,
-				    "*warp_sgnl_controls_form*global_thresh") ){
+	if((toggle = XtNameToWidget(globals.topl,
+				    "*warp_sgnl_controls_form*global_thresh"))){
 	  XtVaSetValues(toggle, XmNset, threshParamStr.globalThreshFlg, NULL);
 	  cbs.set = threshParamStr.globalThreshFlg;
 	  XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
 	}
-	if( toggle = 
+	if((toggle = 
 	   XtNameToWidget(globals.topl,
-			  "*warp_sgnl_controls_form*incremental_thresh") ){
+			  "*warp_sgnl_controls_form*incremental_thresh"))){
 	  XtVaSetValues(toggle, XmNset, threshParamStr.incrThreshFlg, NULL);
 	  cbs.set = threshParamStr.incrThreshFlg;
 	  XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
 	}
-	if( toggle =
+	if((toggle =
 	   XtNameToWidget(globals.topl,
-			  "*warp_sgnl_controls_form*pick_mode_thresh") ){
+			  "*warp_sgnl_controls_form*pick_mode_thresh"))){
 	  XtVaSetValues(toggle, XmNset, threshParamStr.pickThreshFlg, NULL);
 	  cbs.set = threshParamStr.pickThreshFlg;
 	  XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
 	}
-	if( toggle =
+	if((toggle =
 	   XtNameToWidget(globals.topl,
-			  "*warp_sgnl_controls_form*distance_mode_thresh") ){
+			  "*warp_sgnl_controls_form*distance_mode_thresh"))){
 	  XtVaSetValues(toggle, XmNset, threshParamStr.distanceThreshFlg, NULL);
 	  cbs.set = threshParamStr.distanceThreshFlg;
 	  XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
@@ -1982,62 +2015,62 @@ void warpRapidIORead(
   
 	/* reset the threshold and interact controls */
 	/* single colour mode */
-	if( slider =
+	if((slider =
 	   XtNameToWidget(globals.topl,
-			  "*warp_sgnl_controls_form*thresh_range_low") ){
+			  "*warp_sgnl_controls_form*thresh_range_low"))){
 	  HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeLow);
 	}
-	if( slider =
+	if((slider =
 	   XtNameToWidget(globals.topl,
-			  "*warp_sgnl_controls_form*thresh_range_high") ){
+			  "*warp_sgnl_controls_form*thresh_range_high"))){
 	  HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeHigh);
 	}
 	  
 	/* multi-colour mode */
-	if( slider =
+	if((slider =
 	   XtNameToWidget(globals.topl,
-			  "*warp_sgnl_controls_form*thresh_range_red_low") ){
+			  "*warp_sgnl_controls_form*thresh_range_red_low"))){
 	  HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBLow[0]);
 	}
-	if( slider =
+	if((slider =
 	   XtNameToWidget(globals.topl,
-			  "*warp_sgnl_controls_form*thresh_range_red_high") ){
+			  "*warp_sgnl_controls_form*thresh_range_red_high"))){
 	  HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBHigh[0]);
 	}
-	if( slider =
+	if((slider =
 	   XtNameToWidget(globals.topl,
-			  "*warp_sgnl_controls_form*thresh_range_green_low") ){
+			  "*warp_sgnl_controls_form*thresh_range_green_low"))){
 	  HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBLow[1]);
 	}
-	if( slider =
+	if((slider =
 	   XtNameToWidget(globals.topl,
-			  "*warp_sgnl_controls_form*thresh_range_green_high") ){
+			  "*warp_sgnl_controls_form*thresh_range_green_high"))){
 	  HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBHigh[1]);
 	}
-	if( slider =
+	if((slider =
 	   XtNameToWidget(globals.topl,
-			  "*warp_sgnl_controls_form*thresh_range_blue_low") ){
+			  "*warp_sgnl_controls_form*thresh_range_blue_low"))){
 	  HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBLow[2]);
 	}
-	if( slider =
+	if((slider =
 	   XtNameToWidget(globals.topl,
-			  "*warp_sgnl_controls_form*thresh_range_blue_high") ){
+			  "*warp_sgnl_controls_form*thresh_range_blue_high"))){
 	  HGU_XmSetSliderValue(slider, (float) warpGlobals.threshRangeRGBHigh[2]);
 	}
 
 	/* interactive mode */
-	if( slider =
+	if((slider =
 	   XtNameToWidget(globals.topl,
-			  "*warp_sgnl_controls_form*thresh_eccentricity") ){
+			  "*warp_sgnl_controls_form*thresh_eccentricity"))){
 	  HGU_XmSetSliderValue(slider, (float) warpGlobals.colorEllipseEcc);
 	}
-	if( slider = XtNameToWidget(globals.topl,
-				    "*warp_sgnl_controls_form*thresh_radius") ){
+	if((slider = XtNameToWidget(globals.topl,
+				    "*warp_sgnl_controls_form*thresh_radius"))){
 	  HGU_XmSetSliderValue(slider, (float) 10.0);
 	}
-	if( radio_box = 
+	if((radio_box = 
 	   XtNameToWidget(globals.topl,
-			  "*warp_sgnl_controls_form*threshold_interact_rc") ){
+			  "*warp_sgnl_controls_form*threshold_interact_rc"))){
 	  switch( threshParamStr.thresholdType ){
 	  default:
 	  case WLZ_RGBA_THRESH_SLICE:
@@ -2075,9 +2108,9 @@ void warpRapidIORead(
 	  tmpStr = "threshold_interactive_page";
 	  break;
 	}
-	if( notebook = XtNameToWidget(warpGlobals.sgnlControls,
-				      "*warp_sgnl_notebook") ){
-	  int	minPageNum, maxPageNum, pageNum;
+	if((notebook = XtNameToWidget(warpGlobals.sgnlControls,
+				      "*warp_sgnl_notebook"))){
+	  int	minPageNum, maxPageNum;
 	  XtVaGetValues(notebook,
 			XmNfirstPageNumber, &minPageNum,
 			XmNlastPageNumber, &maxPageNum,
@@ -2101,9 +2134,9 @@ void warpRapidIORead(
 
 	/* colour space - affects channel selectors and callbacks */
 	warpGlobals.threshRGBSpace = threshParamStr.threshRGBSpace;
-	if( option_menu =
+	if((option_menu =
 	   XtNameToWidget(globals.topl,
-			  "*warp_sgnl_controls_form*color_space") ){
+			  "*warp_sgnl_controls_form*color_space"))){
 	  switch( warpGlobals.threshRGBSpace ){
 	  default:
 	  case WLZ_RGBA_SPACE_RGB:
@@ -2124,9 +2157,9 @@ void warpRapidIORead(
 
 	/* colour channel - now recalculate the signal domain from scratch */
 	warpGlobals.threshColorChannel = threshParamStr.threshColorChannel;
-	if( radio_box =
+	if((radio_box =
 	   XtNameToWidget(globals.topl,
-			  "*warp_sgnl_controls_form*threshold_channel_rc") ){
+			  "*warp_sgnl_controls_form*threshold_channel_rc"))){
 	  switch( threshParamStr.threshColorChannel ){
 	  default:
 	  case WLZ_RGBA_CHANNEL_GREY:
@@ -2172,6 +2205,8 @@ void warpRapidIORead(
       recalcWarpProcObjCb(w, (XtPointer) view_struct, NULL);
     }
 
+    expressMapStatusChange(-1);
+
   }
 
   return;
@@ -2191,14 +2226,14 @@ void warpIOWriteAffine(
   }
 
   /* get a filename for the affine transform */
-  if( fileStr = HGU_XmUserGetFilename(globals.topl,
+  if((fileStr = HGU_XmUserGetFilename(globals.topl,
 				      "Please type in a filename\n"
 				      "for the affine transform\n",
 				      "OK", "cancel",
 				      "MAPaintWarpAffine.wlz",
-				      NULL, "*.wlz") ){
+				      NULL, "*.wlz"))){
 
-    if( fp = fopen(fileStr, "w") ){
+    if((fp = fopen(fileStr, "w"))){
       if( warpGlobals.affine ){
 	WlzObject *obj;
 	WlzDomain	domain;
@@ -2213,8 +2248,8 @@ void warpIOWriteAffine(
 	t2 = WlzAffineTransformProduct(t1, warpGlobals.affine, NULL);
 	domain.t = t2;
 	values.core = NULL;
-	if( obj = WlzMakeMain(WLZ_AFFINE_TRANS, domain, values,
-			      NULL, NULL, NULL) ){
+	if((obj = WlzMakeMain(WLZ_AFFINE_TRANS, domain, values,
+			      NULL, NULL, NULL))){
 	  WlzWriteObj(fp, obj);
 	  obj->domain.core = NULL;
 	  WlzFreeObj(obj);
@@ -2246,15 +2281,15 @@ void warpIOWriteImage(
   }
 
   /* get a filename for the warp parameters */
-  if( fileStr = HGU_XmUserGetFilename(globals.topl,
+  if((fileStr = HGU_XmUserGetFilename(globals.topl,
 				      "Please type in a filename\n"
 				      "for the warped source image\n"
 				      "point parameters to be read in.\n",
 				      "OK", "cancel",
 				      "MAPaintWarpedSource.wlz",
-				      NULL, "*.wlz") ){
+				      NULL, "*.wlz"))){
 
-    if( fp = fopen(fileStr, "w") ){
+    if((fp = fopen(fileStr, "w"))){
       /* transform the object */
       if( interpFlg ){
 	obj = mapaintWarpObj(warpGlobals.src.obj, WLZ_INTERPOLATION_LINEAR);
@@ -2298,7 +2333,7 @@ static MenuItem warpIOMenuItemsP[] = {  /* controls values io menu */
    warpIOWriteAffine, (XtPointer) 0,
    myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 void setupWarpIOMenu(

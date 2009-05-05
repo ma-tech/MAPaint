@@ -1,23 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas Project					*
-*   File       :   MARealignmentDialog.c				*
-* $Revision$
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Sun Mar 14 16:43:06 1999				*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MARealignmentDialog_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MARealignmentDialog.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:47:17 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,10 +57,10 @@ extern Widget create_view_window_dialog(Widget topl,
 					double phi,
 					WlzDVertex3 *fixed);
 
-extern DisplayBound(Display	*dpy,
-		    Window	win,
-		    GC		gc,
-		    WlzBoundList	*bound);
+extern int DisplayBound(Display		*dpy,
+			Window		win,
+			GC		gc,
+			WlzBoundList	*bound);
 
 void realignSetImage(ThreeDViewStruct *view_struct);
 void realignDisplayPolysCb(Widget w, XtPointer client_data,
@@ -70,8 +93,6 @@ void setOverlayTypeCb(
   XtPointer		client_data,
   XtPointer		call_data)
 {
-  Widget	canvas;
-
   if( client_data ){
     overlayType = (MARealignOverlayType) client_data;
   }
@@ -100,13 +121,13 @@ void realignDisplayOverlayCb(
   /* the coordinates should be as required for the canvas window */
   if(view_struct && ovlyObj &&
      (ovlyObj->type == WLZ_BOUNDLIST)){
-    if( trans = WlzAffineTransformFromPrimVal(WLZ_TRANSFORM_2D_AFFINE,
+    if((trans = WlzAffineTransformFromPrimVal(WLZ_TRANSFORM_2D_AFFINE,
 					      0.0, 0.0, 0.0,
 					      wlzViewStr->scale,
 					      0.0, 0.0, 0.0, 0.0, 0.0,
-					      0, NULL) ){
-      if( obj = WlzAffineTransformObj(ovlyObj, trans,
-				      WLZ_INTERPOLATION_NEAREST, NULL) ){
+					      0, NULL))){
+      if((obj = WlzAffineTransformObj(ovlyObj, trans,
+				      WLZ_INTERPOLATION_NEAREST, NULL))){
 	
 	(void) HGU_XColourFromNameGC(dpy, globals.cmap, globals.gc_set,
 				     "blue");
@@ -123,7 +144,6 @@ void realignDisplayOverlayCb(
 void realignSetOverlay(
   ThreeDViewStruct	*view_struct)
 {
-  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   int			dst_height, src_height, tx, ty;
   double		scale;
   WlzObject		*obj1=NULL, *obj2;
@@ -145,8 +165,8 @@ void realignSetOverlay(
       scale = ((double) dst_height) / src_height;
       spX = (overlayObj->domain.i->lastkl + overlayObj->domain.i->kol1) / 2;
       spY = (overlayObj->domain.i->lastln + overlayObj->domain.i->line1) / 2;
-      if( trans = WlzAffineTransformFromSpinSqueeze(spX, spY, 0.0,
-						    scale, scale, &errNum) ){
+      if((trans = WlzAffineTransformFromSpinSqueeze(spX, spY, 0.0,
+						    scale, scale, &errNum))){
 	obj1 = WlzAffineTransformObj(overlayObj, trans,
 				     WLZ_INTERPOLATION_NEAREST, &errNum);
 	WlzFreeAffineTransform(trans);
@@ -159,7 +179,7 @@ void realignSetOverlay(
 	      obj1->domain.i->kol1) / 2 + x_shift;
 	ty = (view_struct->ximage->height - obj1->domain.i->lastln -
 	      obj1->domain.i->line1) / 2 + y_shift;
-	if( obj2 = WlzShiftObject(obj1, tx, ty, 0, &errNum) ){
+	if((obj2 = WlzShiftObject(obj1, tx, ty, 0, &errNum))){
 	  WlzFreeObj(obj1);
 	  obj1 = WlzAssignObject(obj2, NULL);
 	}
@@ -188,6 +208,10 @@ void realignSetOverlay(
       obj1 = WlzAssignObject(overlayObj, NULL);
       break;
 
+    default:
+      errNum = WLZ_ERR_OBJECT_TYPE;
+      break;
+
     }
   }
 
@@ -197,11 +221,11 @@ void realignSetOverlay(
     /* first apply scaling and rotation around the view centre */
     spX = view_struct->ximage->width / 2;
     spY = view_struct->ximage->height / 2;
-    if( trans = WlzAffineTransformFromSpinSqueeze(spX, spY, theta,
+    if((trans = WlzAffineTransformFromSpinSqueeze(spX, spY, theta,
 						  x_scale, y_scale,
-						  &errNum) ){
-      if( obj2 = WlzAffineTransformObj(obj1, trans,
-				       WLZ_INTERPOLATION_NEAREST, &errNum)){
+						  &errNum))){
+      if((obj2 = WlzAffineTransformObj(obj1, trans,
+				       WLZ_INTERPOLATION_NEAREST, &errNum))){
 	WlzFreeAffineTransform(trans);
 	WlzFreeObj(obj1);
 
@@ -466,10 +490,8 @@ void realignReadOverlayCb(
   XtPointer	call_data)
 {
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
-  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   XmFileSelectionBoxCallbackStruct *cbs =
     (XmFileSelectionBoxCallbackStruct *) call_data;
-  String		fileStr;
   FILE			*fp;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
   WlzObject		*obj;
@@ -562,13 +584,10 @@ void realignWriteOverlayCb(
   XtPointer	call_data)
 {
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
-  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   XmFileSelectionBoxCallbackStruct *cbs =
     (XmFileSelectionBoxCallbackStruct *) call_data;
-  String		fileStr;
   FILE			*fp;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
-  WlzObject		*obj;
 
   /* check we can open the file and save the filename */
   if( (fp = HGU_XmGetFilePointer(view_struct->dialog, cbs->value,
@@ -629,8 +648,8 @@ void realignmentCb(
 {
   Widget	dialog, widget;
 
-  if( dialog = createRealignmentDialog(globals.topl) ){
-    if( widget = XtNameToWidget(globals.topl, "*options_menu*realignment") ){
+  if((dialog = createRealignmentDialog(globals.topl))){
+    if((widget = XtNameToWidget(globals.topl, "*options_menu*realignment"))){
       XtSetSensitive(widget, False);
     }
     XtManageChild(dialog);
@@ -674,7 +693,7 @@ void realignmentDestroyCb(
     transformsObj = NULL;
   }
 
-  if( widget = XtNameToWidget(globals.topl, "*options_menu*realignment") ){
+  if((widget = XtNameToWidget(globals.topl, "*options_menu*realignment"))){
     XtSetSensitive(widget, True);
   }
   
@@ -688,7 +707,6 @@ void realignmentDestroyCb(
 void realignSetImage(
   ThreeDViewStruct	*view_struct)
 {
-  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   int		width, height, oldWidth;
   int		i, offset;
 
@@ -769,8 +787,8 @@ void resetRealignPolyCb(
   Boolean		srcPolySet;
   int			i;
 
-  if( widget = XtNameToWidget(view_struct->dialog,
-			      "*.src_dest_select.src_poly" ) ){
+  if((widget = XtNameToWidget(view_struct->dialog,
+			      "*.src_dest_select.src_poly" ))){
     XtVaGetValues(widget, XmNset, &srcPolySet, NULL);
   }
   else {
@@ -826,14 +844,14 @@ WlzObject *WlzAffineTransformObj3D(
 
   /* make the new object */
   if( errNum == WLZ_ERR_NONE ){
-    if( domain.p = WlzMakePlaneDomain(obj->domain.p->type,
+    if((domain.p = WlzMakePlaneDomain(obj->domain.p->type,
 				      obj->domain.p->plane1,
 				      obj->domain.p->lastpl,
 				      obj->domain.p->line1,
 				      obj->domain.p->lastln,
 				      obj->domain.p->kol1,
 				      obj->domain.p->lastkl,
-				      &errNum) ){
+				      &errNum))){
       for(p=0; p < 3; p++){
 	domain.p->voxel_size[p] = obj->domain.p->voxel_size[p];
       }
@@ -920,14 +938,14 @@ WlzObject *WlzMakeTransformObj3D(
   WlzObject	*rtnObj=NULL;
   int		i;
 
-  if( domain.p = WlzMakePlaneDomain(WLZ_PLANEDOMAIN_AFFINE,
+  if((domain.p = WlzMakePlaneDomain(WLZ_PLANEDOMAIN_AFFINE,
 				    obj->domain.p->plane1,
 				    obj->domain.p->lastpl,
 				    obj->domain.p->line1,
 				    obj->domain.p->lastln,
 				    obj->domain.p->kol1,
 				    obj->domain.p->lastkl,
-				    &errNum) ){
+				    &errNum))){
     for(i=0; i < 3; i++){
       domain.p->voxel_size[i] = obj->domain.p->voxel_size[i];
     }
@@ -976,7 +994,7 @@ static void realignUpdateTransformsObj(
   int		i, p, nPlanes = view_struct->ximage->height;
   int		xp, yp;
   int		origWidth;
-  double	x, y;
+  double	x;
   double	kol1, kol2, line1, line2;
   int		plane1, plane2;
   WlzAffineTransform	*newTrans, *tmpTrans;
@@ -1014,18 +1032,18 @@ static void realignUpdateTransformsObj(
 		      XmDIALOG_FULL_APPLICATION_MODAL);
       return;
     }
-    if( newTrans = WlzAffineTransformFromPrimVal(WLZ_TRANSFORM_2D_AFFINE,
-					      kol2 - kol1,
-					      line2 - line1,
-					      0.0, 1.0, 0.0, 0.0,
-					      0.0, 0.0, 0.0, 0, &errNum)){
+    if((newTrans = WlzAffineTransformFromPrimVal(WLZ_TRANSFORM_2D_AFFINE,
+						 kol2 - kol1,
+						 line2 - line1,
+						 0.0, 1.0, 0.0, 0.0,
+						 0.0, 0.0, 0.0, 0, &errNum))){
 
       /* apply to existing transform */
       p = plane1 - transformsObj->domain.p->plane1;
       if( (transformsObj->domain.p->domains[p]).t ){
-	if( tmpTrans = WlzAffineTransformProduct((transformsObj->
+	if((tmpTrans = WlzAffineTransformProduct((transformsObj->
 						  domain.p->domains[p]).t,
-						 newTrans, &errNum) ){
+						 newTrans, &errNum))){
 
 	  WlzFreeAffineTransform((transformsObj->domain.p->domains[p]).t);
 	  WlzFreeAffineTransform(newTrans);
@@ -1063,7 +1081,7 @@ void applyRealignTransCb(
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   XmPushButtonCallbackStruct	*cbs = 
     (XmPushButtonCallbackStruct *) call_data;
-  WlzObject		*newOrigObj, *newObj;
+  WlzObject		*newOrigObj, *newObj=NULL;
   Widget		widget;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
@@ -1104,7 +1122,7 @@ void applyRealignTransCb(
   }
 
   /* make a new reference object and painted volume */
-  if( newOrigObj = WlzAffineTransformObj3D(origRefObj, transformsObj, &errNum) ){
+  if((newOrigObj = WlzAffineTransformObj3D(origRefObj, transformsObj, &errNum))){
     if( !(newObj = WlzAffineTransformObj3D(origObj, transformsObj, &errNum)) ){
       WlzFreeObj(newOrigObj);
       newOrigObj = NULL;
@@ -1128,8 +1146,8 @@ void applyRealignTransCb(
     setup_obj_props_cb(NULL, NULL, NULL);
     
     /* reset realignment controls */
-    if( widget = XtNameToWidget(view_struct->dialog,
-				"*.realignment_frame_title") ){
+    if((widget = XtNameToWidget(view_struct->dialog,
+				"*.realignment_frame_title"))){
       XmToggleButtonCallbackStruct tmpcbs;
 
       XtVaSetValues(widget, XmNset, False, NULL);
@@ -1175,8 +1193,8 @@ void undoRealignTransCb(
   setup_obj_props_cb(NULL, NULL, NULL);
 
   /* reset realignment controls */
-  if( widget = XtNameToWidget(view_struct->dialog,
-			      "*.realignment_frame_title") ){
+  if((widget = XtNameToWidget(view_struct->dialog,
+			      "*.realignment_frame_title"))){
     XmToggleButtonCallbackStruct tmpcbs;
 
     XtVaSetValues(widget, XmNset, False, NULL);
@@ -1198,15 +1216,11 @@ void writeRealignTransCb(
 {
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
-  XmPushButtonCallbackStruct
-    *cbs = (XmPushButtonCallbackStruct *) call_data;
   String		fileStr;
   FILE			*fp;
   int			i, p;
   BibFileRecord	*record = NULL;
-  BibFileField	*field0 = NULL,
-		*field1 = NULL,
-		*field2 = NULL;
+  BibFileField	*field0 = NULL;
   char		tmpBuf[256], *eMsg;
   char		*tmpS,
 		*idxS = NULL,
@@ -1239,12 +1253,12 @@ void writeRealignTransCb(
   }
 
   /* get a bib-file filename */
-  if( fileStr =
+  if((fileStr =
      HGU_XmUserGetFilename(globals.topl,
 			   "Please type in a filename\n"
 			   "for the transforms bib-file\n",
 			   "OK", "cancel", "MAPaintRealign.bib",
-			   NULL, "*.bib") ){
+			   NULL, "*.bib"))){
     if( (fp = fopen(fileStr, "w")) == NULL ){
       HGU_XmUserError(view_struct->dialog,
 		      "Failed to open the bib-file. Please\n"
@@ -1411,28 +1425,24 @@ void readRealignTransCb(
   XtPointer	call_data)
 {
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
-  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
-  XmPushButtonCallbackStruct	*cbs = 
-    (XmPushButtonCallbackStruct *) call_data;
   String		fileStr;
   FILE			*fp;
-  int			i, p;
+  int			p;
   char			*errMsg;
   int			numParsedFields=0;
   BibFileRecord		*bibfileRecord;
-  BibFileField		*bibfileField;
   BibFileError		bibFileErr=BIBFILE_ER_NONE;
   double		tx=0.0, ty=0.0, theta=0.0;
   WlzAffineTransform	*inTrans, *tmpTrans;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* get a bib-file filename */
-  if( fileStr =
+  if((fileStr =
      HGU_XmUserGetFilename(globals.topl,
 			   "Please type in a filename\n"
 			   "for the transforms bib-file\n",
 			   "OK", "cancel", "MAPaintRealign.bib",
-			   NULL, "*.bib") ){
+			   NULL, "*.bib"))){
     if( (fp = fopen(fileStr, "r")) == NULL ){
       HGU_XmUserError(view_struct->dialog,
 		      "Failed to open the bib-file. Please\n"
@@ -1510,16 +1520,16 @@ void readRealignTransCb(
 	 NULL);
 
       /* make the transform for this record */
-      if( inTrans = WlzAffineTransformFromPrimVal(WLZ_TRANSFORM_2D_AFFINE,
+      if((inTrans = WlzAffineTransformFromPrimVal(WLZ_TRANSFORM_2D_AFFINE,
 					       tx, ty, 0.0, 1.0,
 					       theta, 0.0, 0.0, 0.0, 0.0, 0,
-					       &errNum) ){
+						  &errNum))){
 
 	/* if concatenate with the existing transforms */
 	if( transformsObj->domain.p->domains[p].t ){
-	  if( tmpTrans =
+	  if((tmpTrans =
 	     WlzAffineTransformProduct(transformsObj->domain.p->domains[p].t,
-				       inTrans, &errNum) ){
+				       inTrans, &errNum))){
 	    WlzFreeAffineTransform(transformsObj->domain.p->domains[p].t);
 	    WlzFreeAffineTransform(inTrans);
 	    transformsObj->domain.p->domains[p].t =
@@ -1588,16 +1598,16 @@ void realignment_input_cb(
 
 	/* establish the modes */
 	lineModeFlg = 0;
-	if( widget = XtNameToWidget(view_struct->dialog,
-				    "*.straight_line") ){
+	if((widget = XtNameToWidget(view_struct->dialog,
+				    "*.straight_line"))){
 	  XtVaGetValues(widget, XmNset, &toggleSet, NULL);
 	  if( toggleSet ){
 	    lineModeFlg = 1;
 	  }
 	}
 	setSrcPolyFlg = 0;
-	if( widget = XtNameToWidget(view_struct->dialog,
-				    "*.src_poly") ){
+	if((widget = XtNameToWidget(view_struct->dialog,
+				    "*.src_poly"))){
 	  XtVaGetValues(widget, XmNset, &toggleSet, NULL);
 	  if( toggleSet ){
 	    setSrcPolyFlg = 1;
@@ -1900,7 +1910,7 @@ static void realignment_controls_cb(
   XtSetSensitive(view_struct->controls, wasManaged);
   XtSetSensitive(view_struct->slider, wasManaged );
   setControlButtonsSensitive(view_struct, wasManaged);
-  if( magFncForm = XtNameToWidget(dialog, "*.paint_function_row_col") ){
+  if((magFncForm = XtNameToWidget(dialog, "*.paint_function_row_col"))){
     XtSetSensitive(magFncForm, wasManaged);
   }
 
@@ -1953,7 +1963,7 @@ static MenuItem poly_menu_itemsP[] = {		/* poly_menu items */
    NULL, NULL,
    myHGU_XmHelpStandardCb, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},*/
-  NULL,
+  {NULL},
 };
 
 static MenuItem overlay_type_itemsP[] = {		/* poly_menu items */
@@ -1969,7 +1979,7 @@ static MenuItem overlay_type_itemsP[] = {		/* poly_menu items */
    setOverlayTypeCb, (XtPointer) MAREALIGN_EDGE_TYPE,
    myHGU_XmHelpStandardCb, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 Widget createRealignmentDialog(

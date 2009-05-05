@@ -1,22 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas Project					*
-*   File       :   theilerStage.c					*
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Fri Feb 20 09:45:59 1998				*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _theilerStage_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         theilerStage.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:39:53 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,6 +48,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <MAPaint.h>
 
@@ -73,7 +98,7 @@ void theiler_stage_setup_cb(
     /* attempt to find the Models directory.
        If it fails set a plausible path to start the manual browse. */
 #if defined (LINUX2)
-    if( pp = popen("find /mnt -maxdepth 4 -name Models", "r") ){
+    if((pp = popen("find /mnt -maxdepth 4 -name Models", "r"))){
       while( fscanf(pp, "%s", fileStr) != EOF ){
 	if( strstr(fileStr, "Models") ){
 	  newDir= AlcStrDup(fileStr);
@@ -88,7 +113,7 @@ void theiler_stage_setup_cb(
       testDir = "/mnt";
     }
 #elif defined (DARWIN)
-    if( pp = popen("find /Volumes -maxdepth 4 -name Models", "r") ){
+    if((pp = popen("find /Volumes -maxdepth 4 -name Models", "r"))){
       while( fscanf(pp, "%s", fileStr) != EOF ){
 	if( strstr(fileStr, "Models") ){
 	  newDir = AlcStrDup(fileStr);
@@ -103,7 +128,7 @@ void theiler_stage_setup_cb(
       testDir = "/mnt";
     }
 #elif defined (SUNOS4) || defined (SUNOS5)
-    if( pp = popen("find /cdrom -maxdepth 4 -name Models", "r") ){
+    if((pp = popen("find /cdrom -maxdepth 4 -name Models", "r"))){
       while( fscanf(pp, "%s", fileStr) != EOF ){
 	if( strstr(fileStr, "Models") ){
 	  newDir = AlcStrDup(fileStr);
@@ -118,7 +143,7 @@ void theiler_stage_setup_cb(
       testDir = "/mnt";
     }
 #else
-    if( pp = popen("find / -maxdepth 5 -name Models", "r") ){
+    if((pp = popen("find / -maxdepth 5 -name Models", "r"))){
       while( fscanf(pp, "%s", fileStr) != EOF ){
 	if( strstr(fileStr, "Models") ){
 	  newDir= AlcStrDup(fileStr);
@@ -136,13 +161,13 @@ void theiler_stage_setup_cb(
 
     /* if a directory found then confirm */
     if( newDir ){
-      if( testDir = 
+      if((testDir = 
 	 HGU_XmUserGetFilename(globals.topl,
 			       "Found the following Models directory.\n"
 			       "Press OK if correct otherwise Browse to\n"
 			       "the required location\n",
 			       "OK", "cancel", newDir,
-			       newDir, NULL) ){
+			       newDir, NULL))){
 	AlcFree(newDir);
 	newDir = testDir;
       }
@@ -223,7 +248,7 @@ void set_theiler_stage_cb(
   if( globals.theiler_stage ){
     AlcFree((void *) globals.theiler_stage);
   }
-  if( globals.theiler_stage = (String) AlcMalloc(strlen(theilerName) + 1) ){
+  if((globals.theiler_stage = (String) AlcMalloc(strlen(theilerName) + 1))){
     sprintf(globals.theiler_stage, "%s", theilerName);
   }
   else {
@@ -237,7 +262,7 @@ void set_theiler_stage_cb(
     sprintf(file_str, "%s/%s/%s.wlz", globals.base_theiler_dir,
 	    globals.theiler_stage, globals.theiler_stage);
     if( (fp = fopen(file_str, "r")) ){
-      if( obj = WlzReadObj( fp, &errNum ) ){
+      if((obj = WlzReadObj( fp, &errNum ))){
 	globals.origObjType = WLZ_3D_DOMAINOBJ;
 	install_paint_reference_object( obj );
 	set_topl_title(globals.theiler_stage);
@@ -261,7 +286,7 @@ void set_theiler_stage_cb(
 
     /* open the domain object file and put it in as a 3D feedback option */
     if( (fp = fopen(file_str, "r")) ){
-      if( obj = WlzReadObj( fp, &errNum ) ){
+      if((obj = WlzReadObj( fp, &errNum ))){
 	globals.fb_obj = WlzAssignObject(obj, &errNum);
       }
       (void) fclose( fp );
@@ -293,7 +318,7 @@ static int cmpMenuItem(
 void theiler_menu_init(
   Widget	topl)
 {
-  Widget	file_menu, menu_parent, menu, widget;
+  Widget	menu_parent, menu;
   MenuItem	*menu_items;
   struct dirent *dp;
   DIR		*dfd;

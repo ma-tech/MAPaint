@@ -1,24 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas MAPaint					*
-*   File       :   MAWarpSignalInteract.c				*
-*************************************************************************
-*   Author Name :  richard						*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Tue Nov  4 13:05:53 2003				*
-*   $Revision$								*
-*   $Name$								*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MAWarpSignalInter_ct_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAWarpSignalInteract.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:42:22 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +50,11 @@
 
 extern void warpThreshRadiusSet(
   WlzDVertex2	dist);
+
+extern WlzErrorNum MAPaintEventRemap(
+  MAPaintContext	context,
+  MAPaintContextMode	mode,
+  XEvent		*event);
 
 /* include a static undo list here.
    For simplicity no redo - no doubt the punters will want it */
@@ -114,6 +141,11 @@ WlzPixelV warpThreshCentre(
   if( pix1.type == pix2.type ){
     rtnPix = pix1;
     switch( pix1.type ){
+    default:
+      rtnPix.type = WLZ_GREY_INT;
+      rtnPix.v.inv = -1;
+      break;
+
     case WLZ_GREY_INT:
       rtnPix.v.inv = (pix1.v.inv + pix2.v.inv) / 2;
       break;
@@ -250,12 +282,12 @@ void sgnlInteractSetHighLowControls(
     warpGlobals.threshRangeHigh = WLZ_MAX(val1, val2);
 
     /* set the sliders */
-    if( slider = XtNameToWidget(warpGlobals.sgnlControls,
-				"*.thresh_range_low") ){
+    if((slider = XtNameToWidget(warpGlobals.sgnlControls,
+				"*.thresh_range_low"))){
       HGU_XmSetSliderValue(slider, warpGlobals.threshRangeLow);
     }
-    if( slider = XtNameToWidget(warpGlobals.sgnlControls,
-				"*.thresh_range_high") ){
+    if((slider = XtNameToWidget(warpGlobals.sgnlControls,
+				"*.thresh_range_high"))){
       HGU_XmSetSliderValue(slider, warpGlobals.threshRangeHigh);
     } 
     break;
@@ -279,12 +311,12 @@ void sgnlInteractSetHighLowControls(
     warpGlobals.threshRangeRGBHigh[0] = WLZ_MAX(val1, val2);
 
     /* set the sliders */
-    if( slider = XtNameToWidget(warpGlobals.sgnlControls,
-				"*.thresh_range_red_low") ){
+    if((slider = XtNameToWidget(warpGlobals.sgnlControls,
+				"*.thresh_range_red_low"))){
       HGU_XmSetSliderValue(slider, warpGlobals.threshRangeRGBLow[0]);
     }
-    if( slider = XtNameToWidget(warpGlobals.sgnlControls,
-				"*.thresh_range_red_high") ){
+    if((slider = XtNameToWidget(warpGlobals.sgnlControls,
+				"*.thresh_range_red_high"))){
       HGU_XmSetSliderValue(slider, warpGlobals.threshRangeRGBHigh[0]);
     } 
 
@@ -305,12 +337,12 @@ void sgnlInteractSetHighLowControls(
     warpGlobals.threshRangeRGBHigh[1] = WLZ_MAX(val1, val2);
 
     /* set the sliders */
-    if( slider = XtNameToWidget(warpGlobals.sgnlControls,
-				"*.thresh_range_green_low") ){
+    if((slider = XtNameToWidget(warpGlobals.sgnlControls,
+				"*.thresh_range_green_low"))){
       HGU_XmSetSliderValue(slider, warpGlobals.threshRangeRGBLow[1]);
     } 
-    if( slider = XtNameToWidget(warpGlobals.sgnlControls,
-				"*.thresh_range_green_high") ){
+    if((slider = XtNameToWidget(warpGlobals.sgnlControls,
+				"*.thresh_range_green_high"))){
       HGU_XmSetSliderValue(slider, warpGlobals.threshRangeRGBHigh[1]);
     } 
 
@@ -331,12 +363,12 @@ void sgnlInteractSetHighLowControls(
     warpGlobals.threshRangeRGBHigh[2] = WLZ_MAX(val1, val2);
 
     /* set the sliders */
-    if( slider = XtNameToWidget(warpGlobals.sgnlControls,
-				"*.thresh_range_blue_low") ){
+    if((slider = XtNameToWidget(warpGlobals.sgnlControls,
+				"*.thresh_range_blue_low"))){
       HGU_XmSetSliderValue(slider, warpGlobals.threshRangeRGBLow[2]);
     } 
-    if( slider = XtNameToWidget(warpGlobals.sgnlControls,
-				"*.thresh_range_blue_high") ){
+    if((slider = XtNameToWidget(warpGlobals.sgnlControls,
+				"*.thresh_range_blue_high"))){
       HGU_XmSetSliderValue(slider, warpGlobals.threshRangeRGBHigh[2]);
     } 
     break;
@@ -350,8 +382,8 @@ void sgnlInteractSetHighLowControls(
       g = WlzRGBAPixelValue(*pix1, WLZ_RGBA_CHANNEL_GREEN, &errNum);
       b = WlzRGBAPixelValue(*pix1, WLZ_RGBA_CHANNEL_BLUE, &errNum);
       WLZ_RGBA_RGBA_SET(warpGlobals.lowRGBPoint.v.rgbv, r, g, b, 255);
-      if( text = XtNameToWidget(warpGlobals.sgnlControls,
-				"*textRGBStart") ){
+      if((text = XtNameToWidget(warpGlobals.sgnlControls,
+				"*textRGBStart"))){
 	sprintf(buf, "%d,%d,%d", r, g, b);
 	XtVaSetValues(text, XmNvalue, buf, NULL);
       }
@@ -361,12 +393,15 @@ void sgnlInteractSetHighLowControls(
       g = WlzRGBAPixelValue(*pix2, WLZ_RGBA_CHANNEL_GREEN, &errNum);
       b = WlzRGBAPixelValue(*pix2, WLZ_RGBA_CHANNEL_BLUE, &errNum);
       WLZ_RGBA_RGBA_SET(warpGlobals.highRGBPoint.v.rgbv, r, g, b, 255);
-      if( text = XtNameToWidget(warpGlobals.sgnlControls,
-				"*textRGBFinish") ){
+      if((text = XtNameToWidget(warpGlobals.sgnlControls,
+				"*textRGBFinish"))){
 	sprintf(buf, "%d,%d,%d", r, g, b);
 	XtVaSetValues(text, XmNvalue, buf, NULL);
       }
     }
+    break;
+
+  default:
     break;
   }
 
@@ -380,7 +415,6 @@ static WlzDVertex2 warpThreshDist(
   int	y1)
 {
   WlzDVertex2	rtnVtx;
-  double	delX, delY;
 
   /* just use real distance for now which should allow saturation
      threshold in most cases - maybe too fast for low values */
@@ -465,14 +499,12 @@ void sgnlCanvasInputCb(
   XtPointer	call_data)
 {
   XmDrawingAreaCallbackStruct	*cbs=(XmDrawingAreaCallbackStruct *) call_data;
-  int		x, y;
   int		domainResetFlg, domainIncrFlg;
   double	line, kol;
   unsigned int	modMask=(ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|
 			 Mod4Mask|Mod5Mask);
   WlzErrorNum	errNum;
   WlzIVertex2	selVtx, *rtnVtx=NULL;
-  WlzObject	*obj;
 
   /* check for signal processed object - else do nothing */
   if( warpGlobals.sgnlProcObj ){
@@ -789,10 +821,8 @@ void sgnlCanvasMotionInputCb(
   XtPointer	call_data)
 {
   XmDrawingAreaCallbackStruct	*cbs=(XmDrawingAreaCallbackStruct *) call_data;
-  int		x, y;
   double	line, kol;
   WlzErrorNum	errNum;
-  WlzIVertex2	selVtx;
 
   /* check for signal processed object - else do nothing */
   if( warpGlobals.sgnlProcObj ){
@@ -858,6 +888,8 @@ void sgnlCanvasMotionInputCb(
 		WLZ_RGBA_GREEN_GET(pix.v.rgbv),
 		WLZ_RGBA_BLUE_GET(pix.v.rgbv));
 	break;
+      default:
+	sprintf(feedbackBuf, "Bad grey type");
       }
       XtVaSetValues(warpGlobals.sgnl.text,
 		    XmNvalue, feedbackBuf,

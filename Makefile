@@ -252,6 +252,7 @@ INCDIRS			= .  \
 			../../HGUX/libhguGL \
 			../../External/Tiff/tiff-v3.5.7/libtiff \
 			../../External/Jpeg/jpeg-6b \
+			../../External/Xbae/Xbae-4.6.2/src \
 			  $(HGU_INC_DIR) \
 			  $(OPENGL_INC_DIR) \
 			  $(X11_INC_DIR) \
@@ -286,6 +287,7 @@ LIBDIRS			= . \
 			../../HGUX/libhguGL \
 			../../External/Tiff/tiff-v3.5.7/libtiff \
 			../../External/Jpeg/jpeg-6b \
+			../../External/Xbae/Xbae-4.6.2/src \
 			  $(HGU_LIB_DIR) \
 			  $(OPENGL_LIB_DIR) \
 			  $(X11_LIB_DIR) \
@@ -362,7 +364,7 @@ OBJECTS			= $(CSOURCES:%.c=%.o)
 EXTRA_LIBS		= tiff jpeg m gen
 X11LIBS         	= Xt Xmu X11 Xext
 OPENGLLIBS		= GLU GL
-MOTIFLIBS       	= Xm
+MOTIFLIBS       	= Xbae Xm
 
 ifeq 		($(UNIXTYPE), SUNOS5)
 EXTRA_LIBS		= tiff jpeg m gen socket nsl

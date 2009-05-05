@@ -1,24 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas MAPaint					*
-*   File       :   MAWarpSignalPreProcPage.c				*
-*************************************************************************
-*   Author Name :  richard						*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Tue Dec 16 17:40:10 2003				*
-*   $Revision$						       	*
-*   $Name$								*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MAWarpSignalPrePr_cPage_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAWarpSignalPreProcPage.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:42:46 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,12 +58,12 @@ void sgnlBackgroundRemoveCb(
 
   /* check for signal input object and signal domain */
   if( warpGlobals.sgnl.obj && warpGlobals.sgnlObj ){
-    if( obj1 = WlzDiffDomain(warpGlobals.sgnl.obj,
-			     warpGlobals.sgnlObj, &errNum) ){
-      if( obj2 = WlzMakeMain(warpGlobals.sgnl.obj->type,
+    if((obj1 = WlzDiffDomain(warpGlobals.sgnl.obj,
+			     warpGlobals.sgnlObj, &errNum))){
+      if((obj2 = WlzMakeMain(warpGlobals.sgnl.obj->type,
 			     obj1->domain,
 			     warpGlobals.sgnl.obj->values,
-			     NULL, NULL, &errNum) ){
+			     NULL, NULL, &errNum))){
 	(void) WlzFreeObj(warpGlobals.sgnl.obj);
 	WlzStandardIntervalDomain(obj2->domain.i);
 	warpGlobals.sgnl.obj = WlzAssignObject(obj2, &errNum);
@@ -95,18 +117,17 @@ void sgnlBackgroundSaveCb(
 {
   String	fileStr;
   FILE		*fp;
-  WlzErrorNum	errNum=WLZ_ERR_NONE;
 
   /* check if there is a signal object */
   if( warpGlobals.sgnl.obj ){
     /* get a filename for the section object */
-    if( fileStr = HGU_XmUserGetFilename(globals.topl,
+    if((fileStr = HGU_XmUserGetFilename(globals.topl,
 					"Please type in a filename\n"
 					"for the signal image which\n"
 					"be saved as a woolz object",
 					"OK", "cancel", "MAPaintSignalObj.wlz",
-					NULL, "*.wlz") ){
-      if( fp = fopen(fileStr, "wb") ){
+					NULL, "*.wlz"))){
+      if((fp = fopen(fileStr, "wb"))){
 	if( WlzWriteObj(fp, warpGlobals.sgnl.obj) != WLZ_ERR_NONE ){
 	  HGU_XmUserError(globals.topl,
 			  "Save Signal Image:\n"

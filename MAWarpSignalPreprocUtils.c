@@ -1,24 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas MAPaint					*
-*   File       :   MAWarpSignalPreprocUtils.c				*
-*************************************************************************
-*   Author Name :  richard						*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Tue Nov  4 17:21:20 2003				*
-*   $Revision$					       		*
-*   $Name$								*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MAWarpSignalPrepr_cUtils_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAWarpSignalPreprocUtils.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:42:59 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,7 +61,7 @@ void warpSetSignalProcObj(void)
   }
 
   if( warpGlobals.sgnl.obj ){
-    if( obj1 = WlzCopyObject(warpGlobals.sgnl.obj, &errNum) ){
+    if((obj1 = WlzCopyObject(warpGlobals.sgnl.obj, &errNum))){
       obj1 = WlzAssignObject(obj1, NULL);
     }
   }
@@ -49,8 +71,8 @@ void warpSetSignalProcObj(void)
 
   /* normalise the data */
   if( errNum == WLZ_ERR_NONE ){
-    if( toggle = XtNameToWidget(globals.topl,
-				"*warp_sgnl_controls_form*normalise") ){
+    if((toggle = XtNameToWidget(globals.topl,
+				"*warp_sgnl_controls_form*normalise"))){
       XtVaGetValues(toggle, XmNset, &setFlg, NULL);
       if( setFlg ){
 	errNum = WlzGreyNormalise(obj1, 0);
@@ -60,8 +82,8 @@ void warpSetSignalProcObj(void)
 
   /* Histo equalise */
   if( errNum == WLZ_ERR_NONE ){
-    if( toggle = XtNameToWidget(globals.topl,
-				"*warp_sgnl_controls_form*histo_equalise") ){
+    if((toggle = XtNameToWidget(globals.topl,
+				"*warp_sgnl_controls_form*histo_equalise"))){
       XtVaGetValues(toggle, XmNset, &setFlg, NULL);
       if( setFlg ){
 	errNum = WlzHistogramEqualiseObj(obj1, 1, 1);
@@ -71,8 +93,8 @@ void warpSetSignalProcObj(void)
 
   /* Shade correction */
   if( errNum == WLZ_ERR_NONE ){
-    if( toggle = XtNameToWidget(globals.topl,
-				"*warp_sgnl_controls_form*shade_correction") ){
+    if((toggle = XtNameToWidget(globals.topl,
+				"*warp_sgnl_controls_form*shade_correction"))){
       XtVaGetValues(toggle, XmNset, &setFlg, NULL);
       if( setFlg ){
 	errNum = WlzHistogramEqualiseObj(obj1, 1, 1);
@@ -82,19 +104,19 @@ void warpSetSignalProcObj(void)
 
   /* Gauss smoothing */
   if( errNum == WLZ_ERR_NONE ){
-    if( toggle = XtNameToWidget(globals.topl,
-				"*warp_sgnl_controls_form*gauss_smooth") ){
+    if((toggle = XtNameToWidget(globals.topl,
+				"*warp_sgnl_controls_form*gauss_smooth"))){
       XtVaGetValues(toggle, XmNset, &setFlg, NULL);
       if( setFlg ){
 	double	width;
-	if( slider = XtNameToWidget(globals.topl,
-				    "*warp_sgnl_controls_form*gauss_width") ){
+	if((slider = XtNameToWidget(globals.topl,
+				    "*warp_sgnl_controls_form*gauss_width"))){
 	  width = HGU_XmGetSliderValue(slider);
 	}
 	else {
 	  width = 3;
 	}
-	if( obj2 = WlzGauss2(obj1, width, width, 0, 0, &errNum) ){
+	if((obj2 = WlzGauss2(obj1, width, width, 0, 0, &errNum))){
 	  WlzFreeObj(obj1);
 	  obj1 = WlzAssignObject(obj2, NULL);
 	}
@@ -121,7 +143,7 @@ void warpSetSignalProcObj(void)
 void warpSetSignalThreshObj(void)
 {
   WlzErrorNum	errNum=WLZ_ERR_NONE;
-  WlzObject	*obj, *obj1;
+  WlzObject	*obj;
   WlzCompoundArray	*cobj;
 
   /* image processing sequence */
@@ -153,10 +175,11 @@ void warpSetSignalThreshObj(void)
 	    warpGlobals.sgnlThreshObj = WlzAssignObject(obj, &errNum);
 	  }
 	  else {
-	    if( cobj = WlzRGBAToCompound(warpGlobals.sgnlProcObj,
+	    if((cobj = WlzRGBAToCompound(warpGlobals.sgnlProcObj,
 					 warpGlobals.threshRGBSpace,
-					 &errNum) ){
+					 &errNum))){
 	      switch( warpGlobals.threshColorChannel ){
+	      default:
 	      case WLZ_RGBA_CHANNEL_RED:
 	      case WLZ_RGBA_CHANNEL_HUE:
 	      case WLZ_RGBA_CHANNEL_CYAN:
@@ -179,8 +202,8 @@ void warpSetSignalThreshObj(void)
 	  break;
 
 	case WLZ_RGBA_THRESH_MULTI:
-	  if( cobj = WlzRGBAToCompound(warpGlobals.sgnlProcObj,
-				       WLZ_RGBA_SPACE_RGB, &errNum) ){
+	  if((cobj = WlzRGBAToCompound(warpGlobals.sgnlProcObj,
+				       WLZ_RGBA_SPACE_RGB, &errNum))){
 	    warpGlobals.sgnlThreshObj =
 	      WlzAssignObject((WlzObject *) cobj, &errNum);
 	  }

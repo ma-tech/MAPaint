@@ -1,20 +1,47 @@
-#pragma ident "MRC HGU $Id$"
-/*****************************************************************************
-* Copyright   :    1994 Medical Research Council, UK.                        *
-*                  All rights reserved.                                      *
-******************************************************************************
-* Address     :    MRC Human Genetics Unit,                                  *
-*                  Western General Hospital,                                 *
-*                  Edinburgh, EH4 2XU, UK.                                   *
-******************************************************************************
-* Project     :    Mouse Atlas Project					     *
-* File        :    tools_affine.c					     *
-******************************************************************************
-* Author Name :    Richard Baldock					     *
-* Author Login:    richard@hgu.mrc.ac.uk				     *
-* Date        :    Fri Oct  4 19:04:44 1996				     *
-* Synopsis    : 							     *
-*****************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _tools_affine_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         tools_affine.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:44:54 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -279,11 +306,11 @@ void MAPaintAffine2DCb(
       WlzFreeObj(obj);
       if( origBoundary ){
 	origBoundary = WlzAssignObject(origBoundary, NULL);
-	if(scaleTrans = WlzAffineTransformFromPrimVal(WLZ_TRANSFORM_2D_AFFINE,
+	if((scaleTrans = WlzAffineTransformFromPrimVal(WLZ_TRANSFORM_2D_AFFINE,
 						   0.0, 0.0, 0.0,
 						   wlzViewStr->scale,
 						   0.0, 0.0, 0.0, 0.0, 0.0,
-						   0, &errNum)){
+						       0, &errNum))){
 	  lastTrans = WlzAffineTransformFromPrimVal(WLZ_TRANSFORM_2D_AFFINE,
 						 0.0, 0.0, 0.0, 1.0,
 						 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -327,9 +354,9 @@ void MAPaintAffine2DCb(
       if( transformAllFlg ){
 	/* transform the painted object, extract the domains and 
 	   increment each one */
-	if( obj = WlzAffineTransformObj(view_struct->painted_object,
+	if((obj = WlzAffineTransformObj(view_struct->painted_object,
 					trans, WLZ_INTERPOLATION_NEAREST,
-					&errNum) ){
+					&errNum))){
 	  int		numOverlays, i;
 	  WlzObject	*tmpObj;
 
@@ -342,10 +369,10 @@ void MAPaintAffine2DCb(
 
 	  /* clear painted object to greys */
 	  if( view_struct->view_object == NULL ){
-	    if( tmpObj = WlzGetSectionFromObject(globals.orig_obj,
+	    if((tmpObj = WlzGetSectionFromObject(globals.orig_obj,
 						 view_struct->wlzViewStr,
 						 WLZ_INTERPOLATION_NEAREST,
-						 &errNum) ){
+						 &errNum))){
 	      view_struct->view_object = WlzAssignObject(tmpObj, NULL);
 	    }
 	    else {
@@ -359,8 +386,8 @@ void MAPaintAffine2DCb(
 	  numOverlays = globals.cmapstruct->num_overlays +
 	    globals.cmapstruct->num_solid_overlays;
 	  for(i=1; i <= numOverlays; i++){
-	    if(tmpObj = get_domain_from_object(obj,
-					       (DomainSelection) i)){
+	    if((tmpObj = get_domain_from_object(obj,
+						(DomainSelection) i))){
 	      if((view_struct->curr_domain[i]) &&
 		 (view_struct->curr_domain[i]->type != WLZ_EMPTY_OBJ)){
 		WlzFreeObj(view_struct->curr_domain[i]);
@@ -397,8 +424,8 @@ void MAPaintAffine2DCb(
 	}
       }
       else {
-	if( obj = WlzAffineTransformObj(origObj, trans,
-					WLZ_INTERPOLATION_NEAREST, &errNum) ){
+	if((obj = WlzAffineTransformObj(origObj, trans,
+					WLZ_INTERPOLATION_NEAREST, &errNum))){
 	  /* push onto undo stack and increment*/
 	  pushUndoDomains(view_struct);
 	  setDomainIncrement(origObj, view_struct, origDomain, 1);
@@ -494,10 +521,10 @@ void MAPaintAffine2DCb(
       /* un display the last boundary, calculate and 
 	 display the new boundary */
       if( errNum == WLZ_ERR_NONE ){
-	if( trans1 = WlzAffineTransformProduct(lastTrans, scaleTrans, &errNum) ){
-	  if( boundary = WlzAffineTransformObj(origBoundary, trans1,
+	if((trans1 = WlzAffineTransformProduct(lastTrans, scaleTrans, &errNum))){
+	  if((boundary = WlzAffineTransformObj(origBoundary, trans1,
 					       WLZ_INTERPOLATION_NEAREST,
-					       &errNum) ){
+					       &errNum))){
 	    DisplayBound(dpy, win, affineGc, lastBoundary->domain.b);
 	    DisplayBound(dpy, win, affineGc, boundary->domain.b);
 	    WlzFreeObj(lastBoundary);
@@ -553,7 +580,7 @@ void MAPaintAffine2DCb(
 Widget	CreateAffineControls(
   Widget	parent)
 {
-  Widget	form, form1, label, frame, widget;
+  Widget	form, form1, label, frame;
 
   /* create a parent form to hold all the tracking controls */
   form = XtVaCreateWidget("affine_controls_form", xmFormWidgetClass,

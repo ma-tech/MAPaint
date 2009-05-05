@@ -1,24 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas MAPaint					*
-*   File       :   MAWarpSignalThresholdPage.c				*
-*************************************************************************
-*   Author Name :  richard						*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Tue Dec 16 18:01:47 2003				*
-*   $Revision$							*
-*   $Name$								*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MAWarpSignalThresholdPage_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAWarpSignalThresholdPage.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:32:57 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,19 +48,23 @@
 #include <MAPaint.h>
 #include <MAWarp.h>
 
+extern void sgnlInteractGetHighLowControls(
+  WlzPixelV	*pix1,
+  WlzPixelV	*pix2);
+
 void warpSwitchIncrementDomain(
   int	incrFlg)
 {
   Widget	toggle;
 
-  if( toggle = XtNameToWidget(warpGlobals.sgnlControls,
-			      "*incremental_thresh") ){
+  if((toggle = XtNameToWidget(warpGlobals.sgnlControls,
+			      "*incremental_thresh"))){
     XtVaSetValues(toggle,
 		  XmNset, (incrFlg?True:False),
 		  NULL);
     if( !incrFlg ){
-      if( toggle = XtNameToWidget(warpGlobals.sgnlControls,
-				  "*global_thresh") ){
+      if((toggle = XtNameToWidget(warpGlobals.sgnlControls,
+				  "*global_thresh"))){
 	XtVaSetValues(toggle, XmNset, True, NULL);
       }
     }
@@ -120,6 +146,9 @@ void warpThreshLowRGBCb(
   /* get value and switch on channel */
   val = HGU_XmGetSliderValue( slider );
   switch( channel ){
+  default:
+    return;
+
   case WLZ_RGBA_CHANNEL_GREY:
     if( warpGlobals.threshRangeHigh < (int) val ){
       val = warpGlobals.threshRangeHigh;
@@ -191,6 +220,9 @@ void warpThreshHighRGBCb(
   /* get value and switch on channel */
   val = HGU_XmGetSliderValue( slider );
   switch( channel ){
+  default:
+    return;
+
   case WLZ_RGBA_CHANNEL_GREY:
     if( warpGlobals.threshRangeLow > (int) val ){
       val = warpGlobals.threshRangeLow;
@@ -242,8 +274,8 @@ void warpResetThresholdSliderRange(void)
 
   if( warpGlobals.sgnl.obj ){
     /* slider for low end of the range */
-    if( slider = XtNameToWidget(warpGlobals.sgnlControls,
-				"*thresh_range_low") ){
+    if((slider = XtNameToWidget(warpGlobals.sgnlControls,
+				"*thresh_range_low"))){
 
       if((WlzGreyTypeFromObj(warpGlobals.sgnl.obj, NULL) == WLZ_GREY_RGBA) &&
 	 (warpGlobals.threshColorChannel == WLZ_RGBA_CHANNEL_GREY)){
@@ -259,8 +291,8 @@ void warpResetThresholdSliderRange(void)
     }
 
     /* slider for high end of range */
-    if( slider = XtNameToWidget(warpGlobals.sgnlControls,
-				"*thresh_range_high") ){
+    if((slider = XtNameToWidget(warpGlobals.sgnlControls,
+				"*thresh_range_high"))){
 
       if((WlzGreyTypeFromObj(warpGlobals.sgnl.obj, NULL) == WLZ_GREY_RGBA) &&
 	 (warpGlobals.threshColorChannel == WLZ_RGBA_CHANNEL_GREY)){
@@ -378,8 +410,8 @@ void thresholdMajorPageSelectCb(
     warpGlobals.thresholdType = (WlzRGBAThresholdType) client_data;
 
     /* reset appropriate minor page */
-    if( notebook = XtNameToWidget(warpGlobals.sgnlControls,
-				  "*warp_sgnl_notebook") ){
+    if((notebook = XtNameToWidget(warpGlobals.sgnlControls,
+				  "*warp_sgnl_notebook"))){
       if( warpGlobals.lastThresholdPageNum > 0 ){
 	XtVaSetValues(notebook,
 		      XmNcurrentPageNumber, warpGlobals.lastThresholdPageNum,
@@ -451,8 +483,8 @@ void warpThreshInteractPageCb(
   XmToggleButtonCallbackStruct	cbs;
 
   /* get the threshold type row-column and the selected toggle */
-  if( rc = XtNameToWidget(warpGlobals.sgnlControls,
-			  "*threshold_interact_rc") ){
+  if((rc = XtNameToWidget(warpGlobals.sgnlControls,
+			  "*threshold_interact_rc"))){
     XtVaGetValues(rc, XmNmenuHistory, &toggle, NULL);
 
     /* execute callbacks */
@@ -474,7 +506,6 @@ void warpThreshEccentricityCb(
   XtPointer	call_data)
 {
   Widget	slider = w;
-  float		val;
     
   /* get the parent slider  - use special knowledge of slider type
      should put this as a function in the library*/
@@ -545,8 +576,8 @@ void warpThreshRadiusSet(
   Widget	slider;
   float		radius;
 
-  if( slider = XtNameToWidget(warpGlobals.sgnlControls,
-			      "*.thresh_radius") ){
+  if((slider = XtNameToWidget(warpGlobals.sgnlControls,
+			      "*.thresh_radius"))){
     radius = WLZ_NINT(fabs(dist.vtX));
     HGU_XmSetSliderValue(slider, radius);
   }
@@ -608,7 +639,7 @@ static MenuItem color_space_itemsP[] = {   /* colour space menu items */
    warpColorSpaceCb, (XtPointer) WLZ_RGBA_SPACE_CMY,
    myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 Widget createSignalThresholdPage(

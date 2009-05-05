@@ -1,12 +1,47 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-* Project:	MRC HGU General IP and Display Utilities		*
-* Title:	options_menu.c						*
-* Author:	Richard Baldock, MRC Human Genetics Unit		*
-* Copyright:	Medical Research Council, UK.				*
-* Date:		
-* Synopsis:	
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _options_menu_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         options_menu.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:44:28 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -18,6 +53,8 @@
 
 #include <MAPaint.h>
 #include <MAWarp.h>
+
+#include <Matrix.h>
 
 /* menu item structures */
 
@@ -67,7 +104,7 @@ static MenuItem interact_tool_itemsP[] = {	/* select menu items */
    NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
 #endif /* LINUX2 */
-  NULL,
+  {NULL},
 };
 
 static MenuItem options_menu_itemsP[] = {	/* option_menu items */
@@ -119,7 +156,7 @@ static MenuItem options_menu_itemsP[] = {	/* option_menu items */
   {"save_seq_opts", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
    save_seq_opts_cb, NULL, NULL, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 MenuItem	*options_menu_items = &(options_menu_itemsP[0]);
@@ -156,9 +193,6 @@ void domain_review_cb(Widget widget,
 		      XtPointer client_data,
 		      XtPointer call_data)
 {
-  XmPushButtonCallbackStruct *cbs =
-    (XmPushButtonCallbackStruct *) call_data;
-
   /* check if painting in progress */
   if( paint_key != NULL ){
 /*    globals.paint_action_quit_flag = 1;*/
@@ -448,10 +482,10 @@ static XtResource autosave_res[] = {
 void options_menu_init(
 Widget	topl)
 {
-    Widget	canvas = XtNameToWidget(topl, "*.work_area"), widget;
-    XColor	xcolor;
+    Widget	widget;
     String	filestr, dirstr;
-    char	lineBuf[256], fileBuf[256];
+    char	lineBuf[1024], fileBuf[512], statusBuf[64], dateBuf[64], authorBuf[64];
+    char	stageBuf[16];
 
     /* create the tool controls dialog */
     tool_controls_dialog = create_tool_controls_dialog( topl );
@@ -524,7 +558,7 @@ Widget	topl)
 	else if( options_menu_itemsP[i].name ){
 	  sprintf(nameBuf, "*.options_menu*%s",
 		  options_menu_itemsP[i].name);
-	  if( widget = XtNameToWidget(topl, nameBuf) ){
+	  if((widget = XtNameToWidget(topl, nameBuf))){
 	    XtSetSensitive(widget, False);
 	  }
 	}
@@ -537,102 +571,239 @@ Widget	topl)
     HGU_XmSaveRestoreAddWidget( save_seq_dialog, NULL, NULL, NULL, NULL );
 
     /* get the current working directory */
-    if( dirstr = getcwd(lineBuf, 256) ){
+    if((dirstr = getcwd(lineBuf, 256))){
       globals.origDir = AlcStrDup(dirstr);
     }
     else {
       globals.origDir = NULL;
     }
 
-    /* check for bibfile list file */
-    globals.rapidMapFlg = 0;
-    if( globals.bibfileListFile ){
-      FILE	*fp;
-      int	linecount;
-      WlzObject	*dummyObj;
-      WlzPixelV	bgdV;
-      Widget	toggle, notebook;
-      XmNotebookPageInfo	pageInfo;
-      XmToggleButtonCallbackStruct	cbs;
+    /* check for rapid-map or express-map */
+    if( globals.rapidMapFlg || globals.expressMapFlg ){
 
-      /* read file and create list */
-      if( fp = fopen(globals.bibfileListFile, "r") ){
-	/* count lines */
-	linecount = 1;
-	while( fgets(lineBuf, 256, fp) ){
-	  linecount++;
-	}
-	warpGlobals.bibfileList = (char **) AlcCalloc(linecount, sizeof(char *));
-	rewind(fp);
-	linecount = 0;
-	while( fgets(lineBuf, 256, fp) ){
-	  sscanf(lineBuf, "%s", fileBuf);
-	  if((fileBuf[0] != '/') && globals.origDir ){
-	    warpGlobals.bibfileList[linecount] = 
-	      (char *) AlcMalloc(sizeof(char)*
-				 (strlen(fileBuf) +
-				  strlen(globals.origDir) + 2));
-	    sprintf(warpGlobals.bibfileList[linecount],
-		    "%s/%s", globals.origDir, fileBuf);
+      /* check for bibfile list file */
+      if( globals.bibfileListFile ){
+	FILE	*fp;
+	int		i, j, linecount, csvCount;
+	WlzObject	*dummyObj;
+	WlzPixelV	bgdV;
+	Widget		toggle, notebook, matrix, textField;
+	XmNotebookPageInfo	pageInfo;
+	XmToggleButtonCallbackStruct	cbs;
+
+	/* set the default csv file */
+	if( globals.bibfileListFile[0] == '/' ){
+	  if( strstr(globals.bibfileListFile, ".csv") ){
+	    sprintf(lineBuf, "%s", globals.bibfileListFile);
 	  }
 	  else {
-	    warpGlobals.bibfileList[linecount] = AlcStrDup(fileBuf);
+	    sprintf(lineBuf, "%s.csv", globals.bibfileListFile);
 	  }
-	  linecount++;
 	}
-	warpGlobals.bibfileListCount = linecount;
-	fclose(fp);
-      }
+	else {
+	  if( strstr(globals.bibfileListFile, ".csv") ){
+	    sprintf(lineBuf, "%s/%s", globals.origDir, globals.bibfileListFile);
+	  }
+	  else {
+	    sprintf(lineBuf, "%s/%s.csv", globals.origDir, globals.bibfileListFile);
+	  }
+	}
+	warpGlobals.bibfileListCSVFile = AlcStrDup(lineBuf);
 
-      /* create dummy reference object and install */
-      bgdV.type = WLZ_GREY_UBYTE;
-      bgdV.v.ubv = 255;
-      dummyObj = WlzAssignObject(WlzMakeCuboid(0, 5, 0, 5, 0, 5,
-					       WLZ_GREY_UBYTE, bgdV,
-					       NULL, NULL, NULL), NULL);
-      set_topl_title("dummy");
-      globals.file = NULL;
-      globals.origObjType = WLZ_3D_DOMAINOBJ;
-      install_paint_reference_object(dummyObj);
-      WlzFreeObj(dummyObj);
+	/* read file and create lists */
+	if((fp = fopen(globals.bibfileListFile, "r"))){
+	  /* count lines */
+	  linecount = 1;
+	  while( fgets(lineBuf, 1024, fp) ){
+	    linecount++;
+	  }
+	  warpGlobals.bibfileList = (char **) AlcCalloc(linecount, sizeof(char *));
+	  warpGlobals.statusList = (char **) AlcCalloc(linecount, sizeof(char *));
+	  warpGlobals.dateList = (char **) AlcCalloc(linecount, sizeof(char *));
+	  warpGlobals.authorList = (char **) AlcCalloc(linecount, sizeof(char *));
+	  warpGlobals.stageList = (char **) AlcCalloc(linecount, sizeof(char *));
+	  rewind(fp);
+	  linecount = 0;
+	  while( fgets(lineBuf, 1024, fp) ){
+	    csvCount = sscanf(lineBuf, "%[^,\n], %[^,\n], %[^,\n], %[^,\n], %s", fileBuf, statusBuf,
+			      dateBuf, authorBuf, stageBuf);
+	    if( csvCount > 0 ){
+	      if((fileBuf[0] != '/') && globals.origDir ){
+		warpGlobals.bibfileList[linecount] = 
+		  (char *) AlcMalloc(sizeof(char)*
+				     (strlen(fileBuf) +
+				      strlen(globals.origDir) + 4));
+		sprintf(warpGlobals.bibfileList[linecount],
+			"%s/%s", globals.origDir, fileBuf);
+	      }
+	      else {
+		warpGlobals.bibfileList[linecount] = AlcStrDup(fileBuf);
+	      }
+	    }
+	    if( csvCount > 1 ){
+		warpGlobals.statusList[linecount] = AlcStrDup(statusBuf);
+	    }
+	    else {
+	      warpGlobals.statusList[linecount] = AlcStrDup("None");
+	    }
+	    if( csvCount > 2 ){
+		warpGlobals.dateList[linecount] = AlcStrDup(dateBuf);
+	    }
+	    else {
+	      warpGlobals.dateList[linecount] = AlcStrDup("Unknown");
+	    }
+	    if( csvCount > 3 ){
+		warpGlobals.authorList[linecount] = AlcStrDup(authorBuf);
+	    }
+	    else {
+	      warpGlobals.authorList[linecount] = AlcStrDup("Unknown");
+	    }
+	    if( csvCount > 4 ){
+		warpGlobals.stageList[linecount] = AlcStrDup(stageBuf);
+	    }
+	    else {
+	      warpGlobals.stageList[linecount] = AlcStrDup("TS23");
+	    }
+	    linecount++;
+	  }
+	  warpGlobals.bibfileListCount = linecount;
+	  fclose(fp);
+	}
 
-      /* create warp input dialog */
-      warpInput2DCb(globals.topl, NULL, NULL);
+	/* create dummy reference object and install */
+	bgdV.type = WLZ_GREY_UBYTE;
+	bgdV.v.ubv = 255;
+	dummyObj = WlzAssignObject(WlzMakeCuboid(0, 5, 0, 5, 0, 5,
+						 WLZ_GREY_UBYTE, bgdV,
+						 NULL, NULL, NULL), NULL);
+	set_topl_title("dummy");
+	globals.file = NULL;
+	globals.origObjType = WLZ_3D_DOMAINOBJ;
+	install_paint_reference_object(dummyObj);
+	WlzFreeObj(dummyObj);
 
-      /* get the warp controls toggle */
-      if( toggle = XtNameToWidget(globals.topl, "*warp_input_2d_frame_title") ){
-	XtVaSetValues(toggle, XmNset, True, NULL);
-	cbs.set = True;
-	XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
-      }
+	/* create warp input dialog */
+	warpInput2DCb(globals.topl, NULL, NULL);
 
-      /* set rapidMap mode */
-      globals.rapidMapFlg = 1;
-      if( notebook = XtNameToWidget(globals.topl,
-				    "*warp_cntrl_notebook") ){
-	XtVaSetValues(notebook,
-		      XmNcurrentPageNumber, 2,
-		      NULL);
+	/* get the warp controls toggle */
+	if((toggle = XtNameToWidget(globals.topl, "*warp_input_2d_frame_title"))){
+	  XtVaSetValues(toggle, XmNset, True, NULL);
+	  cbs.set = True;
+	  XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
+	}
 
-	/* call the activate callback */
-	if( XmNotebookGetPageInfo(notebook, 2,
-				  &pageInfo) == XmPAGE_FOUND ){
-	  XmPushButtonCallbackStruct cbs;
+	/* set the files names etc in the table widget */
+	if((matrix = XtNameToWidget(globals.topl, "*expressmap_matrix"))){
+	  String	*rows, bibfileStr, tailStr, *labels;
+	  int		numRows;
+	  Boolean	*rowButtonLabels;
 
-	  cbs.reason = XmCR_ACTIVATE;
-	  cbs.event = NULL;
-	  cbs.click_count = 1;
-	  XtCallCallbacks(pageInfo.major_tab_widget,
-			  XmNactivateCallback, &cbs);
+	  XtVaGetValues(matrix,
+			XmNrows, &numRows,
+			XmNtextField, &textField,
+			NULL);
+	  if( numRows > 0 ){
+	    XbaeMatrixDeleteRows(matrix, 0, numRows);
+	  }
+	  rows = (String *) AlcMalloc(sizeof(String) * warpGlobals.bibfileListCount * 5);
+	  labels = (String *) AlcMalloc(sizeof(String) * warpGlobals.bibfileListCount);
+	  rowButtonLabels  = (Boolean *)AlcMalloc(sizeof(Boolean) *
+						  warpGlobals.bibfileListCount);
+       
+	  for(i=0; i < warpGlobals.bibfileListCount; i++){
+	    bibfileStr = tailStr = warpGlobals.bibfileList[i];
+	    for(j=0; j < strlen(bibfileStr); j++){
+	      if( bibfileStr[j] == '/' ){
+		tailStr = bibfileStr + (j + 1);
+	      }
+	    }
+	    rows[i*5 + 0] = tailStr;
+	    rows[i*5 + 1] = warpGlobals.statusList[i];
+	    rows[i*5 + 2] = warpGlobals.dateList[i];
+	    rows[i*5 + 3] = warpGlobals.authorList[i];
+	    rows[i*5 + 4] = warpGlobals.stageList[i];
+	    labels[i] = "->";
+	    rowButtonLabels[i] = True;
+	  }
+	  XbaeMatrixAddRows(matrix, 0, rows, labels, NULL, i);
+	  for(i=0; i < warpGlobals.bibfileListCount; i++){
+	    XbaeMatrixSetRowUserData(matrix, i, (XtPointer) i);
+	  }
+	  XtVaSetValues(matrix,
+			XmNbuttonLabels, False,
+			XmNrowButtonLabels, rowButtonLabels,
+			XmNrowLabelAlignment, XmALIGNMENT_CENTER,
+			NULL);
+	  AlcFree(rows);
+	  AlcFree(labels);
+	  AlcFree(rowButtonLabels);
+	  XtVaSetValues(textField, XmNeditable, False, NULL);
+	}
+	
+
+	/* set rapidMap mode */
+	if( globals.rapidMapFlg ){
+	  if((notebook = XtNameToWidget(globals.topl,
+					"*warp_cntrl_notebook"))){
+	    XtVaSetValues(notebook,
+			  XmNcurrentPageNumber, 2,
+			  NULL);
+
+	    /* call the activate callback */
+	    if( XmNotebookGetPageInfo(notebook, 2,
+				      &pageInfo) == XmPAGE_FOUND ){
+	      XmPushButtonCallbackStruct cbs;
+
+	      cbs.reason = XmCR_ACTIVATE;
+	      cbs.event = NULL;
+	      cbs.click_count = 1;
+	      XtCallCallbacks(pageInfo.major_tab_widget,
+			      XmNactivateCallback, &cbs);
+	    }
+	  }
+	}
+	else {
+	  if((notebook = XtNameToWidget(globals.topl,
+					"*warp_cntrl_notebook"))){
+	    XtVaSetValues(notebook,
+			  XmNcurrentPageNumber, 3,
+			  NULL);
+
+	    /* call the activate callback */
+	    if( XmNotebookGetPageInfo(notebook, 3,
+				      &pageInfo) == XmPAGE_FOUND ){
+	      XmPushButtonCallbackStruct cbs;
+
+	      cbs.reason = XmCR_ACTIVATE;
+	      cbs.event = NULL;
+	      cbs.click_count = 1;
+	      XtCallCallbacks(pageInfo.major_tab_widget,
+			      XmNactivateCallback, &cbs);
+	    }
+	  }
+	}
+
+	/* read first bibfile */
+	warpGlobals.bibfileSavedFlg = 1;
+	warpGlobals.bibfileListIndex = -1;
+	if( globals.rapidMapFlg ){
+	  if((toggle = XtNameToWidget(globals.topl, "*warp_input_rapid_form*next"))){
+	    XtCallCallbacks(toggle, XmNactivateCallback, NULL);
+	  }
+	}
+	else {
+	  if((toggle = XtNameToWidget(globals.topl, "*warp_input_express_form*next"))){
+	    XtCallCallbacks(toggle, XmNactivateCallback, NULL);
+	  }
 	}
       }
-
-      /* read first bibfile */
-      warpGlobals.bibfileSavedFlg = 1;
-      warpGlobals.bibfileListIndex = -1;
-      if( toggle = XtNameToWidget(globals.topl, "*warp_input_rapid_form*next") ){
-	XtCallCallbacks(toggle, XmNactivateCallback, NULL);
+      else {
+	warpGlobals.bibfileListCSVFile = NULL;
+	/* should report an error here */
       }
+    }
+    else {
+      warpGlobals.matrix = NULL;
     }
 
     return;

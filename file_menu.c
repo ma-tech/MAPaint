@@ -1,12 +1,47 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-* Project:	MRC HGU General IP and Display Utilities		*
-* Title:	file_menu.c						*
-* Author:	Richard Baldock, MRC Human Genetics Unit		*
-* Copyright:	Medical Research Council, UK.				*
-* Date:		
-* Synopsis:	
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _file_menu_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         file_menu.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:51:42 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -70,7 +105,7 @@ static MenuItem file_menu_itemsP[] = {		/* file_menu items */
    quit_cb, NULL,
    myHGU_XmHelpStandardCb, SEC_FILE_MENU,
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 MenuItem	*file_menu_items = &(file_menu_itemsP[0]);
@@ -87,19 +122,14 @@ static MenuItem HGU_XmMiscMenuItemsP[] = {     /* misc_menu items */
   {"macro", &xmCascadeButtonGadgetClass, 0, NULL, NULL, False,
    NULL, NULL, myHGU_XmHelpStandardCb, SEC_MACRO_MENU,
    XmTEAR_OFF_ENABLED, False, False, &(HGU_XmMacroMenuItemsP[0])},
-  NULL,
+  {NULL},
 };
 MenuItem	*HGU_XmMiscMenuItems = &(HGU_XmMiscMenuItemsP[0]);
 
-static Widget	new_obj_dialog, read_obj_dialog, read_model_dialog;
+static Widget	read_obj_dialog, read_model_dialog;
 static Widget	write_obj_dialog;
 static char 	*refFileList[]={NULL, NULL, NULL, NULL, NULL,
 				NULL, NULL, NULL, NULL, NULL};
-static WlzEffFormat refImageTypeList[]=
-{WLZEFF_FORMAT_WLZ, WLZEFF_FORMAT_WLZ, WLZEFF_FORMAT_WLZ,
- WLZEFF_FORMAT_WLZ, WLZEFF_FORMAT_WLZ, WLZEFF_FORMAT_WLZ,
- WLZEFF_FORMAT_WLZ, WLZEFF_FORMAT_WLZ, WLZEFF_FORMAT_WLZ,
- WLZEFF_FORMAT_WLZ};
 
 /* logging functions */
 void MAPaintLogData(
@@ -117,7 +147,7 @@ void MAPaintLogData(
       }
       clockVal = clock()/1000;
       fprintf(globals.logfileFp, "%-14s : %-12.0f : %s : %d : %x\n", type,
-	      clockVal, value, code, widget);
+	      clockVal, value, code, (unsigned int) widget);
     }
   }
   return;
@@ -141,12 +171,12 @@ void referenceFileListCb(
     HGU_XmFileListClearList(globals.fileList);
     HGU_XmFileListWriteResourceFile(globals.fileList,
 				    globals.resourceFile);
-    if( cascade = XtNameToWidget(globals.topl,
-				 "*file_menu*_pulldown*Recent") ){
+    if((cascade = XtNameToWidget(globals.topl,
+				 "*file_menu*_pulldown*Recent"))){
       HGU_XmFileListResetMenu(globals.fileList, cascade, referenceFileListCb);
     }
   }
-  else if( obj = HGU_XmFileListReadObject(w, cbs, &errNum) ){
+  else if((obj = HGU_XmFileListReadObject(w, cbs, &errNum))){
 
     switch( obj->type ){
       WlzDomain	domain;
@@ -154,16 +184,16 @@ void referenceFileListCb(
       WlzObject	*newObj;
 
     case WLZ_2D_DOMAINOBJ:
-      if( domain.p = WlzMakePlaneDomain(WLZ_PLANEDOMAIN_DOMAIN, 0, 0,
+      if((domain.p = WlzMakePlaneDomain(WLZ_PLANEDOMAIN_DOMAIN, 0, 0,
 					obj->domain.i->line1,
 					obj->domain.i->lastln,
 					obj->domain.i->kol1,
 					obj->domain.i->lastkl,
-					&errNum) ){
+					&errNum))){
 	domain.p->domains[0] = WlzAssignDomain(obj->domain, NULL);
-	if( values.vox = WlzMakeVoxelValueTb(WLZ_VOXELVALUETABLE_GREY,
+	if((values.vox = WlzMakeVoxelValueTb(WLZ_VOXELVALUETABLE_GREY,
 					     0, 0, WlzGetBackground(obj, NULL),
-					     NULL, &errNum) ){
+					     NULL, &errNum))){
 	  values.vox->values[0] = WlzAssignValues(obj->values, NULL);
 	  newObj = WlzMakeMain(WLZ_3D_DOMAINOBJ, domain, values,
 			       NULL, NULL, NULL);
@@ -200,8 +230,8 @@ void referenceFileListCb(
     HGU_XmFileListAddFile(globals.fileList, cbs->file, cbs->format);
     HGU_XmFileListWriteResourceFile(globals.fileList,
 				    globals.resourceFile);
-    if( cascade = XtNameToWidget(globals.topl,
-				 "*file_menu*_pulldown*Recent") ){
+    if((cascade = XtNameToWidget(globals.topl,
+				 "*file_menu*_pulldown*Recent"))){
       HGU_XmFileListResetMenu(globals.fileList, cascade, referenceFileListCb);
     }
   }
@@ -265,7 +295,6 @@ XtPointer	call_data)
   return;
 }
 
-static XmStringCharSet charset = XmSTRING_DEFAULT_CHARSET;
 extern void MAOpenGLDisplayYBoundList(WlzBoundList *bndlist,
 				      float		y);
 extern void MAOpenGLDisplayXBoundList(WlzBoundList *bndlist,
@@ -452,7 +481,7 @@ XtPointer	call_data)
     if( errNum == WLZ_ERR_NONE ){
       glColor3f(1.0, 1.0, 0.0);
       glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 0.0));
-      if( viewStr = WlzMake3DViewStruct(WLZ_3D_VIEW_STRUCT, &errNum) ){
+      if((viewStr = WlzMake3DViewStruct(WLZ_3D_VIEW_STRUCT, &errNum))){
 	viewStr->theta = WLZ_M_PI / 2.0;
 	viewStr->phi = WLZ_M_PI / 2.0;
 	viewStr->dist = planedmn->line1 - step/2;
@@ -461,9 +490,9 @@ XtPointer	call_data)
 	    z += step)
 	{
 	  Wlz3DSectionIncrementDistance(viewStr, (double) step);
-	  if( obj1 = WlzGetSectionFromObject(globals.fb_obj, viewStr,
+	  if((obj1 = WlzGetSectionFromObject(globals.fb_obj, viewStr,
 					     WLZ_INTERPOLATION_NEAREST,
-					     &errNum) ){
+					     &errNum))){
 	    obj1 = WlzAssignObject(obj1, NULL);
 	    boundobj = WlzObjToBoundary(obj1, 1, &errNum);
 	    if( boundobj != NULL )
@@ -484,7 +513,7 @@ XtPointer	call_data)
     if( errNum == WLZ_ERR_NONE ){
       glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 0.0));
       glColor3f(1.0, 1.0, 0.0);
-      if( viewStr = WlzMake3DViewStruct(WLZ_3D_VIEW_STRUCT, &errNum) ){
+      if((viewStr = WlzMake3DViewStruct(WLZ_3D_VIEW_STRUCT, &errNum))){
 	viewStr->theta = 0.0;
 	viewStr->phi = WLZ_M_PI / 2.0;
 	viewStr->dist = planedmn->kol1 - step/2;
@@ -493,9 +522,9 @@ XtPointer	call_data)
 	    z += step)
 	{
 	  Wlz3DSectionIncrementDistance(viewStr, (double) step);
-	  if( obj1 = WlzGetSectionFromObject(globals.fb_obj, viewStr,
+	  if((obj1 = WlzGetSectionFromObject(globals.fb_obj, viewStr,
 					     WLZ_INTERPOLATION_NEAREST,
-					     &errNum) ){
+					     &errNum))){
 	    obj1 = WlzAssignObject(obj1, NULL);
 	    boundobj = WlzObjToBoundary(obj1, 1, &errNum);
 	    if( boundobj != NULL )
@@ -563,7 +592,7 @@ void install_paint_reference_object(
     case WLZ_GREY_LONG:
       WlzGreyRange(globals.orig_obj, &min, &max);
       if( (min.v.lnv < 0) || (max.v.lnv > 255) ){
-	if( obj = WlzConvertPix(globals.orig_obj, WLZ_GREY_INT, &errNum) ){
+	if((obj = WlzConvertPix(globals.orig_obj, WLZ_GREY_INT, &errNum))){
 	  WlzGreySetRange(obj, min, max, Min, Max, 0);
 	  bckgrnd = WlzGetBackground(obj, &errNum);
 	}
@@ -580,7 +609,7 @@ void install_paint_reference_object(
     case WLZ_GREY_SHORT:
       WlzGreyRange(globals.orig_obj, &min, &max);
       if( (min.v.shv < 0) || (max.v.shv > 255) ){
-	if( obj = WlzConvertPix(globals.orig_obj, WLZ_GREY_SHORT, &errNum) ){
+	if((obj = WlzConvertPix(globals.orig_obj, WLZ_GREY_SHORT, &errNum))){
 	  WlzGreySetRange(obj, min, max, Min, Max, 0);
 	  bckgrnd = WlzGetBackground(obj, &errNum);
 	}
@@ -589,7 +618,7 @@ void install_paint_reference_object(
     case WLZ_GREY_FLOAT:
       WlzGreyRange(globals.orig_obj, &min, &max);
       if( (min.v.flv < 0) || (max.v.flv > 255) ){
-	if( obj = WlzConvertPix(globals.orig_obj, WLZ_GREY_INT, &errNum) ){
+	if((obj = WlzConvertPix(globals.orig_obj, WLZ_GREY_INT, &errNum))){
 	  WlzGreySetRange(obj, min, max, Min, Max, 0);
 	  bckgrnd = WlzGetBackground(obj, &errNum);
 	}
@@ -598,13 +627,14 @@ void install_paint_reference_object(
     case WLZ_GREY_DOUBLE:
       WlzGreyRange(globals.orig_obj, &min, &max);
       if( (min.v.dbv < 0) || (max.v.dbv > 255) ){
-	if( obj = WlzConvertPix(globals.orig_obj, WLZ_GREY_INT, &errNum)){
+	if((obj = WlzConvertPix(globals.orig_obj, WLZ_GREY_INT, &errNum))){
 	  WlzGreySetRange(obj, min, max, Min, Max, 0);
 	  bckgrnd = WlzGetBackground(obj, &errNum);
 	}
       }
       break;
 
+    default:
     case WLZ_GREY_UBYTE:
       break;
     }
@@ -709,7 +739,7 @@ void set_topl_title(
   /* check for emage flag 
      remove any trailing "_EMAGE" */
   strncpy(app_name, globals.app_name, 30);
-  if( tmpStr = strstr(app_name, "_EMAGE") ){
+  if((tmpStr = strstr(app_name, "_EMAGE"))){
     app_name[tmpStr - app_name] = '\0';
   }
   if( globals.emageFlg == True ){
@@ -763,8 +793,8 @@ void read_reference_object_cb(
      input options */
   if( client_data ){
     image_type = (WlzEffFormat) client_data;
-    if( icsfile = HGU_XmGetFileStr(globals.topl, cbs->value,
-				   cbs->dir) ){
+    if((icsfile = HGU_XmGetFileStr(globals.topl, cbs->value,
+				   cbs->dir))){
       obj = WlzEffReadObj(NULL, icsfile, image_type, 0, &errNum);
       AlcFree(icsfile);
     }
@@ -809,16 +839,16 @@ void read_reference_object_cb(
     WlzObject	*newObj;
 
   case WLZ_2D_DOMAINOBJ:
-    if( domain.p = WlzMakePlaneDomain(WLZ_PLANEDOMAIN_DOMAIN, 0, 0,
+    if((domain.p = WlzMakePlaneDomain(WLZ_PLANEDOMAIN_DOMAIN, 0, 0,
 				      obj->domain.i->line1,
 				      obj->domain.i->lastln,
 				      obj->domain.i->kol1,
 				      obj->domain.i->lastkl,
-				      &errNum) ){
+				      &errNum))){
       domain.p->domains[0] = WlzAssignDomain(obj->domain, NULL);
-      if( values.vox = WlzMakeVoxelValueTb(WLZ_VOXELVALUETABLE_GREY,
+      if((values.vox = WlzMakeVoxelValueTb(WLZ_VOXELVALUETABLE_GREY,
 					   0, 0, WlzGetBackground(obj, NULL),
-					   NULL, &errNum) ){
+					   NULL, &errNum))){
 	values.vox->values[0] = WlzAssignValues(obj->values, NULL);
 	newObj = WlzMakeMain(WLZ_3D_DOMAINOBJ, domain, values,
 			     obj->plist, NULL, &errNum);
@@ -848,14 +878,14 @@ void read_reference_object_cb(
   globals.origObjExtType = image_type;
 
   /* set title and reference file list */
-  if(icsfile = HGU_XmGetFileStr(globals.topl, cbs->value, cbs->dir) )
+  if((icsfile = HGU_XmGetFileStr(globals.topl, cbs->value, cbs->dir)))
   {
     Widget	cascade;
     HGU_XmFileListAddFile(globals.fileList, icsfile, image_type);
     HGU_XmFileListWriteResourceFile(globals.fileList,
 				    globals.resourceFile);
-    if( cascade = XtNameToWidget(globals.topl,
-				 "*file_menu*_pulldown*Recent") ){
+    if((cascade = XtNameToWidget(globals.topl,
+				 "*file_menu*_pulldown*Recent"))){
       HGU_XmFileListResetMenu(globals.fileList, cascade, referenceFileListCb);
     }
     if( XmStringGetLtoR(cbs->value, XmSTRING_DEFAULT_CHARSET, &icsfile) )
@@ -892,7 +922,6 @@ XtPointer	call_data)
   XmFileSelectionBoxCallbackStruct *cbs =
     (XmFileSelectionBoxCallbackStruct *) call_data;
   WlzEffFormat	image_type = (WlzEffFormat) client_data;
-  FILE		*fp;
 
   /* set hour glass cursor */
   HGU_XmSetHourGlassCursor(globals.topl);
@@ -922,11 +951,6 @@ void quit_cb(
   XtPointer	client_data,
   XtPointer	call_data)
 {
-  int		i;
-  char	str_buf[128];
-  String	str;
-  FILE	*fp;
-
   /* make sure we are mapped and at the top */
   XtMapWidget( globals.topl );
 
@@ -969,7 +993,7 @@ void fileMenuPopupCb(
     int		len;
 
     sprintf(strBuf, "*%d", i);
-    if( button = XtNameToWidget(menu, strBuf) ){
+    if((button = XtNameToWidget(menu, strBuf))){
       if( refFileList[i-1] != NULL){
 	/* reset the button label */
 	if( (len = strlen(refFileList[i-1])) < 36 ){
@@ -1017,11 +1041,10 @@ static XtResource set_att_res[] = {
 void file_menu_init(
   Widget	topl)
 {
-  Widget	rc, form, file_type_menu, toggle;
-  XmString	xmstr;
+  Widget	rc, form, toggle;
   Visual	*visual;
   Arg		arg[1];
-  char		fileStr[128], *tmpStr;
+  char		fileStr[128];
   FILE 		*fp;
   WlzEffFormat	image_type=WLZEFF_FORMAT_WLZ;
 
@@ -1047,7 +1070,7 @@ void file_menu_init(
   /* create the read-obj file selection dialog */
   read_obj_dialog = HGU_XmCreateExtFFObjectFSB(topl, "read_obj_dialog",
 					      read_reference_object_cb, NULL);
-  if( rc = XtNameToWidget(read_obj_dialog, "*.formatFormRC") ){
+  if((rc = XtNameToWidget(read_obj_dialog, "*.formatFormRC"))){
 
     /* add a form to include file type and fill-blanks toggle */
     form = XtVaCreateManagedWidget("read_file_form", xmFormWidgetClass,
@@ -1094,8 +1117,8 @@ void file_menu_init(
   if( !globals.sectViewFlg ){
     Widget	cascade;
 
-    if( cascade = XtNameToWidget(globals.topl,
-				 "*file_menu*_pulldown*Recent") ){
+    if((cascade = XtNameToWidget(globals.topl,
+				 "*file_menu*_pulldown*Recent"))){
       globals.resourceFile = (String) 
 	AlcMalloc(sizeof(char) * (strlen(getenv("HOME")) + 16));
       sprintf(globals.resourceFile, "%s/%s", getenv("HOME"), ".maRecentFiles");
@@ -1130,7 +1153,6 @@ void file_menu_init(
 	      "Logging not enabled\n\007", globals.logfile);
     }
     else {
-      time_t		tmpTime;
       char		timeBuf[16];
       struct hostent 	*hstnt;
       fprintf(stderr, "MAPaint: logging enabled to %s\n", globals.logfile);
@@ -1172,7 +1194,7 @@ void file_menu_init(
     /* search for the Theiler mode directory as per the CDROM 
        should search local disc first */
 #if defined (LINUX2)
-    if( pp = popen("find /mnt -maxdepth 4 -name Models", "r") ){
+    if((pp = popen("find /mnt -maxdepth 4 -name Models", "r"))){
       while( fscanf(pp, "%s", fileStr) != EOF ){
 	if( strstr(fileStr, "Models") ){
 	  globals.base_theiler_dir = AlcStrDup(fileStr);
@@ -1207,7 +1229,7 @@ void file_menu_init(
   }
   if( globals.theiler_stage ){
     char *tStr;
-    if( tStr = theilerString(globals.theiler_stage) ){
+    if((tStr = theilerString(globals.theiler_stage))){
       globals.theiler_stage = AlcStrDup(tStr);
     }
     else {
@@ -1223,7 +1245,7 @@ void file_menu_init(
     /* open the reference object file and install */
     if( (fp = fopen(initial_reference_file, "r")) ){
       HGU_XmSetHourGlassCursor(topl);
-      if( obj = WlzReadObj( fp, NULL ) ){
+      if((obj = WlzReadObj( fp, NULL ))){
 	switch( obj->type ){
 	  WlzDomain	domain;
 	  WlzValues	values;
@@ -1352,9 +1374,9 @@ void file_menu_init(
     WlzObject 	*obj;
 
     /* open the domain object file and put it in as a 3D feedback option */
-    if( (fp = fopen(initial_domain_file, "r")) ){
+    if( (fp = fopen(initial_domain_file, "rb")) ){
       HGU_XmSetHourGlassCursor(topl);
-      if( obj = WlzReadObj( fp, NULL ) ){
+      if((obj = WlzReadObj( fp, NULL ))){
 	if( globals.fb_obj ){
 	  WlzFreeObj(globals.fb_obj);
 	}

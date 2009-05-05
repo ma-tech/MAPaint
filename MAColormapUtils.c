@@ -1,45 +1,51 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas Project					*
-*   File       :   MAColormapUtils.c					*
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Mon Jan 19 09:47:09 1998				*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _M_colormapUtils_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAColormapUtils.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:50:58 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
 
 #include <MAPaint.h>
-
-
-static unsigned char ovly_cols[33][3] = 
-{
-/* greys */ 
-  {0,0,0},
-/* wash overlays */ 
-  {255,0,0}, {0,0,255}, {0,255,0}, {255,255,0}, {0,255,255},
-/* solid overlays */
-  {255,0,0}, {255,129,0}, {255,184,0}, {255,255,0}, {158,255,0},
-  {76,122,0}, {0,77,0},
-  {0,103,68}, {0,147,110}, {0,192,128}, {0,255,112},
-  {0,214,255}, {0,128,255},
-  {0,0,181}, {0,0,108}, {29,0,49}, {81,0,74}, {128,0,137},
-  {184,0,223}, {192,128,255}, {255,187,250}, {242,124,181},
-  {192,0,128}, {174,0,47},
-  {255,192,128}, {250,128,64}, {192,128,0}
-};
 
 /* define resources for all the colours */
 static XtResource domainColsRed[] = {
@@ -289,8 +295,6 @@ Colormap init_paint_colormap(
   PaintCmapStruct	*cmpstr)
 {
   Display		*dpy = XtDisplay( w );
-  Window		win = XtWindow( w );
-  XWindowAttributes	win_att;
   Colormap		cmap;
   unsigned long	plane_masks[1], free_pixels[256];
   unsigned int	i, n_free_pixels;

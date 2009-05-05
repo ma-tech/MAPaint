@@ -1,30 +1,58 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   MAPaint						*
-*   File       :   MAWarpInputPages.c					*
-*************************************************************************
-*   Author Name :  richard						*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Tue Nov 23 10:53:56 2004				*
-*   $Revision$							*
-*   $Name$								*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MAWarpInputPages_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAWarpInputPages.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:46:23 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 #include <MAPaint.h>
 #include <MAWarp.h>
+
+#include <Matrix.h>
 
 extern void warpSetSignalDomain(
   WlzIVertex2	*selVtx);
@@ -45,6 +73,14 @@ extern void tpTrackSaveCb(
   Widget	widget,
   XtPointer	client_data,
   XtPointer	call_data);
+
+extern void warpBibfileWrite(
+  FILE		*fp, 
+  ThreeDViewStruct	*view_struct);
+
+extern void warpRapidIORead(
+  String		bibfileStr,
+  ThreeDViewStruct	*view_struct);
 
 void warpRedisplayOvly(void)
 {
@@ -90,7 +126,7 @@ int warpGetBibfileTiePoints(
   int	numVtxs=0;
 
   /* open file */
-  if( fp = fopen(fileStr, "r") ){
+  if((fp = fopen(fileStr, "r"))){
     BibFileRecord	*bibfileRecord;
     BibFileError	bibFileErr;
     char		*errMsg;
@@ -173,6 +209,9 @@ void warpMeshMethodCb(
   XtCallCallbacks(warpGlobals.src.canvas, XmNexposeCallback, call_data);
   XtCallCallbacks(warpGlobals.ovly.canvas, XmNexposeCallback, call_data);
 
+  /* notify change to the express- and rapid-map bibfile saved resource */
+  expressMapStatusChange(0);
+
   return;
 }
 
@@ -182,7 +221,6 @@ void warpMeshFunctionCb(
   XtPointer		call_data)
 {
   WlzFnType		wlzFnType=(WlzFnType) client_data;
-  WlzErrorNum		errNum;
 
   warpGlobals.wlzFnType = wlzFnType;
 
@@ -195,11 +233,13 @@ void warpAffineTypeCb(
   XtPointer		call_data)
 {
   WlzTransformType	type=(WlzTransformType) client_data;
-  WlzErrorNum		errNum;
 
   warpGlobals.affineType = type;
+ 
+  /* notify change to the express- and rapid-map bibfile saved resource */
+  expressMapStatusChange(0);
 
-  return;
+ return;
 }
 
 void warpMeshMinDistCb(
@@ -231,6 +271,9 @@ void warpMeshMinDistCb(
   XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback, call_data);
   XtCallCallbacks(warpGlobals.src.canvas, XmNexposeCallback, call_data);
   XtCallCallbacks(warpGlobals.ovly.canvas, XmNexposeCallback, call_data);
+
+  /* notify change to the express- and rapid-map bibfile saved resource */
+  expressMapStatusChange(0);
 
   return;
 }
@@ -298,6 +341,9 @@ void warpMeshMaxDistCb(
   XtCallCallbacks(warpGlobals.src.canvas, XmNexposeCallback, call_data);
   XtCallCallbacks(warpGlobals.ovly.canvas, XmNexposeCallback, call_data);
 
+  /* notify change to the express- and rapid-map bibfile saved resource */
+  expressMapStatusChange(0);
+
   return;
 }
 
@@ -340,7 +386,6 @@ void warpReadSourceCb(
   WlzObject		*obj, *obj1;
   WlzIBox2		cutBox;
   WlzGreyType		greyType;
-  FILE			*fp;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
   Widget		scrw;
 
@@ -390,10 +435,9 @@ void warpReadSourceCb(
 
 	/* set the display magnification and display get frame
 	   size & image size */
-	if( scrw = XtParent(warpGlobals.src.canvas) ){
+	if((scrw = XtParent(warpGlobals.src.canvas))){
 	  Dimension	scrwHeight, scrwWidth;
-	  int		width, height;
-	  double	scale;
+
 	  XtVaGetValues(scrw, XmNheight, &scrwHeight,
 			XmNwidth, &scrwWidth, NULL);
 	  
@@ -408,9 +452,9 @@ void warpReadSourceCb(
 	if( WlzGreyTypeFromObj(warpGlobals.src.obj, NULL) == WLZ_GREY_RGBA ){
 	  Widget	option_menu, widget, menuHistory;
 	  /* switch mesh method to block */
-	  if( option_menu = XtNameToWidget(view_struct->dialog,
-					   "*.mesh_method") ){
-	    if( widget = XtNameToWidget(option_menu, "*.block") ){
+	  if((option_menu = XtNameToWidget(view_struct->dialog,
+					   "*.mesh_method"))){
+	    if((widget = XtNameToWidget(option_menu, "*.block"))){
 	      XtVaGetValues(option_menu, XmNmenuHistory, &menuHistory, NULL);
 	      if( widget != menuHistory ){
 		XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
@@ -483,7 +527,7 @@ void warpReadSourcePopupCb(
 						     client_data);
 
     /* add a check box to reset the current working directory */
-    if( form = XtNameToWidget(warp_read_src_dialog, "*.formatFormRC") ){
+    if((form = XtNameToWidget(warp_read_src_dialog, "*.formatFormRC"))){
       toggle = XtVaCreateManagedWidget("reset_cwd", xmToggleButtonGadgetClass,
 				       form,
 				       XmNset,	True,
@@ -573,8 +617,8 @@ void rapidMapPageSelectCb(
   Widget	warp_sgnl_frame;
 
   /* check that the warp-import page is mapped else call the import callback */
-  if( warp_sgnl_frame = XtNameToWidget(view_struct->dialog,
-				       "*control*warp_sgnl_frame") ){
+  if((warp_sgnl_frame = XtNameToWidget(view_struct->dialog,
+				       "*control*warp_sgnl_frame"))){
     if( !XtIsManaged(warp_sgnl_frame) ){
       warpImportSignalCb(widget, client_data, call_data);
     }
@@ -582,6 +626,38 @@ void rapidMapPageSelectCb(
 
   /* unset tie-point tracking flag */
   warpGlobals.tpTrackingFlg = 0;
+
+  /* get the express-map covenience buttons and undisplay */
+  if( warpGlobals.bibfileSelectButtonsFrame ){
+    XtUnmanageChild(warpGlobals.bibfileSelectButtonsFrame);
+  } 
+
+  return;
+}
+
+void expressMapPageSelectCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
+  Widget	warp_sgnl_frame;
+
+  /* check that the warp-import page is mapped else call the import callback */
+  if((warp_sgnl_frame = XtNameToWidget(view_struct->dialog,
+				       "*control*warp_sgnl_frame"))){
+    if( XtIsManaged(warp_sgnl_frame) ){
+      warpImportSignalCb(widget, client_data, call_data);
+    }
+  }
+
+  /* unset tie-point tracking flag */
+  warpGlobals.tpTrackingFlg = 0;
+
+  /* get the express-map covenience buttons and display */
+  if( warpGlobals.bibfileSelectButtonsFrame ){
+    XtManageChild(warpGlobals.bibfileSelectButtonsFrame);
+  } 
 
   return;
 }
@@ -596,22 +672,27 @@ void tpTrackPageSelectCb(
 
   /* check that the warp-import page is unmapped else call the
      import callback */
-  if( warp_sgnl_frame = XtNameToWidget(view_struct->dialog,
-				       "*control*warp_sgnl_frame") ){
+  if((warp_sgnl_frame = XtNameToWidget(view_struct->dialog,
+				       "*control*warp_sgnl_frame"))){
     if( XtIsManaged(warp_sgnl_frame) ){
       warpImportSignalCb(widget, client_data, call_data);
     }
   }
 
   /* set auto-update to unselected */
-    if( toggle = XtNameToWidget(warpGlobals.warp2DInteractDialog,
-				"*.autoUpdate") ){
+  if((toggle = XtNameToWidget(warpGlobals.warp2DInteractDialog,
+			      "*.autoUpdate"))){
       XtVaSetValues(toggle, XmNset, False, NULL);
     }
 
   /* set tie-point tracking flag */
   warpGlobals.tpTrackingFlg = 1;
   warpGlobals.tpTrackingInit = 0;
+
+  /* get the express-map covenience buttons and undisplay */
+  if( warpGlobals.bibfileSelectButtonsFrame ){
+    XtUnmanageChild(warpGlobals.bibfileSelectButtonsFrame);
+  } 
 
   return;
 }
@@ -621,10 +702,13 @@ void standardPageSelectCb(
   XtPointer	client_data,
   XtPointer	call_data)
 {
-  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
-
   /* unset tie-point tracking flag */
   warpGlobals.tpTrackingFlg = 0;
+
+  /* get the rapid-map & express-map covenience buttons and display */
+  if( warpGlobals.bibfileSelectButtonsFrame ){
+    XtUnmanageChild(warpGlobals.bibfileSelectButtonsFrame);
+  } 
 
   return;
 }
@@ -665,7 +749,7 @@ void rapidMapSaveCb(
   FILE		*fp;
   XmString	xmstr;
   String	fileStr, dirStr;
-  int		len, num_overlays;
+  int		num_overlays;
   int		i, confirmFlg;
 
   /* check if save required */
@@ -680,10 +764,10 @@ void rapidMapSaveCb(
   }
 
   /* save current warp params bibfile - create backup file */
-  if( xmstr = XmStringCreateSimple(warpGlobals.warpBibFile) ){
+  if((xmstr = XmStringCreateSimple(warpGlobals.warpBibFile))){
     confirmFlg = 0;
-    if( fp = HGU_XmGetFilePointerBckCnfm(globals.topl, xmstr, NULL, "w",
-					 ".bak", &confirmFlg) ){
+    if((fp = HGU_XmGetFilePointerBckCnfm(globals.topl, xmstr, NULL, "w",
+					 ".bak", &confirmFlg))){
       warpBibfileWrite(fp, view_struct);
       fclose(fp);
     }
@@ -691,7 +775,7 @@ void rapidMapSaveCb(
   }
 
   /* get directory component of bibfile path, reset cwd */
-  if( dirStr = HGU_XmPathToDirectory(warpGlobals.warpBibFile) ){
+  if((dirStr = HGU_XmPathToDirectory(warpGlobals.warpBibFile))){
     if( chdir((const char *) dirStr) ){
       /* report an error */
       HGU_XmUserError(view_struct->dialog,
@@ -736,11 +820,50 @@ void rapidMapSaveCb(
   return;
 }
 
+void expressMapSaveCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  FILE		*fp;
+  XmString	xmstr;
+  int		confirmFlg;
+
+  /* check if save required */
+  if( warpGlobals.bibfileSavedFlg ){
+    return;
+  }
+
+  /* only continue if the bibfile is defined */
+  if( !warpGlobals.warpBibFile ){
+    /* should put up a warning here to save using i/o menu */
+    return;
+  }
+
+  /* save current warp params bibfile - create backup file */
+  if((xmstr = XmStringCreateSimple(warpGlobals.warpBibFile))){
+    confirmFlg = 0;
+    if((fp = HGU_XmGetFilePointerBckCnfm(globals.topl, xmstr, NULL, "w",
+					 ".bak", &confirmFlg))){
+      warpBibfileWrite(fp, view_struct);
+      fclose(fp);
+    }
+    XmStringFree(xmstr);
+  }
+
+  /* set status and author and save csv bibfile list */
+  expressMapStatusChange(1);
+
+  return;
+}
+
 void rapidInstallBibfile(
   String		bibfileStr,
   ThreeDViewStruct	*view_struct)
 {
-  String	dirStr;
+  String	dirStr, tailStr;
+  Widget	label;
 
   /* check file string */
   if( bibfileStr == NULL ){
@@ -769,7 +892,7 @@ void rapidInstallBibfile(
 			    (XtPointer) view_struct, NULL);
 
   /* change current working directory */
-  if( dirStr = HGU_XmPathToDirectory(bibfileStr) ){
+  if((dirStr = HGU_XmPathToDirectory(bibfileStr))){
     if( chdir((const char *) dirStr) ){
       /* report an error */
       HGU_XmUserError(view_struct->dialog,
@@ -785,6 +908,25 @@ void rapidInstallBibfile(
 
   /* rapid-read next bibfile */
   warpRapidIORead(bibfileStr, view_struct);
+  warpGlobals.bibfileSavedFlg = 1;
+
+  /* set the current bibfile label */
+  if((label = XtNameToWidget(warpGlobals.bibfileSelectButtonsFrame, "*.currentBibfile"))){
+    XmString	xmstr;
+    int		i;
+
+    tailStr = bibfileStr;
+    for(i=0; i < strlen(bibfileStr); i++){
+      if( bibfileStr[i] == '/' ){
+	tailStr = bibfileStr + (i + 1);
+      }
+    }
+
+    xmstr = XmStringCreateSimple(tailStr);
+    XtVaSetValues(label,
+		  XmNlabelString, xmstr,
+		  NULL);
+  }
 
   /* set warp dialog to the top */
   paint_key = view_struct;
@@ -797,15 +939,14 @@ void rapidMapSaveAsCb(
   XtPointer	client_data,
   XtPointer	call_data)
 {
-  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
   String		bibfileStr;
 
   /* get bibfile from file browser */
-  if( bibfileStr = 
+  if((bibfileStr = 
 	HGU_XmUserGetFilenameT(globals.topl,
 			      "Please select a new warp bibfile.\n",
 			      "OK", "cancel", warpGlobals.warpBibFile,
-			      NULL, "*.bib", NULL) ){
+			       NULL, "*.bib", NULL))){
     if(warpGlobals.warpBibFile ){
       AlcFree( warpGlobals.warpBibFile );
     }
@@ -831,6 +972,68 @@ void rapidMapSaveAsCb(
 
   return;
 }
+
+void expressMapBibfileChange(void)
+{
+  int	index;
+
+  if((warpGlobals.bibfileListCount > 0) &&
+     (warpGlobals.bibfileListIndex >= 0)){
+    index = warpGlobals.bibfileListIndex;
+    XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
+			0, warpGlobals.bibfileList[index]);
+  }
+
+  return;
+}
+
+void expressMapSaveAsCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  String		bibfileStr;
+
+  /* get bibfile from file browser */
+  if((bibfileStr = 
+	HGU_XmUserGetFilenameT(globals.topl,
+			      "Please select a new warp bibfile.\n",
+			      "OK", "cancel", warpGlobals.warpBibFile,
+			       NULL, "*.bib", NULL))){
+    if(warpGlobals.warpBibFile ){
+      AlcFree( warpGlobals.warpBibFile );
+    }
+    warpGlobals.warpBibFile = bibfileStr;;
+    warpGlobals.bibfileSavedFlg = 0;
+
+    /* also substitute in the list */
+    if( warpGlobals.bibfileList[warpGlobals.bibfileListIndex] ){
+      AlcFree(warpGlobals.bibfileList[warpGlobals.bibfileListIndex]);
+    }
+    warpGlobals.bibfileList[warpGlobals.bibfileListIndex]  = 
+      AlcStrDup(bibfileStr);
+    expressMapBibfileChange();
+  }
+  else {
+    /* maybe give a message here */
+    return;
+  }
+
+  /* rapid save of existing */
+  /* check if save required */
+  if( !warpGlobals.bibfileSavedFlg ){
+    if( HGU_XmUserConfirm(globals.topl,
+			  "Current bibfile and domains not saved.\n"
+			  "Do you want to save before reading the\n"
+			  "next warp bibfile?\n",
+			  "Yes", "No", 1) ){
+      expressMapSaveCb(widget, client_data, call_data);
+    }
+  }
+
+  return;
+}
+
 void rapidMapSelectCb(
   Widget	widget,
   XtPointer	client_data,
@@ -862,6 +1065,90 @@ void rapidMapSelectCb(
 
   /* rapid install next bibfile */
   rapidInstallBibfile(bibfileStr, view_struct);
+
+  return;
+}
+
+void expressMapReplaceCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  String		bibfileStr;
+
+  /* get next bibfile from file browser */
+  if( !(bibfileStr = 
+	HGU_XmUserGetFilenameT(globals.topl,
+			      "Please select a new warp bibfile.\n",
+			      "OK", "cancel", NULL,
+			      globals.origDir, "*.bib", NULL)) ){
+    return;
+  }
+
+  /* rapid save of existing */
+  /* check if save required */
+  if( !warpGlobals.bibfileSavedFlg ){
+    if( HGU_XmUserConfirm(globals.topl,
+			  "Current bibfile and domains not saved.\n"
+			  "Do you want to save before reading the\n"
+			  "next warp bibfile?\n",
+			  "Yes", "No", 1) ){
+      expressMapSaveCb(widget, client_data, call_data);
+    }
+  }
+
+  /* reset the stored bibfile name */
+  if( warpGlobals.bibfileList[warpGlobals.bibfileListIndex] ){
+    AlcFree(warpGlobals.bibfileList[warpGlobals.bibfileListIndex]);
+  }
+  warpGlobals.bibfileList[warpGlobals.bibfileListIndex]  = 
+    AlcStrDup(bibfileStr);
+  expressMapBibfileChange();
+
+  /* rapid install next bibfile */
+  rapidInstallBibfile(bibfileStr, view_struct);
+
+  return;
+}
+
+void expressMapSaveListCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  String		bibfileListStr;
+  FILE			*fp;
+  int			i;
+
+  /* get bibfile list CSV filename from file browser */
+  if((bibfileListStr = 
+	HGU_XmUserGetFilenameT(globals.topl,
+			      "Please select a warp bibfile-list csv file.\n",
+			      "OK", "cancel", warpGlobals.bibfileListCSVFile,
+			       NULL, "*.csv", NULL))){
+    if(warpGlobals.bibfileListCSVFile){
+      AlcFree( warpGlobals.bibfileListCSVFile );
+    }
+    warpGlobals.bibfileListCSVFile = bibfileListStr;;
+  }
+  else {
+    /* maybe give a message here */
+    return;
+  }
+
+  /* to get here there must be a file str for the bibfile list */
+  if((fp = fopen(warpGlobals.bibfileListCSVFile, "w"))){
+    for(i=0; i < warpGlobals.bibfileListCount; i++){
+      fprintf(fp, "%s, %s, %s, %s, %s\n",
+	      warpGlobals.bibfileList[i],
+	      warpGlobals.statusList[i],
+	      warpGlobals.dateList[i],
+	      warpGlobals.authorList[i],
+	      warpGlobals.stageList[i]);
+    }
+    fclose(fp);
+  }
 
   return;
 }
@@ -913,6 +1200,421 @@ void rapidMapNextCb(
   return;
 }
 
+static void expressMapSetRowSelection(
+  int		index)
+{
+  Widget	matrix;
+  int		numRows;
+
+  if((matrix = XtNameToWidget(globals.topl, "*expressmap_matrix"))){
+
+    XtVaGetValues(matrix,
+		  XmNrows, &numRows,
+		  NULL);
+    if( (index < 0) || (index >= numRows) ){
+      return;
+    }
+/*    rowShadowTypes = (unsigned *) AlcMalloc(sizeof(char) * numRows);
+
+    for(i=0; i < numRows; i++){
+      if( i == index ){
+	rowShadowTypes[i] = XmSHADOW_ETCHED_OUT;
+      }
+      else {
+	rowShadowTypes[i] = XmSHADOW_ETCHED_IN;
+      }
+    }
+
+    XtVaSetValues(matrix,
+		  XmNrowShadowTypes, rowShadowTypes,
+		  NULL);
+    AlcFree(rowShadowTypes);
+*/
+    XbaeMatrixHighlightRow(matrix, index);
+    XbaeMatrixSelectRow(matrix, index);
+    XbaeMatrixRefresh(matrix);
+  }
+
+  return;
+}
+
+static void expressMapUnsetRowSelection(
+  int		index)
+{
+  Widget	matrix;
+  int		numRows;
+
+  if((matrix = XtNameToWidget(globals.topl, "*expressmap_matrix"))){
+
+    XtVaGetValues(matrix,
+		  XmNrows, &numRows,
+		  NULL);
+    if( (index < 0) || (index >= numRows) ){
+      return;
+    }
+/*    rowShadowTypes = (unsigned *) AlcMalloc(sizeof(char) * numRows);
+
+    for(i=0; i < numRows; i++){
+      rowShadowTypes[i] = XmSHADOW_ETCHED_IN;
+    }
+
+    XtVaSetValues(matrix,
+		  XmNrowShadowTypes, rowShadowTypes,
+		  NULL);
+		  AlcFree(rowShadowTypes);*/
+
+    XbaeMatrixUnhighlightRow(matrix, index);
+    XbaeMatrixDeselectRow(matrix, index);
+    XbaeMatrixRefresh(matrix);
+  }
+
+  return;
+}
+
+char *expressMapGetAuthor(
+  char	*fileStr)
+{
+  char	lineBuf[1024], *tmpStr;
+  char	*str = NULL;
+  FILE	*fp;
+  int	i;
+
+  /* a horrible quick and dirty way to get the author/user
+     depends on the bibfile being written EXACTLY as by MAPaint - yuk */
+  if((fp = fopen(fileStr, "r"))){
+    while( fgets(lineBuf, 1024, fp) ){
+      if((tmpStr = strstr(lineBuf, "{User: "))){
+	str = AlcMalloc(sizeof(char) * 64);
+	if( sscanf(tmpStr, "{User: %s", str) == 0 ){
+	  AlcFree(str);
+	  str = NULL;
+	}
+	else {
+	  for(i=0; i < strlen(str); i++){
+	    if( str[i] == '}' ){
+	      str[i] = '\0';
+	      break;
+	    }
+	  }
+	}
+	break;
+      }
+    }
+    fclose(fp);
+  }
+
+  return str;
+}
+
+char *expressMapGetDate(
+  char	*fileStr)
+{
+  char	lineBuf[1024], *tmpStr;
+  char	*str = NULL;
+  FILE	*fp;
+  int	i;
+
+  /* a horrible quick and dirty way to get the author/user
+     depends on the bibfile being written EXACTLY as by MAPaint - yuk */
+  if((fp = fopen(fileStr, "r"))){
+    while( fgets(lineBuf, 1024, fp) ){
+      if((tmpStr = strstr(lineBuf, "{Date: "))){
+	str = AlcStrDup(tmpStr+7);
+	for(i=0; i < strlen(str); i++){
+	  if( str[i] == '}' ){
+	    str[i] = '\0';
+	    break;
+	  }
+	}
+	break;
+      }
+    }
+    fclose(fp);
+  }
+
+  return str;
+}
+
+void expressMapStatusChange(
+  int	status)
+{
+  char		*tmpS;
+  time_t	tmpTime;
+  int		index;
+
+  if((status != warpGlobals.bibfileSavedFlg) &&
+     (warpGlobals.bibfileListCount > 0) &&
+     (warpGlobals.bibfileListIndex >= 0)){
+
+    index = warpGlobals.bibfileListIndex;
+
+    switch( status ){
+
+    case -1:
+      /* get author and date from bibfile if possible */
+      XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
+			1, "None");
+      if( warpGlobals.statusList[index] ){
+	AlcFree(warpGlobals.statusList[index]);
+      }
+      warpGlobals.statusList[index] = AlcStrDup("None");
+
+      tmpS = expressMapGetAuthor(warpGlobals.bibfileList[index]);
+      XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
+			3, tmpS?tmpS:"Unknown");
+      if( warpGlobals.authorList[index] ){
+	AlcFree(warpGlobals.authorList[index]);
+      }
+      warpGlobals.authorList[index] = AlcStrDup(tmpS?tmpS:"Unknown");
+      if(tmpS){
+	AlcFree(tmpS);
+      }
+
+      tmpS = expressMapGetDate(warpGlobals.bibfileList[index]);
+      XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
+			2, tmpS?tmpS:"Unknown");
+      if( warpGlobals.dateList[index] ){
+	AlcFree(warpGlobals.dateList[index]);
+      }
+      warpGlobals.dateList[index] = AlcStrDup(tmpS?tmpS:"Unknown");
+      if(tmpS){
+	AlcFree(tmpS);
+      }
+      break;
+
+    case 0:
+      XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
+			1, "Changed");
+      if( warpGlobals.statusList[index] ){
+	AlcFree(warpGlobals.statusList[index]);
+      }
+      warpGlobals.statusList[index] = AlcStrDup("Changed");
+      break;
+
+    case 1:
+    default:
+      XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
+			1, "Saved");
+      if( warpGlobals.statusList[index] ){
+	AlcFree(warpGlobals.statusList[index]);
+      }
+      warpGlobals.statusList[index] = AlcStrDup("Saved");
+      break;
+    }
+
+    /* now author and date */
+    if( status != -1 ){
+      tmpS = getenv("USER");
+      XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
+			3, tmpS?tmpS:"Unknown");
+      if( warpGlobals.authorList[index] ){
+	AlcFree(warpGlobals.authorList[index]);
+      }
+      warpGlobals.authorList[index] = AlcStrDup(tmpS?tmpS:"Unknown");
+
+      tmpTime = time(NULL);
+      tmpS = ctime(&tmpTime);
+      *(tmpS + strlen(tmpS) - 1) = '\0';
+      XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
+			2, tmpS?tmpS:"Unknown");
+      if( warpGlobals.dateList[index] ){
+	AlcFree(warpGlobals.dateList[index]);
+      }
+      warpGlobals.dateList[index] = AlcStrDup(tmpS?tmpS:"Unknown");
+    }
+    else {
+      status = 1;
+    }
+
+    warpGlobals.bibfileSavedFlg = status;
+  }
+
+  return;
+}
+
+static void expressMapSetBibfileFromIndex(
+  int			index,
+  ThreeDViewStruct	*view_struct,
+  int			checkSave)
+{
+  String		bibfileStr;
+  int			oldIndex;
+
+  if((index >= 0) && (index < warpGlobals.bibfileListCount) ){
+    if( index != warpGlobals.bibfileListIndex ){
+
+      /* check if current saved */
+
+      if( warpGlobals.bibfileSavedFlg == 0 ){
+	if( HGU_XmUserConfirm(globals.topl,
+			      "Current bibfile not saved.\n"
+			      "Do you want to save before reading the\n"
+			      "next warp bibfile?\n",
+			      "Yes", "No", 1) ){
+	  expressMapSaveCb(globals.topl, (XtPointer) view_struct, NULL);
+	}
+      }
+
+      oldIndex = warpGlobals.bibfileListIndex;
+      warpGlobals.bibfileListIndex = index;
+      bibfileStr = warpGlobals.bibfileList[index];
+
+      /* rapid install next bibfile */
+      rapidInstallBibfile(bibfileStr, view_struct);
+
+      /* highlight new current row in matrix widget */
+      expressMapUnsetRowSelection(oldIndex);
+      expressMapSetRowSelection(index);
+    }
+  }
+
+  return;
+}
+  
+void expressMapPreviousCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+
+  /* rapid save of existing */
+  expressMapSaveCb(widget, client_data, call_data);
+
+  /* set next index */
+  expressMapSetBibfileFromIndex(warpGlobals.bibfileListIndex - 1,
+				view_struct, 0);
+
+  return;
+}
+
+void expressMapNextCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+
+  /* rapid save of existing */
+  expressMapSaveCb(widget, client_data, call_data);
+
+  /* set next index */
+  expressMapSetBibfileFromIndex(warpGlobals.bibfileListIndex + 1,
+				view_struct, 0);
+
+  return;
+}
+
+void expressMapSkipBackCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+
+  /* set next index */
+  expressMapSetBibfileFromIndex(warpGlobals.bibfileListIndex - 1,
+				view_struct, 1);
+
+  return;
+}
+
+void expressMapSkipForeCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+
+  /* set next index */
+  expressMapSetBibfileFromIndex(warpGlobals.bibfileListIndex + 1,
+				view_struct, 1);
+
+  return;
+}
+
+void expressRowSelectCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
+  XbaeMatrixLabelActivateCallbackStruct	*cbs;
+  int	index;
+
+  cbs = (XbaeMatrixLabelActivateCallbackStruct *) call_data;
+  if( cbs->row > -1 ){
+    index = (int) XbaeMatrixGetRowUserData(widget, cbs->row);
+    expressMapSetBibfileFromIndex(index, view_struct, 1);
+  }
+
+  return;
+}
+
+void expressCellEnterCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  XbaeMatrixEnterCellCallbackStruct	*cbs;
+
+  cbs = (XbaeMatrixEnterCellCallbackStruct *) call_data;
+  if(cbs->column != 4){
+    cbs->doit = False;
+  }
+
+  return;
+}
+
+static String	testStrings[]={"23","22","21","24","25","26","20","19","27","28",
+			       "18","17","16","15","14","13","12","11", "10","9",
+			       "8","7","6","5","4","3","2","1"};
+static int numTestStrings=28;
+
+String expressGuessStage(
+  String	str)
+{
+  String	stageStr;
+  int		i;
+
+  stageStr = AlcMalloc(sizeof(char) * 5);
+  sprintf(stageStr, "TS23");
+
+  for(i=0; i < numTestStrings; i++){
+    if(strstr(str, testStrings[i])){
+      sprintf(stageStr, "TS%s", testStrings[i]);
+      break;
+    }
+  }
+
+  return stageStr;
+}
+
+void expressCellLeaveCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  XbaeMatrixLeaveCellCallbackStruct	*cbs;
+  String	stageStr;
+
+  cbs = (XbaeMatrixLeaveCellCallbackStruct *) call_data;
+  if(cbs->column == 4){
+    /* any sort of number here? */
+    stageStr = expressGuessStage(cbs->value);
+    if( warpGlobals.stageList[cbs->row] ){
+      AlcFree(warpGlobals.stageList[cbs->row]);
+    }
+    warpGlobals.stageList[cbs->row] = AlcStrDup(stageStr);
+    cbs->value = stageStr;
+  }
+  else {
+    cbs->doit = False;
+  }
+
+  return;
+}
+
 static char *tpTrackGetBibfileName(
   double	dist)
 {
@@ -936,8 +1638,6 @@ static void tpTrackSetSrc(
 {
   WlzObject	*srcObj;
   WlzThreeDViewStruct	*wlzViewStr=view_struct->wlzViewStr;
-  Display		*dpy=XtDisplay(view_struct->canvas);
-  Window		win=XtWindow(view_struct->canvas);  
   WlzErrorNum		errNum=WLZ_ERR_NONE;
   
   if( wlzViewStr->dist >= wlzViewStr->maxvals.vtZ ){
@@ -955,9 +1655,9 @@ static void tpTrackSetSrc(
   }
   else {
     Wlz3DSectionIncrementDistance(wlzViewStr, 1.0);
-    if( srcObj = WlzGetSectionFromObject(globals.orig_obj, wlzViewStr,
-					       WLZ_INTERPOLATION_NEAREST,
-					       &errNum) ){
+    if((srcObj = WlzGetSectionFromObject(globals.orig_obj, wlzViewStr,
+					 WLZ_INTERPOLATION_NEAREST,
+					 &errNum))){
       srcObj = WlzAssignObject(srcObj, &errNum);
       warpGlobals.srcFile = "tpTracking";
       warpGlobals.srcFileType = WLZEFF_FORMAT_WLZ;
@@ -1009,13 +1709,11 @@ void tpTrackStartCb(
   Widget		slider;
   Display		*dpy=XtDisplay(view_struct->canvas);
   Window		win=XtWindow(view_struct->canvas);
-  WlzObject		*srcObj;
   WlzCompoundArray	*cobj;
   char			planeBuf[16], *startStr;
   int			startPlane;
   int			i, nPoints;
   WlzDVertex2		*dstVtxs, *srcVtxs;
-  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /*  drop paint key and clear current domains */
   if( paint_key == view_struct ){
@@ -1040,11 +1738,11 @@ void tpTrackStartCb(
   /* request start plane */
   startPlane = globals.obj->domain.p->plane1;
   sprintf(planeBuf, "%d", startPlane);
-  if( startStr = HGU_XmUserGetstr(widget,
+  if((startStr = HGU_XmUserGetstr(widget,
 			      "Please type in the start plane:",
 			      "Continue",
 			      "Cancel",
-			      planeBuf) ){
+				  planeBuf))){
     if( sscanf(startStr, "%d", &startPlane) == 1 ){
       if((startPlane < globals.obj->domain.p->plane1) ||
 	 (startPlane > globals.obj->domain.p->lastpl) ){
@@ -1174,7 +1872,6 @@ void tpTrackNextCb(
   WlzCompoundArray	*cobj;
   int			i, nPoints, vtxIdx;
   WlzDVertex2		*dstVtxs, *srcVtxs;
-  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check if set up for tracking */
   if( !warpGlobals.tpTrackingInit ){
@@ -1310,7 +2007,6 @@ void tpTrackBackCb(
   WlzCompoundArray	*cobj;
   int			i, nPoints;
   WlzDVertex2		*dstVtxs, *srcVtxs;
-  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check if set up for tracking */
   if( !warpGlobals.tpTrackingInit ){
@@ -1412,11 +2108,11 @@ void tpTrackSaveCb(
   }
 
   /* save current warp params bibfile - create backup file */
-  if( file = tpTrackGetBibfileName(view_struct->wlzViewStr->dist) ){
-    if( xmstr = XmStringCreateSimple(file) ){
+  if((file = tpTrackGetBibfileName(view_struct->wlzViewStr->dist))){
+    if((xmstr = XmStringCreateSimple(file))){
       confirmFlg = 0;
-      if( fp = HGU_XmGetFilePointerBckCnfm(globals.topl, xmstr, NULL, "w",
-					   ".bak", &confirmFlg) ){
+      if((fp = HGU_XmGetFilePointerBckCnfm(globals.topl, xmstr, NULL, "w",
+					   ".bak", &confirmFlg))){
 	warpBibfileWrite(fp, view_struct);
 	fclose(fp);
       }
@@ -1443,6 +2139,14 @@ static ActionAreaItem   warp_rapid_actions[] = {
 {"save as",	NULL,		NULL},
 };
 
+static ActionAreaItem   warp_express_actions[] = {
+{"next",	NULL,		NULL},
+{"replace",	NULL,		NULL},
+{"save",	NULL,		NULL},
+{"save as",	NULL,		NULL},
+{"save list",	NULL,		NULL},
+};
+
 static ActionAreaItem   tp_tracking_actions[] = {
 {"start",	NULL,		NULL},
 {"next",	NULL,		NULL},
@@ -1459,7 +2163,7 @@ static MenuItem mesh_menu_itemsP[] = {		/* mesh_menu items */
    warpMeshMethodCb, (XtPointer) WLZ_MESH_GENMETHOD_BLOCK,
    myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 static MenuItem interpFunctionItemsP[] = { /* interp_function_menu items */
@@ -1479,7 +2183,7 @@ static MenuItem interpFunctionItemsP[] = { /* interp_function_menu items */
    warpMeshFunctionCb, (XtPointer) WLZ_FN_BASIS_2DGAUSS,
    myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},*/
-  NULL,
+  {NULL},
 };
 
 static MenuItem affineTypeItemsP[] = { /* interp_function_menu items */
@@ -1495,7 +2199,7 @@ static MenuItem affineTypeItemsP[] = { /* interp_function_menu items */
    warpAffineTypeCb, (XtPointer) WLZ_TRANSFORM_2D_AFFINE,
    myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 Widget createWarpStandardControlsPage(
@@ -1504,7 +2208,7 @@ Widget createWarpStandardControlsPage(
 {
   Widget	form, button, option_menu, slider;
   Widget	buttons, widget;
-  float		fval, fmin, fmax;
+  float		fval;
 
   form = XtVaCreateWidget("warp_input_2d_form",
 			  xmFormWidgetClass, 	notebook,
@@ -1527,7 +2231,7 @@ Widget createWarpStandardControlsPage(
   XtManageChild(option_menu);
 
   /* set block by default */
-  if( widget = XtNameToWidget(option_menu, "*.block") ){
+  if((widget = XtNameToWidget(option_menu, "*.block"))){
     XtVaSetValues(option_menu, XmNmenuHistory, widget, NULL);
     warpGlobals.meshMthd = WLZ_MESH_GENMETHOD_BLOCK;
   }
@@ -1694,20 +2398,161 @@ Widget createWarpRapidControlsPage(
 		NULL);
 
   /* now the callbacks */
-  if( widget = XtNameToWidget(buttons, "*.next") ){
+  if((widget = XtNameToWidget(buttons, "*.next"))){
     XtAddCallback(widget, XmNactivateCallback, rapidMapNextCb,
 		  view_struct);
   }
-  if( widget = XtNameToWidget(buttons, "*.select") ){
+  if((widget = XtNameToWidget(buttons, "*.select"))){
     XtAddCallback(widget, XmNactivateCallback, rapidMapSelectCb,
 		  view_struct);
   }
-  if( widget = XtNameToWidget(buttons, "*.save") ){
+  if((widget = XtNameToWidget(buttons, "*.save"))){
     XtAddCallback(widget, XmNactivateCallback, rapidMapSaveCb,
 		  view_struct);
   }
-  if( widget = XtNameToWidget(buttons, "*.save as") ){
+  if((widget = XtNameToWidget(buttons, "*.save as"))){
     XtAddCallback(widget, XmNactivateCallback, rapidMapSaveAsCb,
+		  view_struct);
+  }
+
+  XtManageChild(form);
+
+  return form;
+}
+Widget createWarpBibfileSelectButtonsFrame(
+  Widget		parent,
+  ThreeDViewStruct 	*view_struct)
+{
+  Widget	frame, button;
+
+  frame = XtVaCreateManagedWidget("bibfileSelectButtons", xmRowColumnWidgetClass, parent,
+				  XmNchildType, 	XmFRAME_TITLE_CHILD,
+				  XmNorientation,	XmHORIZONTAL,
+				  NULL);
+
+  /* create the buttons */
+  button = XtVaCreateManagedWidget("Current bibfile:", xmLabelWidgetClass,
+				   frame, NULL);
+  button = XtVaCreateManagedWidget("currentBibfile", xmLabelWidgetClass,
+				   frame, NULL);
+  button = XtVaCreateManagedWidget("Back", xmPushButtonWidgetClass,
+				   frame, NULL);
+  XtAddCallback(button, XmNactivateCallback, expressMapPreviousCb, (XtPointer) view_struct);
+
+  button = XtVaCreateManagedWidget("Next", xmPushButtonWidgetClass,
+				   frame, NULL);
+  XtAddCallback(button, XmNactivateCallback, expressMapNextCb, (XtPointer) view_struct);
+
+  button = XtVaCreateManagedWidget("Skip Back", xmPushButtonWidgetClass,
+				   frame, NULL);
+  XtAddCallback(button, XmNactivateCallback, expressMapSkipBackCb, (XtPointer) view_struct);
+
+  button = XtVaCreateManagedWidget("Skip Next", xmPushButtonWidgetClass,
+				   frame, NULL);
+  XtAddCallback(button, XmNactivateCallback, expressMapSkipForeCb, (XtPointer) view_struct);
+
+
+  warpGlobals.bibfileSelectButtonsFrame = frame;
+  
+  return frame;
+}
+Widget createWarpExpressControlsPage(
+  Widget		notebook,
+  ThreeDViewStruct	*view_struct)
+{
+  Widget	form, button;
+  Widget	buttons, widget, matrix;
+  Pixel		foreground, background;
+  char		*columnLabels[5]={"Bibfile", "Status", "Date", "Author", "Stage"};
+  unsigned char	columnLabelAlignments[5]={XmALIGNMENT_CENTER, XmALIGNMENT_CENTER,
+					  XmALIGNMENT_CENTER, XmALIGNMENT_CENTER,
+					  XmALIGNMENT_CENTER};
+  unsigned char	columnAlignments[5]={XmALIGNMENT_BEGINNING, XmALIGNMENT_BEGINNING,
+				     XmALIGNMENT_BEGINNING, XmALIGNMENT_BEGINNING,
+				     XmALIGNMENT_BEGINNING};
+  short		columnWidths[5]={12, 8, 12, 12, 5};
+
+  form = XtVaCreateWidget("warp_input_express_form",
+			  xmFormWidgetClass, 	notebook,
+			  XmNnotebookChildType, XmPAGE,
+			  NULL);  
+
+  button = XtVaCreateManagedWidget("Express Map",
+				   xmPushButtonWidgetClass, notebook,
+				   XmNnotebookChildType, XmMAJOR_TAB,
+				   NULL);
+  XtAddCallback(button, XmNactivateCallback, expressMapPageSelectCb, view_struct);
+  XtVaGetValues(button,
+		XmNforeground, &foreground,
+		XmNarmColor, &background,
+		NULL);
+
+  /* table for biblist management */
+  matrix = XtVaCreateManagedWidget("expressmap_matrix",
+				   xbaeMatrixWidgetClass, form,
+				   XmNtopAttachment,	XmATTACH_FORM,
+				   XmNleftAttachment,	XmATTACH_FORM,
+				   XmNrightAttachment,	XmATTACH_FORM,
+				   XmNcolumns, 5,
+				   XmNvisibleRows, 4,
+				   XmNvisibleColumns, 5,
+				   XmNallowColumnResize, True,
+				   XmNgridType,	XmGRID_ROW_SHADOW,
+				   XmNshadowThickness, 0,
+				   XmNcellShadowThickness, 3,
+				   XmNcellHighlightThickness, 0,
+				   XmNselectedForeground, foreground,
+				   XmNselectedBackground, background,
+				   NULL);
+  XtVaSetValues(matrix,
+		XmNcolumnLabels, columnLabels,
+		XmNcolumnLabelAlignments, columnLabelAlignments,
+		XmNcolumnAlignments, columnAlignments,
+		XmNcolumnWidths, columnWidths,
+		NULL);
+
+  /* callback for the row-select */
+  XtAddCallback(matrix, XmNlabelActivateCallback, expressRowSelectCb, view_struct);
+  warpGlobals.matrix = matrix;
+
+  /* callback to make the cells non-editable except Theiler stage */
+  XtAddCallback(matrix, XmNenterCellCallback, expressCellEnterCb, NULL);
+
+  /* callback to check Theiler stage */
+  XtAddCallback(matrix, XmNleaveCellCallback, expressCellLeaveCb, NULL);
+
+  /* now some buttons */
+  buttons = HGU_XmCreateActionArea(form,
+				    warp_express_actions,
+				    XtNumber(warp_express_actions));
+
+  /* set the buttons attachments */
+  XtVaSetValues(buttons,
+		XmNtopAttachment,	XmATTACH_WIDGET,
+		XmNtopWidget,		matrix,
+		XmNleftAttachment,	XmATTACH_FORM,
+		XmNrightAttachment,	XmATTACH_FORM,
+		NULL);
+
+  /* now the callbacks */
+  if((widget = XtNameToWidget(buttons, "*.next"))){
+    XtAddCallback(widget, XmNactivateCallback, expressMapNextCb,
+		  view_struct);
+  }
+  if((widget = XtNameToWidget(buttons, "*.replace"))){
+    XtAddCallback(widget, XmNactivateCallback, expressMapReplaceCb,
+		  view_struct);
+  }
+  if((widget = XtNameToWidget(buttons, "*.save"))){
+    XtAddCallback(widget, XmNactivateCallback, expressMapSaveCb,
+		  view_struct);
+  }
+  if((widget = XtNameToWidget(buttons, "*.save as"))){
+    XtAddCallback(widget, XmNactivateCallback, expressMapSaveAsCb,
+		  view_struct);
+  }
+  if((widget = XtNameToWidget(buttons, "*.save list"))){
+    XtAddCallback(widget, XmNactivateCallback, expressMapSaveListCb,
 		  view_struct);
   }
 
@@ -1769,19 +2614,19 @@ Widget createTiePointTrackingControlsPage(
 		NULL);
 
   /* now the callbacks */
-  if( widget = XtNameToWidget(buttons, "*.start") ){
+  if((widget = XtNameToWidget(buttons, "*.start"))){
     XtAddCallback(widget, XmNactivateCallback, tpTrackStartCb,
 		  view_struct);
   }
-  if( widget = XtNameToWidget(buttons, "*.next") ){
+  if((widget = XtNameToWidget(buttons, "*.next"))){
     XtAddCallback(widget, XmNactivateCallback, tpTrackNextCb,
 		  view_struct);
   }
-  if( widget = XtNameToWidget(buttons, "*.back") ){
+  if((widget = XtNameToWidget(buttons, "*.back"))){
     XtAddCallback(widget, XmNactivateCallback, tpTrackBackCb,
 		  view_struct);
   }
-  if( widget = XtNameToWidget(buttons, "*.save") ){
+  if((widget = XtNameToWidget(buttons, "*.save"))){
     XtAddCallback(widget, XmNactivateCallback, tpTrackSaveCb,
 		  view_struct);
   }

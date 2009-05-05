@@ -1,14 +1,47 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-* Project:	MRC HGU General IP and Display Utilities		*
-* Title:	MAPaint.c						*
-* Author:	Richard Baldock, MRC Human Genetics Unit		*
-* Copyright:	Medical Research Council, UK.				*
-* $Revision$
-* $Name$
-* Date:		
-* Synopsis:	
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MAPaint_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAPaint.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:48:25 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -16,7 +49,7 @@
 
 #include <MAPaint.h>
 #include <MAPaintResources.h>
-#include <MAPaintHelpResource.h>
+/*#include <MAPaintHelpResource.h>*/
 
 /* global variables */
 PaintGlobals	globals;
@@ -24,7 +57,7 @@ char		*initial_reference_file;
 char		*initial_domain_file;
 char		*release_str = MAPAINT_RELEASE_STR;
 
-static int set_MainWindow_XSizeHints	(Widget	main_w);
+/*static int set_MainWindow_XSizeHints	(Widget	main_w);*/
 static String translations_table =
 	"<Map>: InitialiseTopl()";
 
@@ -92,9 +125,7 @@ XEvent		*event,
 String		*params,
 Cardinal	*num_params)
 {
-    Widget	widget;
-
-    static	initialised=0;
+    static int	initialised=0;
     unsigned char	butMap[10];
     int		numEl;
 
@@ -154,7 +185,6 @@ void clear_autosave(void)
 {
     int		i, clean_file = 1;
     char	str_buf[128];
-    String	str;
 
     /* check each domain */
     for(i=1; i < 33; i++){
@@ -236,10 +266,10 @@ XErrorEvent	*err_event)
 	  "Value in failed request: 0x%x\n"
 	  "Major opcode of failed request: %d (%s)\n"
 	  "Minor opcode of failed request: %d\n"
-	  "Serial number of request: %d\n\n"
+	  "Serial number of request: %lu\n\n"
 	  "do you want to save domains\n"
 	  "before attempting to continue?",
-	  errStr, err_event->resourceid,
+	  errStr, (unsigned int) err_event->resourceid,
 	  err_event->request_code,
 	  HGU_XRequestToString(err_event->request_code),
 	  err_event->minor_code,
@@ -333,15 +363,15 @@ static XrmOptionDescRec mapaint_options[] = {
   {"-emage",	".emage", XrmoptionNoArg, "True"},
   {"-noemage",	".emage", XrmoptionNoArg, "False"},
   {"-rapidMap",	".rapidMap", XrmoptionSkipArg, NULL},
+  {"-expressMap",".expressMap", XrmoptionSkipArg, NULL},
   {"-panedWarp",".panedWarp", XrmoptionNoArg, "False"},
 };
 
-main(
+int main(
   int	argc,
   char	**argv)
 {
   Widget		topl, main_w, buttonbar, menubar, work_area;
-  Widget		xmdisplay;
   XtAppContext		app_con;
   XtTranslations	translations;
   Atom			WM_DELETE_WINDOW;
@@ -351,12 +381,9 @@ main(
   Boolean		d8Flg=False;
   Boolean		d24Flg=False;
   Boolean		emageFlg=False;
-  Boolean		rapidMapFlg=False;
   XrmValue		xrmValue;
   char			*rtnStrType;
   char			*nameStr, *depthRscStr;
-  char			butMap[10];
-  int			numEl;
   
   /* get the application name in case it is not MAPaint */
   if( argv[0] ){
@@ -399,7 +426,7 @@ main(
 
   /* use the default visual unless 24 bit requested */
   if( d24Flg == True ){
-    if( visual = HGU_XGetVisual(dpy, DefaultScreen(dpy), TrueColor, 24) ){
+    if((visual = HGU_XGetVisual(dpy, DefaultScreen(dpy), TrueColor, 24))){
       globals.visualMode = MAPAINT_24BIT_ONLY_MODE;
       globals.toplDepth = 24;
       globals.toplVisual = visual;
@@ -418,14 +445,14 @@ main(
     }
   }
   else if( d8Flg == True ){
-    if( visual = HGU_XGetVisual(dpy, DefaultScreen(dpy),
-				 PseudoColor, 8) ){
+    if((visual = HGU_XGetVisual(dpy, DefaultScreen(dpy),
+				PseudoColor, 8))){
       globals.visualMode = MAPAINT_8BIT_ONLY_MODE;
       globals.toplDepth = 8;
       globals.toplVisual = visual;
       globals.warpVisual = visual;
-      if( visual = HGU_XGetVisual(dpy, DefaultScreen(dpy),
-				  TrueColor, 24) ){
+      if((visual = HGU_XGetVisual(dpy, DefaultScreen(dpy),
+				  TrueColor, 24))){
 	globals.visualMode = MAPAINT_8_24BIT_MODE;
 	globals.warpVisual = visual;
       }
@@ -443,7 +470,7 @@ main(
     }
   }
   else {
-    if( visual = DefaultVisual(dpy, DefaultScreen(dpy)) ){
+    if((visual = DefaultVisual(dpy, DefaultScreen(dpy)))){
       XVisualInfo	*visualInfo, visualTemplate;
       int		nitems;
 
@@ -456,7 +483,7 @@ main(
 	globals.toplDepth = 8;
 	globals.toplVisual = visual;
 	globals.visualMode = MAPAINT_8BIT_ONLY_MODE;
-	if( visual = HGU_XGetVisual(dpy, DefaultScreen(dpy), TrueColor, 24) ){
+	if((visual = HGU_XGetVisual(dpy, DefaultScreen(dpy), TrueColor, 24))){
 	  globals.visualMode = MAPAINT_8_24BIT_MODE;
 	  globals.warpVisual = visual;
 	}
@@ -472,8 +499,8 @@ main(
       default:
 	if(!(visual = HGU_XGetVisual(dpy, DefaultScreen(dpy),
 				     PseudoColor, 8))){
-	  if( visual = HGU_XGetVisual(dpy, DefaultScreen(dpy),
-				      TrueColor, 24) ){
+	  if((visual = HGU_XGetVisual(dpy, DefaultScreen(dpy),
+				      TrueColor, 24))){
 	    globals.visualMode = MAPAINT_24BIT_ONLY_MODE;
 	    globals.toplDepth = 24;
 	    globals.toplVisual = visual;
@@ -495,7 +522,7 @@ main(
 	  globals.toplDepth = 8;
 	  globals.toplVisual = visual;
 	  globals.visualMode = MAPAINT_8BIT_ONLY_MODE;
-	  if( visual = HGU_XGetVisual(dpy, DefaultScreen(dpy), TrueColor, 24) ){
+	  if((visual = HGU_XGetVisual(dpy, DefaultScreen(dpy), TrueColor, 24))){
 	    globals.visualMode = MAPAINT_8_24BIT_MODE;
 	    globals.warpVisual = visual;
 	  }
@@ -550,13 +577,32 @@ main(
   
   /* check for additional command line reference arguments */
   /* this is not good and very fragile - put in to fix SepArg bug */
+  globals.rapidMapFlg = 0;
+  globals.bibfileListFile = NULL;
   if( argc > 1 ){
     if( strstr("-rapidMap", argv[1]) ){
       int i;
 
       globals.rapidMapFlg = 1;
       /* this is the biblist argument */
-      globals.bibfileListFile = argv[2];
+      globals.bibfileListFile = AlcStrDup(argv[2]);
+      for(i=3; i < argc; argc++){
+	argv[i-2] = argv[i];
+      }
+      argc -= 2;
+    }
+  }
+
+  /* a problem here if both rapid map and express map are set - undetermined what will happen
+     probably bad */
+  globals.expressMapFlg = 0;
+  if( argc > 1 ){
+    if( strstr("-expressMap", argv[1]) ){
+      int i;
+
+      globals.expressMapFlg = 1;
+      /* this is the biblist argument */
+      globals.bibfileListFile = AlcStrDup(argv[2]);
       for(i=3; i < argc; argc++){
 	argv[i-2] = argv[i];
       }
@@ -642,46 +688,48 @@ main(
   return( 0 );
 }
 
-static int set_MainWindow_XSizeHints(
-Widget	main_w)
-{
-    Widget	widget;
-    XSizeHints	xsizehints;
-    Dimension	w, h;
 
+/*static int set_MainWindow_XSizeHints(*/
+/*Widget	main_w)*/
+/*{*/
+/*    Widget	widget;*/
+/*    XSizeHints	xsizehints;*/
+/*    Dimension	w, h;*/
+/**/
     /* get the menubar */
-    if( (widget = XtNameToWidget(main_w, "*.menubar")) == NULL )
-    {
-	xsizehints.max_width = 0;
-	xsizehints.max_height = 0;
-    } else
-    {
-	XtVaGetValues(widget, XmNwidth, &w, XmNheight, &h, NULL);
-	xsizehints.max_width = w;
-	xsizehints.max_height = h;
-    }
-
+/*    if( (widget = XtNameToWidget(main_w, "*.menubar")) == NULL )*/
+/*    {*/
+/*	xsizehints.max_width = 0;*/
+/*	xsizehints.max_height = 0;*/
+/*    } else*/
+/*    {*/
+/*	XtVaGetValues(widget, XmNwidth, &w, XmNheight, &h, NULL);*/
+/*	xsizehints.max_width = w;*/
+/*	xsizehints.max_height = h;*/
+/*    }*/
+/**/
     /* get the work_area */
-    if( (widget = XtNameToWidget(main_w, "*.work_area")) != NULL )
-    {
-	XtVaGetValues(widget, XmNwidth, &w, XmNheight, &h, NULL);
-	if( xsizehints.max_width < (int) w )
-	    xsizehints.max_width = w;
-	xsizehints.max_height += h;
-    }
- 
+/*    if( (widget = XtNameToWidget(main_w, "*.work_area")) != NULL )*/
+/*    {*/
+/*	XtVaGetValues(widget, XmNwidth, &w, XmNheight, &h, NULL);*/
+/*	if( xsizehints.max_width < (int) w )*/
+/*	    xsizehints.max_width = w;*/
+/*	xsizehints.max_height += h;*/
+/*    }*/
+/* */
     /* get the buttonbar */
-    if( (widget = XtNameToWidget(main_w, "*.buttonbar")) != NULL )
-    {
-	XtVaGetValues(widget, XmNwidth, &w, XmNheight, &h, NULL);
-	if( xsizehints.max_width < (int) w )
-	    xsizehints.max_width = w;
-	xsizehints.max_height += h;
-    }
- 
-    xsizehints.max_width += 8;
-    xsizehints.max_height += 12;
-    xsizehints.flags = PMaxSize;
-    XSetWMNormalHints(XtDisplay(main_w), XtWindow(main_w), &xsizehints);
-    return( 0 );
-}
+/*    if( (widget = XtNameToWidget(main_w, "*.buttonbar")) != NULL )*/
+/*    {*/
+/*	XtVaGetValues(widget, XmNwidth, &w, XmNheight, &h, NULL);*/
+/*	if( xsizehints.max_width < (int) w )*/
+/*	    xsizehints.max_width = w;*/
+/*	xsizehints.max_height += h;*/
+/*    }*/
+/* */
+/*    xsizehints.max_width += 8;*/
+/*    xsizehints.max_height += 12;*/
+/*    xsizehints.flags = PMaxSize;*/
+/*    XSetWMNormalHints(XtDisplay(main_w), XtWindow(main_w), &xsizehints);*/
+/*    return( 0 );*/
+/*}*/
+

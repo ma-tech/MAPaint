@@ -1,24 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas Project					*
-*   File       :   MAConformalPoly.c					*
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Mon Mar 29 19:10:25 1999				*
-*   $Revision$						*
-*   $Name$								*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _M_conformalPoly_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAConformalPoly.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:50:42 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,7 +49,6 @@
 #include <MAPaint.h>
 
 static int	numCoords;
-static int	x1, x2, y11, y2, z1, z2;
 static int	specialTriggered;
 static WlzPolygonDomain	*confPoly;
 static int	numMeshPolys;
@@ -95,7 +116,6 @@ WlzBasisFnTransform *WlzConfPolyFromCPts(
   int  		idM,
   		idN,
 		idX,
-  		idY,
 		nCoef;
   double	thresh,
   		wMax;
@@ -106,7 +126,7 @@ WlzBasisFnTransform *WlzConfPolyFromCPts(
   WlzDVertex2	powVx,
   		sVx;
   WlzBasisFnTransform *basis = NULL;
-  WlzBasisFn	*basisFn;
+  WlzBasisFn	*basisFn=NULL;
   WlzErrorNum	errNum = WLZ_ERR_NONE;
   int		nPts = nDPts;
   const double	tol = 1.0e-06;
@@ -300,8 +320,6 @@ void conformalCalculateMeshCb(
   XtPointer	client_data,
   XtPointer	call_data)
 {
-  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
-  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   WlzBasisFnTransform	*basis;
   WlzFVertex2		*fvtxs, fvtx;
   WlzDVertex2		*dPts, *sPts;
@@ -419,7 +437,6 @@ void conformalDisplayPolysCb(
   XtPointer	call_data)
 {
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
-  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   Display		*dpy = XtDisplay(view_struct->canvas);
   Window		win = XtWindow(view_struct->canvas);
   GC			gc = globals.gc_set;
@@ -451,12 +468,8 @@ void conformal_input_cb(
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   XmAnyCallbackStruct	*cbs = (XmAnyCallbackStruct *) call_data;
-  int			x, y, widthp, heightp;
-  int			kol, line, plane;
-  double		distance;
+  int			x, y;
   int			i;
-  Widget		widget;
-  Boolean		toggleSet;
   WlzPolygonDomain	*startPoly;
   WlzFVertex2		fpVtx, *fvtxs;
   WlzObject		*polygon;
@@ -474,9 +487,10 @@ void conformal_input_cb(
 	/* get the polyline, rescale as required */
 	fpVtx.vtX = cbs->event->xbutton.x;
 	fpVtx.vtY = cbs->event->xbutton.y;
+	fvtxs = &fpVtx;
 	startPoly = WlzAssignPolygonDomain(
 	  WlzMakePolygonDomain(WLZ_POLYGON_FLOAT, 1,
-			       (WlzIVertex2 *) &fpVtx,
+			       (WlzIVertex2 *) fvtxs,
 			       1, 1, NULL), &errNum);
 	if( confPoly ){
 	  WlzFreePolyDmn(confPoly);
@@ -491,14 +505,14 @@ void conformal_input_cb(
 	}
 
 	/* convert to an 8-connected polyline */
-	if( polygon = WlzPolyTo8Polygon(confPoly, 1, &errNum) ){
+	if((polygon = WlzPolyTo8Polygon(confPoly, 1, &errNum))){
 	  WlzFreePolyDmn(confPoly);
-	  if( confPoly = WlzAssignPolygonDomain(
+	  if((confPoly = WlzAssignPolygonDomain(
 	    WlzMakePolygonDomain(WLZ_POLYGON_INT, 
 			   polygon->domain.poly->nvertices,
 			   polygon->domain.poly->vtx,
 			   polygon->domain.poly->nvertices,
-			   1, &errNum), NULL)){
+				 1, &errNum), NULL))){
 	    confPoly->type = WLZ_POLYGON_FLOAT;
 	    fvtxs = (WlzFVertex2 *) confPoly->vtx;
 	    for(i=0; i < confPoly->nvertices; i++){

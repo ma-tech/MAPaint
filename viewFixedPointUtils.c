@@ -1,22 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas Project					*
-*   File       :   viewFixedPointUtils.c				*
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Thu Feb 26 11:51:08 1998				*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _viewFixedPointUtils_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         viewFixedPointUtils.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:31:10 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,7 +75,7 @@ static MenuItem fixed_1_menu_itemsP[] = {  /* fixed point optional menu */
    NULL, NULL,
    myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 static MenuItem fixed_2_menu_itemsP[] = {  /* fixed point optional menu */
@@ -75,7 +99,7 @@ static MenuItem fixed_2_menu_itemsP[] = {  /* fixed point optional menu */
    NULL, NULL,
    myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 static MenuItem up_vect_menu_itemsP[] = {  /* fixed point optional menu */
@@ -99,7 +123,7 @@ static MenuItem up_vect_menu_itemsP[] = {  /* fixed point optional menu */
    NULL, NULL,
    myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 static MenuItem io_menu_itemsP[] = {  /* controls values io menu */
@@ -119,7 +143,7 @@ static MenuItem io_menu_itemsP[] = {  /* controls values io menu */
    NULL, NULL,
    myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 void HGU_XmTimeDelayPostMenuTOCb(
@@ -173,7 +197,7 @@ void HGU_XmAttachTimeDelayPulldown(
   String	name;
 
   /* create the menu */
-  if( name = (String) AlcMalloc(strlen(XtName(widget)) + 12) ){
+  if((name = (String) AlcMalloc(strlen(XtName(widget)) + 12))){
     sprintf(name, "%s_td_popup", XtName(widget));
     menu = HGU_XmBuildMenu(XtParent(widget), XmMENU_POPUP, name, '\0',
 			   tear_off_model, menuItems);
@@ -235,8 +259,6 @@ void fixed_1_text_in_cb(
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   String		fixedPointStr, defFPStr;
   WlzDVertex3		vtx;
-  WlzErrorNum		errNum=WLZ_ERR_NONE;
- 
 
   /* get a new fixed point and set the distance to zero */
   if( (defFPStr = (String) AlcMalloc(64)) == NULL ){
@@ -301,7 +323,7 @@ void fixed_1_reset_cb(
   wlzViewStr->dist = 0.0;
 
   /* reset the mode to the last selected */
-  if( menu = XtNameToWidget(view_struct->dialog, "*view_mode") ){
+  if((menu = XtNameToWidget(view_struct->dialog, "*view_mode"))){
     XtVaGetValues(menu, XmNmenuHistory, &widget, NULL);
     if( strcmp(XtName(widget), "up-is-up") == 0 ){
       wlzViewStr->view_mode = WLZ_UP_IS_UP_MODE;
@@ -342,7 +364,7 @@ void fixed_2_cancel_cb(
   Widget		menu, widget;
 
   /* reset the mode to the last selected */
-  if( menu = XtNameToWidget(view_struct->dialog, "*view_mode") ){
+  if((menu = XtNameToWidget(view_struct->dialog, "*view_mode"))){
     XtVaGetValues(menu, XmNmenuHistory, &widget, NULL);
     if( strcmp(XtName(widget), "up-is-up") == 0 ){
       wlzViewStr->view_mode = WLZ_UP_IS_UP_MODE;
@@ -361,7 +383,7 @@ void fixed_2_cancel_cb(
   reset_view_struct( view_struct );
 
   /* set the zeta slider */
-  if( widget = XtNameToWidget(view_struct->dialog, "*.zeta_slider") ){
+  if((widget = XtNameToWidget(view_struct->dialog, "*.zeta_slider"))){
     if( wlzViewStr->view_mode == WLZ_ZETA_MODE ){
       XtSetSensitive(widget, True);
     }
@@ -415,7 +437,6 @@ void fixed_1_display_cb(
   XtPointer	call_data)
 {
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
-  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   XmToggleButtonCallbackStruct	*tbCbStruct = 
     (XmToggleButtonCallbackStruct *) call_data;
   
@@ -438,7 +459,6 @@ void fixed_2_display_cb(
   XtPointer	call_data)
 {
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
-  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   XmToggleButtonCallbackStruct	*tbCbStruct = 
     (XmToggleButtonCallbackStruct *) call_data;
   
@@ -461,7 +481,6 @@ void up_vector_display_cb(
   XtPointer	call_data)
 {
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
-  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   XmToggleButtonCallbackStruct	*tbCbStruct = 
     (XmToggleButtonCallbackStruct *) call_data;
   
@@ -527,7 +546,7 @@ void fixed_1_cb(
   wlzViewStr->dist = 0.0;
 
   /* reset the mode to the last selected */
-  if( menu = XtNameToWidget(view_struct->dialog, "*view_mode") ){
+  if((menu = XtNameToWidget(view_struct->dialog, "*view_mode"))){
     XtVaGetValues(menu, XmNmenuHistory, &widget, NULL);
     if( strcmp(XtName(widget), "up-is-up") == 0 ){
       wlzViewStr->view_mode = WLZ_UP_IS_UP_MODE;
@@ -601,10 +620,10 @@ void fixed_2_cb(
   if( WLZ_NINT(wlzViewStr->dist) == 0 ){
     if( view_struct->view_object == NULL ){
       WlzObject	*tmpObj;
-      if( tmpObj = WlzGetSectionFromObject(globals.orig_obj,
+      if((tmpObj = WlzGetSectionFromObject(globals.orig_obj,
 					   wlzViewStr,
 					   WLZ_INTERPOLATION_NEAREST,
-					   &errNum) ){
+					   &errNum))){
 	view_struct->view_object = WlzAssignObject(tmpObj, NULL);
       }
       else {
@@ -616,9 +635,10 @@ void fixed_2_cb(
       * wlzViewStr->scale;
     fpVtx.vtY = (0 - view_struct->view_object->domain.i->line1)
       * wlzViewStr->scale;
-    if( startPoly = WlzMakePolygonDomain(WLZ_POLYGON_FLOAT, 1,
-					 (WlzIVertex2 *) &fpVtx,
-					 1, 1, &errNum) ){
+    vtx = &fpVtx;
+    if((startPoly = WlzMakePolygonDomain(WLZ_POLYGON_FLOAT, 1,
+					 (WlzIVertex2 *) vtx,
+					 1, 1, &errNum))){
       startPoly = WlzAssignPolygonDomain(startPoly, NULL);
     }
     else {
@@ -635,7 +655,7 @@ void fixed_2_cb(
   callbacks.non_window_data = NULL;
   callbacks.help_func = NULL;
   callbacks.help_data = NULL;
-  if( (poly = HGU_XGetPolydmn(dpy, win, 0, &callbacks, startPoly)) == NULL ){
+  if(((poly = HGU_XGetPolydmn(dpy, win, 0, &callbacks, startPoly)) == NULL)){
     if( startPoly ){
       WlzFreePolyDmn(startPoly);
     }
@@ -815,7 +835,6 @@ void controls_io_write_cb(
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   String		fileStr;
   FILE			*fp;
-  WlzErrorNum		errNum;
   char			*tmpS, *dateS, *hostS, *userS, tmpBuf[25];
   BibFileRecord		*bibfileRecord;
   static char		unknownS[] = "unknown";
@@ -826,13 +845,13 @@ void controls_io_write_cb(
   XtCallCallbacks(w, XmNdisarmCallback, call_data);
 
   /* get a filename for the section parameters */
-  if( fileStr = HGU_XmUserGetFilename(globals.topl,
+  if((fileStr = HGU_XmUserGetFilename(globals.topl,
 				      "Please type in a filename\n"
 				      "for the section view parameters\n"
 				      "to be saved as plain text",
 				      "OK", "cancel", "MAPaintSectParams.bib",
-				      NULL, "*.bib") ){
-    if( fp = fopen(fileStr, "w") ){
+				      NULL, "*.bib"))){
+    if((fp = fopen(fileStr, "w"))){
       /* write a comment block and reference image record */
       bibfileRecord = 
 	BibFileRecordMake("Ident", "0",
@@ -927,9 +946,6 @@ void special_input_cb(
   int			x, y, widthp, heightp, domain;
   int			kol, line, plane;
   double		distance;
-  int			i;
-  Widget		widget;
-  Boolean		toggleSet;
 
   /* switch on event type */
   switch( cbs->event->type ){
@@ -1129,13 +1145,13 @@ void special_coords_write_cb(
   /* XtCallCallbacks(w, XmNdisarmCallback, call_data);*/
 
   /* get a filename for the section parameters */
-  if( fileStr =
+  if((fileStr =
      HGU_XmUserGetFilename(globals.topl,
 			   "Please type in a filename\n"
 			   "for the coordinate parameters\n"
 			   "to be saved as plain text",
 			   "OK", "cancel", "MAPaint_special.txt",
-			   NULL, "*.txt") ){
+			   NULL, "*.txt"))){
 
     /* if already painting do nothing */
     if( paint_key == view_struct ){
@@ -1188,7 +1204,7 @@ int controls_io_quiet_read(
     rtnVal = 1;
   }
   else {
-    if( fp = fopen(fileStr, "rb") ){
+    if((fp = fopen(fileStr, "rb"))){
       BibFileRecord	*bibfileRecord;
       BibFileError	bibFileErr;
       char		*errMsg;
@@ -1269,15 +1285,14 @@ void controls_io_read_cb(
   /*XtCallCallbacks(w, XmNdisarmCallback, call_data);*/
 
   /* get a filename for the section parameters */
-  if( fileStr = HGU_XmUserGetFilename(globals.topl,
+  if((fileStr = HGU_XmUserGetFilename(globals.topl,
 				      "Please type in a bibfile name\n"
 				      "for the section view parameters\n"
 				      "to be read in",
 				      "OK", "cancel",
 				      "MAPaintSectParams.bib",
-				      NULL, "*.bib")
-    ){
-    if( fp = fopen(fileStr, "r") ){
+				      NULL, "*.bib"))){
+    if((fp = fopen(fileStr, "r"))){
       BibFileRecord	*bibfileRecord;
       BibFileError	bibFileErr;
       char		*errMsg;
@@ -1378,8 +1393,6 @@ void popupDrawnButtonCb(
   XtPointer	client_data,
   XtPointer	call_data)
 {
-  XmDrawnButtonCallbackStruct
-    *cbs=(XmDrawnButtonCallbackStruct *) call_data;
   Dimension	ht, st, width, height;
   Display	*dpy = XtDisplay(w);
   Window	win = XtWindow(w);

@@ -1,29 +1,50 @@
-#pragma ident "MRC HGU $Id$"
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MAEmageReview_c[] = "MRC HGU $Id:";
+#endif
+#endif
 /*!
 * \file         MAEmageReview.c
-* \author       richard <Richard.Baldock@hgu.mrc.ac.uk>
-* \date         Thu May 19 12:49:12 2005
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:49:48 2009
 * \version      MRC HGU $Id$
 *               $Revision$
 *               $Name$
-* \par Copyright:
-*               1994-2002 Medical Research Council, UK.
-*               All rights reserved.
 * \par Address:
 *               MRC Human Genetics Unit,
 *               Western General Hospital,
 *               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
 * \ingroup      MAPaint
 * \brief        procedures to support EMAGE review of domains
 *               
-* \todo         -
-* \bug          None known
 *
 * Maintenance log with most recent changes at top of list.
 */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -41,15 +62,19 @@ extern Widget create_view_window_dialog(
   double        phi,
   WlzDVertex3	*fixed);
 
+extern void read_reference_object_cb(
+  Widget	w,
+  XtPointer	client_data,
+  XtPointer	call_data);
+
 WlzErrorNum  installReferenceFromBibfile(
   String		fileStr)
 {
   FILE			*fp;
   WlzErrorNum		errNum=WLZ_ERR_READ_EOF;
-  WlzObject		*obj;
 
   /* open file */
-  if( fp = fopen(fileStr, "r") ){
+  if((fp = fopen(fileStr, "r"))){
     BibFileRecord	*bibfileRecord;
     BibFileError	bibFileErr;
     char		*errMsg;
@@ -98,9 +123,7 @@ void installViewFromBibfile(
   double		oldScale, newScale, newZeta;
   Display		*dpy = XtDisplay(view_struct->canvas);
   Window		win  = XtWindow(view_struct->canvas);
-  Widget		option_menu, widget, slider;
-  WlzErrorNum		errNum=WLZ_ERR_NONE;
-  WlzObject		*obj;
+  Widget		slider;
 
   /* check view_struct */
   if( view_struct == NULL ){
@@ -109,7 +132,7 @@ void installViewFromBibfile(
   }
 
   /* open file */
-  if( fp = fopen(fileStr, "r") ){
+  if((fp = fopen(fileStr, "r"))){
     BibFileRecord	*bibfileRecord;
     BibFileError	bibFileErr;
     char		*errMsg;
@@ -253,15 +276,15 @@ WlzErrorNum emageReviewInstallFromBibfile(
   /* check file string */
   if( bibfileStr == NULL ){
     /* something wrong */
-    return;
+    return WLZ_ERR_PARAM_NULL;
   }
 
   /* change current working directory */
-  if( dirStr = HGU_XmPathToDirectory(bibfileStr) ){
+  if((dirStr = HGU_XmPathToDirectory(bibfileStr))){
     if( chdir((const char *) dirStr) ){
       /* report an error */
       HGU_XmUserError(view_struct->dialog,
-		      "Rapid-Map install:\n"
+		      "Rapid-Map or Express-Map install:\n"
 		      "  Failed to change current working\n"
 		      "  directory (folder). For the next\n"
 		      "  save please check the domain file\n"
@@ -285,7 +308,7 @@ WlzErrorNum emageReviewInstallFromBibfile(
        search for ".ts", then model number, then type,
        then add directory prefix /opt/MouseAtlas/EMAP_models/
     */
-    if( str = strstr(bibfileStr, ".ts") ){
+    if((str = strstr(bibfileStr, ".ts"))){
       char	fileStrBuf[128], modelType;
       int	stage, modelNum;
       XmString	xmstr;
@@ -380,7 +403,8 @@ XtPointer	call_data)
   }
 
   /* grab the paint-key if necessary clear any domains */
-  if( view_struct = paint_key ){
+  if( paint_key ){
+    view_struct = paint_key;
     paint_key = NULL;
     clearUndoDomains();
     installViewDomains(view_struct);
@@ -449,8 +473,8 @@ XtPointer	call_data)
       globals.domain_filename[i] = fileStr;
 
       /* now read domain */
-      if( fp = fopen(fileStr, "rb") ){
-	if( obj = WlzReadObj(fp, &errNum) ){
+      if((fp = fopen(fileStr, "rb"))){
+	if((obj = WlzReadObj(fp, &errNum))){
 	  setDomain(obj, i, fileStr);
 	  WlzFreeObj(obj);
 	}

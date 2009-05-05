@@ -1,12 +1,47 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-* Project:	MRC HGU General IP and Display Utilities		*
-* Title:	main_menubar.c						*
-* Author:	Richard Baldock, MRC Human Genetics Unit		*
-* Copyright:	Medical Research Council, UK.				*
-* Date:		
-* Synopsis:	
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _main_menubar_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         main_menubar.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:49:03 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
+
 #include <stdio.h>
 
 #include <MAPaint.h>
@@ -20,7 +55,7 @@ void MAPaintVersionCb(
 {
   String	versionStr;
 
-  if( versionStr = AlcMalloc(sizeof(char)*(strlen(release_str) + 256)) ){
+  if((versionStr = AlcMalloc(sizeof(char)*(strlen(release_str) + 256)))){
     sprintf(versionStr, "Release:\n\%s\n\n%s", release_str,
 	    "MAPaint has been developed at the MRC Human\n"
 	    "Genetics Unit, Edinburgh as part of the Mouse\n"
@@ -52,15 +87,6 @@ XtPointer	client_data)
     return;
 }
 
-static void test_activate_cb(
-  Widget	w,
-  XtPointer	client_data,
-  XtPointer	call_data)
-{
-  fprintf(stderr, "called test_activate_cb\n");
-  return;
-}
-
 Widget create_main_menubar(
 Widget	main_w)
 {
@@ -74,7 +100,7 @@ Widget	main_w)
 			     0, XmTEAR_OFF_DISABLED, file_menu_items);
     HGU_XmPulldownAddHelp(widget, myHGU_XmHelpStandardCb,
 			  "paint/paint.html#file_menu");
-    if( menu = XtNameToWidget(widget, "*_pulldown") ){
+    if((menu = XtNameToWidget(widget, "*_pulldown"))){
       XtAddCallback(XtParent(menu), XmNpopupCallback,
 		    fileMenuPopupCb, menu);
     }

@@ -1,12 +1,47 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-* Project:	MRC HGU General IP and Display Utilities		*
-* Title:	view_menu.c						*
-* Author:	Richard Baldock, MRC Human Genetics Unit		*
-* Copyright:	Medical Research Council, UK.				*
-* Date:		
-* Synopsis:	
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _view_menu_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         view_menu.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:29:19 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -32,7 +67,7 @@ static MenuItem view_menu_itemsP[] = {		/* file_menu items */
    view_cb, (XtPointer) WLZ_Z_X_VIEW,
    myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 static MenuItem scale_menu_itemsP[] = {		/* scale_menu items */
@@ -76,7 +111,7 @@ static MenuItem scale_menu_itemsP[] = {		/* scale_menu items */
    NULL, NULL,
    myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 static MenuItem view_mode_menu_itemsP[] = {	/* view_mode_menu items */
@@ -92,7 +127,7 @@ static MenuItem view_mode_menu_itemsP[] = {	/* view_mode_menu items */
    NULL, (XtPointer) WLZ_ZETA_MODE,
    myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 static MenuItem feedback_mode_menu_itemsP[] = {	/* 3d feedback menu items */
@@ -120,7 +155,7 @@ static MenuItem feedback_mode_menu_itemsP[] = {	/* 3d feedback menu items */
    NULL, (XtPointer) MAPAINT_IMAGE_VIEWFB_MODE,
    myHGU_XmHelpStandardCb, "paint/paint.html#view_menu",
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 
@@ -157,8 +192,8 @@ void setControlButtonsSensitive(
   Widget	button, popup;
 
   /* get button and popup pairs, remove the callback, make insensitive */
-  if( button = XtNameToWidget(view_struct->control_buttons,
-			      "*.fixed_1") ){
+  if((button = XtNameToWidget(view_struct->control_buttons,
+			      "*.fixed_1"))){
     if( sensitive == False ){
       XtRemoveCallback(button, XmNactivateCallback,
 		       fixed_1_cb, view_struct);
@@ -167,14 +202,14 @@ void setControlButtonsSensitive(
       XtAddCallback(button, XmNactivateCallback,
 		    fixed_1_cb, view_struct);
     }
-    if( popup = XtNameToWidget(view_struct->control_buttons,
-			       "*.fixed_1_popup") ){
+    if((popup = XtNameToWidget(view_struct->control_buttons,
+			       "*.fixed_1_popup"))){
       XtSetSensitive(popup, sensitive);
     }
   }
 
-  if( button = XtNameToWidget(view_struct->control_buttons,
-			      "*.fixed_2") ){
+  if((button = XtNameToWidget(view_struct->control_buttons,
+			      "*.fixed_2"))){
     if( sensitive == False ){
       XtRemoveCallback(button, XmNactivateCallback,
 		       fixed_2_cb, view_struct);
@@ -183,14 +218,14 @@ void setControlButtonsSensitive(
       XtAddCallback(button, XmNactivateCallback,
 		    fixed_2_cb, view_struct);
     }
-    if( popup = XtNameToWidget(view_struct->control_buttons,
-			       "*.fixed_2_popup") ){
+    if((popup = XtNameToWidget(view_struct->control_buttons,
+			       "*.fixed_2_popup"))){
       XtSetSensitive(popup, sensitive);
     }
   }
 
-  if( button = XtNameToWidget(view_struct->control_buttons,
-			      "*.up_vector") ){
+  if((button = XtNameToWidget(view_struct->control_buttons,
+			      "*.up_vector"))){
     if( sensitive == False ){
       XtRemoveCallback(button, XmNactivateCallback,
 		       up_vector_cb, view_struct);
@@ -199,14 +234,14 @@ void setControlButtonsSensitive(
       XtAddCallback(button, XmNactivateCallback,
 		    up_vector_cb, view_struct);
     }
-    if( popup = XtNameToWidget(view_struct->control_buttons,
-			       "*.up_vector_popup") ){
+    if((popup = XtNameToWidget(view_struct->control_buttons,
+			       "*.up_vector_popup"))){
       XtSetSensitive(popup, sensitive);
     }
   }
 
-  if( button = XtNameToWidget(view_struct->control_buttons,
-			      "*.save_settings") ){
+  if((button = XtNameToWidget(view_struct->control_buttons,
+			      "*.save_settings"))){
     if( sensitive == False ){
       XtRemoveCallback(button, XmNactivateCallback,
 		       controls_io_write_cb, view_struct);
@@ -215,8 +250,8 @@ void setControlButtonsSensitive(
       XtAddCallback(button, XmNactivateCallback,
 		    controls_io_write_cb, view_struct);
     }
-    if( popup = XtNameToWidget(view_struct->control_buttons,
-			       "*.save_settings_popup") ){
+    if((popup = XtNameToWidget(view_struct->control_buttons,
+			       "*.save_settings_popup"))){
       XtSetSensitive(popup, sensitive);
     }
   }
@@ -369,7 +404,7 @@ void display_pointer_feedback_informationV(
   /* calculate the number of spaces */
   XtVaGetValues(view_struct->text, XmNcolumns, &numCols, NULL);
   numSpaces = strlen(domainName) - numCols - 1;
-  if( numSpaces = WLZ_MAX(numSpaces, 0) ){
+  if((numSpaces = WLZ_MAX(numSpaces, 0))){
     for(i=0; i < numSpaces; i++){
       spacesBuf[i] = ' ';
     }
@@ -377,7 +412,7 @@ void display_pointer_feedback_informationV(
   spacesBuf[numSpaces] = '\0';
 
   /* get the image grey-value */
-  if( gVWSp = WlzGreyValueMakeWSp(globals.orig_obj, &errNum) ){
+  if((gVWSp = WlzGreyValueMakeWSp(globals.orig_obj, &errNum))){
     WlzGreyValueGet(gVWSp, (double) plane, (double) line, (double) kol);
     switch(gVWSp->gType){
     case WLZ_GREY_INT:
@@ -407,6 +442,9 @@ void display_pointer_feedback_informationV(
 	      WLZ_RGBA_GREEN_GET(gVWSp->gVal[0].rgbv),
 	      WLZ_RGBA_BLUE_GET(gVWSp->gVal[0].rgbv),
 	      globals.domain_name[sel_domain], domainName);
+      break;
+    default:
+      sprintf(str_buf, "Invalid grey type\n");
       break;
     }
     WlzGreyValueFreeWSp(gVWSp);
@@ -671,6 +709,7 @@ void CanvasButtonEventHandler(
   return;
 }
 
+/*
 static void solid_FB_toggle_cb(
   Widget	widget,
   XtPointer	client_data,
@@ -690,6 +729,7 @@ static void solid_FB_toggle_cb(
 
   return;
 }
+*/
 
 static void view_feedback_mode_cb(
   Widget	w,
@@ -747,9 +787,9 @@ static void saveSectionCb(
   /* get the view object */
   if( view_struct->view_object == NULL ){
     WlzObject	*tmpObj;
-    if( tmpObj = WlzGetSectionFromObject(globals.orig_obj,
+    if((tmpObj = WlzGetSectionFromObject(globals.orig_obj,
 					 wlzViewStr,
-					 WLZ_INTERPOLATION_NEAREST, &errNum) ){
+					 WLZ_INTERPOLATION_NEAREST, &errNum))){
       view_struct->view_object = WlzAssignObject(tmpObj, NULL);
     }
     else {
@@ -759,13 +799,13 @@ static void saveSectionCb(
   }
 
   /* get a filename for the section object */
-  if( fileStr = HGU_XmUserGetFilename(globals.topl,
+  if((fileStr = HGU_XmUserGetFilename(globals.topl,
 				      "Please type in a filename\n"
 				      "for the section image which\n"
 				      "be saved as a woolz object",
 				      "OK", "cancel", "MAPaintSectObj.wlz",
-				      NULL, "*.wlz") ){
-    if( fp = fopen(fileStr, "w") ){
+				      NULL, "*.wlz"))){
+    if((fp = fopen(fileStr, "w"))){
       if( WlzWriteObj(fp, view_struct->view_object) != WLZ_ERR_NONE ){
 	HGU_XmUserError(globals.topl,
 			"Save Section Image:\n"
@@ -857,7 +897,6 @@ static void view_controls_cb(
   XtPointer	call_data)
 {
   ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
-  WlzThreeDViewStruct	*wlzViewStr=view_struct->wlzViewStr;
   Widget		shell, dialog, cntrlFrame, cntrlForm;
   int			wasManaged;
   Dimension		shellHeight, cntrlFormHeight;
@@ -932,14 +971,16 @@ static void viewLogYScrollBarCB(
 
   return;
 }
-
+/*
 static String canvas_translations_table =
 "<BtnMotion>: 	DrawingAreaInput()\n\
 Ctrl<BtnDown>:	DrawingAreaInput()\n\
 Ctrl<BtnUp>: 	DrawingAreaInput()";
-
+*/
 static XtTranslations	translations=NULL;
+/*
 static XtTranslations	canvas_translations=NULL;
+*/
 
 Widget create_view_window_dialog(
   Widget	topl,
@@ -1417,7 +1458,6 @@ void view_cb(
   XtPointer	call_data)
 {
   WlzThreeDStdViews	type = (WlzThreeDStdViews) client_data;
-  XmAnyCallbackStruct	*cbs = (XmAnyCallbackStruct *) call_data;
   Widget		widget;
   WlzDVertex3		fixed;
   double		theta, phi;
@@ -1463,8 +1503,6 @@ int view_menu_init(
   Display	*dpy = XtDisplay(topl);
   Window	win = XtWindow(topl);
   XGCValues	gc_values;
-  char		*hostName;
-  int		i, j;
   XWindowAttributes	win_att;
 
 

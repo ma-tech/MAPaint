@@ -1,22 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   							*
-*   File       :   MAAutosaveDialog.c					*
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Fri Mar  6 10:23:32 1998				*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MAAutosaveDialog_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAAutosaveDialog.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:51:22 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -303,7 +327,7 @@ static Widget create_autosave_domains_dialog(
   WlzObject	**domains,
   String	*domain_names)
 {
-  Widget	dialog, control, toggle, install, cancel;
+  Widget	dialog, control, toggle, install;
   String	name;
   int		i;
 
@@ -367,9 +391,9 @@ static void autosave_recover_cb(
   WlzObject		*obj;
   WlzPlaneDomain	*new_pdom, *old_pdom;
   FILE			*fp;
-  int			i, numDomains;
+  int			i, numDomains=0;
   WlzObject		*new_domains[33];
-  WlzObject		*allDomainsObj, *tmpObj;
+  WlzObject		*allDomainsObj=NULL, *tmpObj;
   String		new_domain_names[33];
   int			domain;
   Widget		widget, dialog = (Widget) client_data;
@@ -443,7 +467,7 @@ static void autosave_recover_cb(
 	  nameStr = &(lineBuf[i+1]);
 	}
 	if( lineBuf[i] == '\n' ){
-	  lineBuf[i] == '\0';
+	  lineBuf[i] = '\0';
 	  break;
 	}
       }
@@ -540,7 +564,7 @@ static void autosave_recover_cb(
 	WlzFreeObj( new_domains[i] );
 	new_domains[i] = NULL;
       }
-      else if( tmpObj = WlzDiffDomain(allDomainsObj, new_domains[i], &errNum) ){
+      else if((tmpObj = WlzDiffDomain(allDomainsObj, new_domains[i], &errNum))){
 	WlzFreeObj(allDomainsObj);
 	allDomainsObj = WlzAssignObject(tmpObj, NULL);
       }

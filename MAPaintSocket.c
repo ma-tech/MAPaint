@@ -1,24 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas MAPaint					*
-*   File       :   MAPaintSocket.c					*
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Tue Apr 11 16:58:54 2000				*
-*   $Revision$							*
-*   $Name$								*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MAPaintS_cket_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAPaintSocket.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:47:54 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -105,7 +127,7 @@ static MAPaintSocketCommand socketGetCommand(
   char	**msgRemPtr)
 {
   MAPaintSocketCommand rtnCmd=MAPAINT_CMD_DUMMY;
-  char 	cmdStr[16], *strPtr;
+  char 	cmdStr[16];
   
   if( sscanf(msgBuf, "%8s", cmdStr) == 1 ){
 
@@ -133,8 +155,7 @@ static MAPaintSocketSubject socketGetSubject(
   char	**msgRemPtr)
 {
   MAPaintSocketSubject rtnSbj=MAPAINT_SBJ_DUMMY;
-  int	i;
-  char 	sbjStr[16], *strPtr;
+  char 	sbjStr[16];
   
   if( sscanf(msgBuf, "%8s", sbjStr) == 1 ){
 
@@ -236,7 +257,7 @@ static void socketInputReadCb(
   int	rtnVal, msgSock, numBytes;
   MAPaintSocketStatus	stat=MAPAINT_ERR;
   MAPaintSocketError	err=MAPAINT_MSG_CORRUPT;
-  int		index, dom;
+  int		dom;
   char		fileStr[256], stage[16];
   FILE		*fp;
   WlzObject	*obj;
@@ -285,8 +306,8 @@ static void socketInputReadCb(
 	      }
 	    }
 	    else {
-	      if( fp = fopen(fileStr, "rb") ){
-		if( obj = WlzReadObj(fp, NULL) ){
+	      if((fp = fopen(fileStr, "rb"))){
+		if((obj = WlzReadObj(fp, NULL))){
 		  if( setDomain(obj, dom, fileStr) ){
 		    stat = MAPAINT_ERR;
 		    err = MAPAINT_DOM_INVALID;
@@ -391,7 +412,6 @@ void sockListenCb(
   XtPointer	call_data)
 {
   ThreeDViewStruct *viewStruct=(ThreeDViewStruct *) client_data;
-  XmPushButtonCallbackStruct *cbs=(XmPushButtonCallbackStruct *) call_data;
   Widget	button;
   XmString	xmstr;
 
@@ -432,7 +452,7 @@ void sockListenCb(
 			 socketInputReadCb, client_data);
 
   /* reset the listen button to say "disconnect" and reset the callback */
-  if( button = XtNameToWidget(viewStruct->dialog, "*.listen") ){
+  if((button = XtNameToWidget(viewStruct->dialog, "*.listen"))){
     xmstr = XmStringCreateSimple("Disconnect");
     XtVaSetValues(button, XmNlabelString, xmstr, NULL);
     XmStringFree(xmstr);
@@ -452,7 +472,6 @@ void sockCloseCb(
   XtPointer	call_data)
 {
   ThreeDViewStruct *viewStruct=(ThreeDViewStruct *) client_data;
-  XmPushButtonCallbackStruct *cbs=(XmPushButtonCallbackStruct *) call_data;
   Widget	button;
   XmString	xmstr;
 
@@ -468,7 +487,7 @@ void sockCloseCb(
   close(sock);
 
   /* reset the button label and reset callbacks */
-  if( button = XtNameToWidget(viewStruct->dialog, "*.listen") ){
+  if((button = XtNameToWidget(viewStruct->dialog, "*.listen"))){
     xmstr = XmStringCreateSimple("Listen");
     XtVaSetValues(button, XmNlabelString, xmstr, NULL);
     XmStringFree(xmstr);

@@ -1,22 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas Project					*
-*   File       :   MATrackDomain.c					*
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Tue Jun 23 19:48:55 1998				*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MATr_ckDomain_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MATrackDomain.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:46:52 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,7 +73,7 @@ static double image_match_cost(
   a = 0;
   cost = 0.0;
   if( errNum == WLZ_ERR_NONE ){
-    if( gVWSp = WlzGreyValueMakeWSp(test_obj, &errNum) ){
+    if((gVWSp = WlzGreyValueMakeWSp(test_obj, &errNum))){
       while((errNum == WLZ_ERR_NONE) &&
 	    ((errNum = WlzNextGreyInterval(&iwsp)) == WLZ_ERR_NONE) )
       {
@@ -92,14 +116,14 @@ static WlzObject *get_rect_region(
   WlzValues	values;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
-  if( domain.i = WlzMakeIntervalDomain(WLZ_INTERVALDOMAIN_RECT,
+  if((domain.i = WlzMakeIntervalDomain(WLZ_INTERVALDOMAIN_RECT,
 				       line - ln_size, line + ln_size,
 				       kol - kl_size, kol + kl_size,
-				       &errNum) ){
+				       &errNum))){
     values.core = NULL;
     
-    if( tmp_obj = WlzMakeMain(WLZ_2D_DOMAINOBJ, domain, values,
-			      NULL, NULL, &errNum) ){
+    if((tmp_obj = WlzMakeMain(WLZ_2D_DOMAINOBJ, domain, values,
+			      NULL, NULL, &errNum))){
       if( (rect_obj = WlzIntersect2(obj, tmp_obj, &errNum)) ){
 	rect_obj->values = WlzAssignValues(obj->values, NULL);
       }
@@ -126,20 +150,20 @@ static WlzPolygonDomain *HGU_TrackPolyline(
   MATrackDomainCostParams	*costParams,
   WlzErrorNum			*wlzErr)
 {
-  WlzObject		*poly_obj, *ref_region, *testObj1, *testObj2, *tmpObj;
+  WlzObject		*poly_obj, *ref_region, *testObj1=NULL, *testObj2=NULL, *tmpObj;
   WlzPolygonDomain	*new_polydmn=NULL;
-  MATrackMatchPointStruct	*mpts;
-  int			i, j, k, kmax, num_mpts;
+  MATrackMatchPointStruct	*mpts=NULL;
+  int			i, j, k, kmax, num_mpts=0;
   double		dx1, dx2, dx3, dy1, dy2, dy3, s1, s2, s3;
   int			x, y, dx, dy;
-  WlzIVertex2		*vtxs;
-  double		cost, **local_cost, **direction;
+  WlzIVertex2		*vtxs=NULL;
+  double		**local_cost, **direction;
   EdgeCostParams	*edgeCostParams=(EdgeCostParams *) costParams;
   WlzGreyValueWSpace	*gVWSp1=NULL, *gVWSp2=NULL;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* create an 8-connected polygon */
-  if( poly_obj = WlzPolyTo8Polygon( refPoly, 1, &errNum ) ){
+  if((poly_obj = WlzPolyTo8Polygon( refPoly, 1, &errNum ))){
     new_polydmn = WlzAssignPolygonDomain(poly_obj->domain.poly, NULL);
     WlzFreeObj( poly_obj );
   }
@@ -156,11 +180,11 @@ static WlzPolygonDomain *HGU_TrackPolyline(
        it is identical to the first */
     if( (new_polydmn->nvertices % searchParams->spacing) < 2 )
     {
-      mpts--;
+      num_mpts--;
     }
-    if( mpts = (MATrackMatchPointStruct *)
+    if((mpts = (MATrackMatchPointStruct *)
        AlcMalloc(sizeof(MATrackMatchPointStruct) *
-		 (num_mpts+1)) ){
+		 (num_mpts+1)))){
       AlcErrno	alcErr;
       if( (alcErr = AlcDouble2Malloc(&local_cost, num_mpts+1,
 				     2*searchParams->range+1)) != ALC_ER_NONE ){
@@ -183,17 +207,17 @@ static WlzPolygonDomain *HGU_TrackPolyline(
       break;
 
     case MATRACK_EDGE_COST_TYPE:
-      if( tmpObj = WlzConvertPix(dstObj, WLZ_GREY_SHORT, &errNum) ){
-	if(testObj1 = WlzGauss2(tmpObj, edgeCostParams->width,
-				edgeCostParams->width, 1, 0, &errNum) ){
+      if((tmpObj = WlzConvertPix(dstObj, WLZ_GREY_SHORT, &errNum))){
+	if((testObj1 = WlzGauss2(tmpObj, edgeCostParams->width,
+				 edgeCostParams->width, 1, 0, &errNum))){
 	  if( !(gVWSp1 = WlzGreyValueMakeWSp(testObj1, &errNum)) ){
 	    WlzFreeObj(testObj1);
 	  }
 	}
 	
 	if( errNum == WLZ_ERR_NONE ){
-	  if(testObj2 = WlzGauss2(tmpObj, edgeCostParams->width,
-				  edgeCostParams->width, 0, 1, &errNum)){
+	  if((testObj2 = WlzGauss2(tmpObj, edgeCostParams->width,
+				   edgeCostParams->width, 0, 1, &errNum))){
 	    if( !(gVWSp2 = WlzGreyValueMakeWSp(testObj2, &errNum)) ){
 	      WlzFreeObj(testObj1);
 	      WlzFreeObj(testObj2);
@@ -492,7 +516,6 @@ WlzObject *HGU_TrackDomain(
 {	
   WlzObject	*new_domain, *ref_bound;
   WlzBoundList	*new_bndlst;
-  WlzErrorNum	errNum=WLZ_ERR_NONE;
 
   /* check objects */
   if( (refObj == NULL) || (refDmn == NULL) || (dstObj == NULL) )

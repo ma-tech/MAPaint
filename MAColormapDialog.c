@@ -1,22 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   							*
-*   File       :   MAColormapDialog.c					*
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Fri Mar  6 10:02:08 1998				*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _M_colormapDialog_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAColormapDialog.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:51:11 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -302,7 +326,7 @@ Widget		dialog)
 			       (float) globals.colormap[1][col]/255.0,
 			       (float) globals.colormap[2][col]/255.0);
       (void) sprintf(str, "*%s", ovly_strs[i]);
-      if( widget = XtNameToWidget(option_menu, str) ){
+      if((widget = XtNameToWidget(option_menu, str))){
 	XtVaSetValues(widget, XmNbackground, col, NULL);
       }
       if( i > num_overlays ){
@@ -380,7 +404,7 @@ static void WriteCmapVff(
       g = b = 0;
     }
 
-    count += fprintf(fp, "%02.2x%02.2x%02.2x ", r, g, b);
+    count += fprintf(fp, "%2.2x%2.2x%2.2x ", r, g, b);
   }
   count += fprintf(fp, ";\n");
 
@@ -399,8 +423,6 @@ Widget			w,
 XtPointer		client_data,
 XtPointer		call_data)
 {
-  Widget		dialog = (Widget) client_data;
-  XmAnyCallbackStruct	*cbs = (XmAnyCallbackStruct *) call_data;
   FILE			*fp;
   static String		old_file=NULL;
   String		new_file;

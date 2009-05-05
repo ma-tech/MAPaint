@@ -1,17 +1,47 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************
-* Copyright   :    Medical Research Council, UK. 
-*                  Human Genetics Unit, 
-*                  Western General Hospital. 
-*                  Edinburgh. 
-*************************************************************
-* Project     :    Mouse Atlas Project
-* File        :    view_disp_cb.c
-*************************************************************
-* Author      :    Richard Baldock  (richard@hgu.mrc.ac.uk)
-* Date        :    Tue Jun 21 09:05:15 1994
-* Synopsis    : 
-*************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _view_disp_cb_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         view_disp_cb.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:30:53 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -34,7 +64,7 @@ void HGU_XPutImage8To24(
 {
   XImage	*new;
   unsigned char	*newdata, *data;
-  int		i, j, w, h, srcOff, dstOff;
+  int		i, j, srcOff, dstOff;
   XWindowAttributes	win_att;
   int		r_off, g_off, b_off, a_off;
   unsigned int	widthb;
@@ -102,8 +132,7 @@ static void display_scaled_image(
 {
   unsigned int		widthb;
   XImage		*scaled_image;
-  XImage		*ximage = view_struct->ximage;
-  WlzUByte			*scaled_data, *data, *line1data, *linedata;
+  WlzUByte		*scaled_data, *data, *line1data, *linedata;
   int			scale = (int) view_struct->wlzViewStr->scale;
   int			i, xp, yp;
   XWindowAttributes	win_att;
@@ -144,8 +173,8 @@ static void display_scaled_image(
     widthb += i -  widthb%i;
   }
 
-  if( scaled_data = (WlzUByte *) AlcMalloc(sizeof(WlzUByte) * widthb *
-					height_exp * scale) ){
+  if((scaled_data = (WlzUByte *) AlcMalloc(sizeof(WlzUByte) * widthb *
+					   height_exp * scale))){
 
     scaled_image = XCreateImage(dpy, win_att.visual, 8,
 				ZPixmap, 0, (char *) scaled_data,
@@ -206,8 +235,7 @@ static void display_scaled_down_image(
 {
   unsigned int		widthb;
   XImage		*scaled_image;
-  XImage		*ximage = view_struct->ximage;
-  WlzUByte			*scaled_data, *data, *linedata;
+  WlzUByte		*scaled_data, *data, *linedata;
   int			scale = (int) (1.0 / view_struct->wlzViewStr->scale);
   int			i, xp, yp;
   XWindowAttributes	win_att;
@@ -241,8 +269,8 @@ static void display_scaled_down_image(
   if( width_exp % i ){
     widthb += i - width_exp % i;
   }
-  if( scaled_data = (WlzUByte *) AlcMalloc(sizeof(WlzUByte) *
-					widthb * height_exp) ){
+  if((scaled_data = (WlzUByte *) AlcMalloc(sizeof(WlzUByte) *
+					   widthb * height_exp))){
 
     scaled_image = XCreateImage(dpy, win_att.visual, 8,
 				ZPixmap, 0, (char *) scaled_data,
@@ -445,7 +473,6 @@ void redisplay_all_views_cb(
   XtPointer	client_data,
   XtPointer	call_data)
 {
-  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
   ViewListEntry	*vl = global_view_list;
 
   while( vl != NULL ){
@@ -480,9 +507,9 @@ void display_view_cb(
   }
 
   /* get the section and set the painted object pointer */
-  if( sectObj = WlzGetMaskedSectionFromObject(globals.obj, wlzViewStr,
+  if((sectObj = WlzGetMaskedSectionFromObject(globals.obj, wlzViewStr,
 					      WLZ_INTERPOLATION_NEAREST,
-					      &errNum) ){
+					      &errNum))){
     WlzObject	*rectObj;
     WlzDomain	domain;
     domain.i = WlzMakeIntervalDomain(WLZ_INTERVALDOMAIN_RECT,
@@ -526,7 +553,6 @@ void display_all_views_cb(
   XtPointer	client_data,
   XtPointer	call_data)
 {
-  ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
   ViewListEntry	*vl = global_view_list;
 
   while( vl != NULL ){

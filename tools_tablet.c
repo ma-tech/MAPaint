@@ -1,20 +1,47 @@
-#pragma ident "MRC HGU $Id$"
-/*****************************************************************************
-* Copyright   :    1994 Medical Research Council, UK.                        *
-*                  All rights reserved.                                      *
-******************************************************************************
-* Address     :    MRC Human Genetics Unit,                                  *
-*                  Western General Hospital,                                 *
-*                  Edinburgh, EH4 2XU, UK.                                   *
-******************************************************************************
-* Project     :    Mouse Atlas Project					     *
-* File        :    tools_tablet.c					     *
-******************************************************************************
-* Author Name :    Richard Baldock					     *
-* Author Login:    richard@hgu.mrc.ac.uk				     *
-* Date        :    Wed May  8 17:09:47 1996				     *
-* Synopsis    : 							     *
-*****************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _tools_tablet_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         tools_tablet.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:39:39 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -22,6 +49,10 @@
 
 #include <MAPaint.h>
 #include <HGU_Tablet.h>
+
+#ifndef usleep
+extern void usleep(unsigned long usec);
+#endif
 
 /* define tablet events to be different to any
    X11 event byt using LASTEvent which is bigger than any true X11 event */
@@ -45,7 +76,7 @@ static void tabletInputProc(
   TabletEvent		event;
   static TabletEvent	lastEvent;
   XEvent		xevent;
-  int			state, button;
+  int			state=0;
   static int		laststate;
   XmDrawingAreaCallbackStruct	cbs;
 
@@ -308,7 +339,6 @@ static WlzPolygonDomain	*tabletPoly=NULL;
 void MAPaintTabletInit(
   ThreeDViewStruct	*view_struct)
 {
-  TabletErrNum	errNum;
   TabletEvent	event;
   int		quitFlag;
   Widget	dialog;
@@ -457,23 +487,23 @@ void MAPaintTabletInit(
   }
 
   /* set tablet transform parameters */
-  if( slider = XtNameToWidget(tablet_controls, "*.x1") )
+  if((slider = XtNameToWidget(tablet_controls, "*.x1")) )
   {
     wlzVtxs[0].vtX = HGU_XmGetSliderValue(slider);
   }
-  if( slider = XtNameToWidget(tablet_controls, "*.y1") )
+  if((slider = XtNameToWidget(tablet_controls, "*.y1")) )
   {
     wlzVtxs[0].vtY = HGU_XmGetSliderValue(slider);
   }
-  if( slider = XtNameToWidget(tablet_controls, "*.x2") )
+  if((slider = XtNameToWidget(tablet_controls, "*.x2")) )
   {
     wlzVtxs[1].vtX = HGU_XmGetSliderValue(slider);
   }
-  if( slider = XtNameToWidget(tablet_controls, "*.y2") )
+  if( (slider = XtNameToWidget(tablet_controls, "*.y2")))
   {
     wlzVtxs[1].vtY = HGU_XmGetSliderValue(slider);
   }
-  trans = WlzAffineTransformLSq2D(2, tabVtxs, 2, wlzVtxs,
+  trans = WlzAffineTransformLSq2D(2, tabVtxs, 2, wlzVtxs, 0, NULL,
 				  WLZ_TRANSFORM_2D_NOSHEAR, NULL);
   tablet->xTrans[0] = trans->mat[0][0];
   tablet->xTrans[1] = trans->mat[0][1];
@@ -577,7 +607,6 @@ void MAPaintTabletCb(
   XtPointer	call_data)
 {
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
-  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   XmAnyCallbackStruct	*cbs = (XmAnyCallbackStruct *) call_data;
   WlzObject		*obj, *obj1;
 

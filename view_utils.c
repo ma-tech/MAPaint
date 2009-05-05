@@ -1,12 +1,47 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-* Project:	MRC HGU General IP and Display Utilities		*
-* Title:	view_utils.c						*
-* Author:	Richard Baldock, MRC Human Genetics Unit		*
-* Copyright:	Medical Research Council, UK.				*
-* Date:		
-* Synopsis:	
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _view_utils_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         view_utils.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:28:30 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -21,9 +56,8 @@ int init_view_struct(
   XWindowAttributes	win_att;
   Display		*dpy = XtDisplay(view_struct->canvas);
   Window		win = XtWindow(view_struct->canvas);
-  unsigned int		i, widthp, heightp, widthb;
+  unsigned int		widthp, heightp;
   Dimension		win_width, win_height;
-  char			*data;
   WlzThreeDViewStruct	*wlzViewStr = view_struct->wlzViewStr;
   float			minz, maxz, z;
   Widget		widget;
@@ -52,7 +86,7 @@ int init_view_struct(
   HGU_XmSetSliderValue( view_struct->slider, z );
 
   /* set the zeta slider */
-  if( widget = XtNameToWidget(view_struct->dialog, "*.zeta_slider") ){
+  if((widget = XtNameToWidget(view_struct->dialog, "*.zeta_slider"))){
     HGU_XmSetSliderValue(widget,
 			 view_struct->wlzViewStr->zeta * 180.0 / WLZ_M_PI);
   }
@@ -61,10 +95,6 @@ int init_view_struct(
      the bitmap-pad for the display */
   widthp  = wlzViewStr->maxvals.vtX - wlzViewStr->minvals.vtX + 1;
   heightp = wlzViewStr->maxvals.vtY - wlzViewStr->minvals.vtY + 1;
-  i = BitmapPad(dpy)>>3;
-  if( widthb%i ){
-    widthb += i - widthb%i;
-  }
   view_struct->ximage = XCreateImage(dpy, win_att.visual, 8,
 				     ZPixmap, 0, NULL, widthp,
 				     heightp, BitmapPad(dpy), 0);
@@ -92,7 +122,6 @@ int reset_view_struct(
   Dimension		win_width, win_height;
   WlzThreeDViewStruct	*wlzViewStr = view_struct->wlzViewStr;
   float		minz, maxz, z;
-  Widget	widget;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* initialise the 3D view structure */
@@ -169,7 +198,6 @@ int reset_view_struct(
 int free_view_struct(
   ThreeDViewStruct	*view_struct)
 {
-  Display	*dpy = XtDisplay(view_struct->canvas);
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   errNum = WlzFree3DViewStruct(view_struct->wlzViewStr);

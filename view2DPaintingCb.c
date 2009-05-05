@@ -1,22 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas Project					*
-*   File       :   view2DPaintingCb.c					*
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Thu Mar  5 09:30:54 1998				*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _view2DPaintin_cb_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         view2DPaintingCb.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:30:41 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,8 +62,12 @@ extern void display_pointer_feedback_information(
   int			x, 
   int			y);
 
+extern WlzErrorNum MAPaintEventRemap(
+  MAPaintContext	context,
+  MAPaintContextMode	mode,
+  XEvent		*event);
+
 static int quitPaintingTrigger=0;
-static int buttonPressedFlg=0;
 
 void installCurrentPaintTool(
   Widget		w,
@@ -245,7 +273,6 @@ void setViewMode(
   ThreeDViewStruct	*viewStruct,
   WlzThreeDViewMode	newMode)
 {
-  WlzThreeDViewStruct	*wlzViewStr=viewStruct->wlzViewStr;
   Widget		menu, widget;
 
   /* check mode value and get the widget -
@@ -308,8 +335,8 @@ void cleanDomainsCb(
     pushUndoDomains(view_struct);
 
     /* find the mask and reset the grey-values */
-    if( obj1 = WlzDiffDomain(view_struct->view_object,
-			     view_struct->masked_object, &errNum) ){
+    if((obj1 = WlzDiffDomain(view_struct->view_object,
+			     view_struct->masked_object, &errNum))){
       setGreysIncrement(obj1, view_struct);
       WlzFreeObj(obj1);
     }
@@ -329,7 +356,6 @@ void canvasMagPlusCb(
 {
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
-  int			x, y;
 
   setViewScale(view_struct, wlzViewStr->scale * 2.0, -1, -1);
   return;
@@ -342,7 +368,6 @@ void canvasMagMinusCb(
 {
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
-  int			x, y;
 
   setViewScale(view_struct, wlzViewStr->scale / 2.0, -1, -1);
   return;

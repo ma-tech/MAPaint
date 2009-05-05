@@ -1,22 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas Project					*
-*   File       :   MADomainReviewDialog.c				*
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Sat Jun  6 16:22:54 1998				*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MADomainReviewDialog_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MADomainReviewDialog.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:50:27 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,8 +104,6 @@ static void flashing_region_timeout_proc(
   XtPointer	client_data,
   XtIntervalId	*id)
 {
-  WlzObject	*boundary;
-
   if( flashing_region == NULL ){
     return;
   }
@@ -117,7 +139,7 @@ static void flashing_region_timeout_proc(
 
 static void set_review_region_flashing(void)
 {
-  WlzObject	*obj1, *obj2, *obj3;
+  WlzObject	*obj1=NULL, *obj2=NULL, *obj3=NULL;
   int		dx, dy;
   WlzDVertex3	vtx;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
@@ -180,7 +202,7 @@ static void set_review_region_flashing(void)
     /* now to screen coords */
     dx -= reviewViewStr->painted_object->domain.i->kol1;
     dy -= reviewViewStr->painted_object->domain.i->line1;
-    if( obj2 = WlzShiftObject(obj1, dx, dy, 0, &errNum) ){
+    if((obj2 = WlzShiftObject(obj1, dx, dy, 0, &errNum))){
 
       if( reviewViewStr->wlzViewStr->scale > 0.95 ){
 	obj3 = WlzIntRescaleObj(obj2, WLZ_NINT(reviewViewStr->wlzViewStr->scale),
@@ -227,7 +249,7 @@ static void desensitizePlaneButton(
 
   /* get the button */
   sprintf(str_buf, "*review_planes_rc*%d", plane);
-  if( button = XtNameToWidget(reviewDialog, str_buf) ){
+  if((button = XtNameToWidget(reviewDialog, str_buf))){
     XtSetSensitive(button, False);
   }
 
@@ -239,15 +261,13 @@ Widget	w,
 XtPointer	client_data,
 XtPointer	call_data)
 {
-  WlzObject		*obj1, *obj2, *obj3;
+  WlzObject		*obj1=NULL;
   WlzPlaneDomain	*planedmn;
   WlzValues		values;
-  WlzDVertex3		vtx;
   int			p, plane1;
-  int			dx, dy;
   char			str_buf[32];
   Widget		toggle;
-  Boolean		segDomainFlg=False, segPlanesFlg=False;
+  Boolean		segDomainFlg=False;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* do nothing if review not in progress */
@@ -317,8 +337,8 @@ XtPointer	call_data)
 
       /* get the plane object */
       values.core = NULL;
-      if( obj1 = WlzMakeMain(WLZ_2D_DOMAINOBJ, planedmn->domains[p-plane1],
-			     values, NULL, NULL, &errNum) ){
+      if((obj1 = WlzMakeMain(WLZ_2D_DOMAINOBJ, planedmn->domains[p-plane1],
+			     values, NULL, NULL, &errNum))){
 	obj1 = WlzAssignObject(obj1, &errNum);
       }
       break;
@@ -331,7 +351,7 @@ XtPointer	call_data)
   }
 
   /* segment if required */
-  if( toggle = XtNameToWidget(reviewDialog, "*segment_domain") ){
+  if((toggle = XtNameToWidget(reviewDialog, "*segment_domain"))){
     XtVaGetValues(toggle, XmNset, &segDomainFlg, NULL);
   }
   if( (errNum == WLZ_ERR_NONE) && segDomainFlg ){
@@ -453,8 +473,8 @@ static WlzErrorNum installReviewDomain(
     switch( obj->type ){
     case WLZ_2D_DOMAINOBJ:
       values.core = NULL;
-      if( reviewDomain = WlzMakeMain(obj->type, obj->domain, values,
-				     NULL, NULL, &errNum) ){
+      if((reviewDomain = WlzMakeMain(obj->type, obj->domain, values,
+				     NULL, NULL, &errNum))){
 	reviewDomain = WlzAssignObject(reviewDomain, &errNum);
       }
       break;
@@ -553,7 +573,7 @@ void domainReviewPopupCb(
   Widget	menu, selection=NULL;
 
   /* get the domain source selection and call its callbacks */
-  if( menu = XtNameToWidget(reviewDialog, "*domainSource") ){
+  if((menu = XtNameToWidget(reviewDialog, "*domainSource"))){
     XtVaGetValues(menu, XmNmenuHistory, &selection, NULL);
     if( selection ){
       XtCallCallbacks(selection, XmNactivateCallback, NULL);
@@ -654,7 +674,6 @@ void reviewDestDomainCb(
   XtPointer		call_data)
 {
   DomainSelection	destDomain=(DomainSelection) client_data;
-  int			col;
   WlzObject		*obj1, *obj2;
   WlzValues		values;
   WlzPlaneDomain	*planedmn;
@@ -700,8 +719,8 @@ void reviewDestDomainCb(
 
     default: /* the rest */
       overrideFlg = False;
-      if( widget = XtNameToWidget(reviewDialog,
-				  "*dominance_override_toggle") ){
+      if((widget = XtNameToWidget(reviewDialog,
+				  "*dominance_override_toggle"))){
 	XtVaGetValues(widget, XmNset, &overrideFlg, NULL);
       }
       if( overrideFlg == False ){
@@ -777,6 +796,9 @@ void reviewDestDomainCb(
 	  planedmn->domains[p-plane1].core = NULL;
 	}
       }
+      break;
+
+    default:
       break;
     }
   }
@@ -991,7 +1013,7 @@ static MenuItem review_scale_items[] = {
      reviewScaleCb, (XtPointer) 8,
      myHGU_XmHelpStandardCb, "",
      XmTEAR_OFF_DISABLED, False, False, NULL},
-NULL,
+{NULL},
 };
 
 static MenuItem domainSourceItems[] = {
@@ -1007,7 +1029,7 @@ static MenuItem domainSourceItems[] = {
    domainSourceCb, (XtPointer) MAPAINT_DOMAIN_READ,
    myHGU_XmHelpStandardCb, NULL,
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 

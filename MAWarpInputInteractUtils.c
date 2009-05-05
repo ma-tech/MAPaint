@@ -1,29 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Woolz Library					*
-*   File       :   MAWarpInputInteractUtils.c				*
-*************************************************************************
-* This module has been copied from the original woolz library and       *
-* modified for the public domain distribution. The original authors of  *
-* the code and the original file headers and comments are in the        *
-* HISTORY file.                                                         *
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Mon Nov 29 14:17:52 1999				*
-*   $Revision$							*
-*   $Name$								*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MAWarpInputInter_ctUtils_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAWarpInputInteractUtils.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:34:05 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,6 +51,12 @@
 #include <MAPaint.h>
 #include <MAWarp.h>
 
+extern WlzErrorNum MAPaintEventRemap(
+  MAPaintContext	context,
+  MAPaintContextMode	mode,
+  XEvent		*event);
+
+
 WlzDVertex2 warpDisplayTransBack(
   WlzDVertex2	vtx,
   MAPaintImageWinStruct	*winStruct)
@@ -42,6 +65,10 @@ WlzDVertex2 warpDisplayTransBack(
   float		x, y;
   int		width, height;	
   WlzCompoundArray	*cobj;
+
+  /* initialise with error return */
+  rtnVtx.vtX = -1;
+  rtnVtx.vtY = -1;
 
   if( winStruct->obj == NULL ){
     rtnVtx.vtX = -1;
@@ -120,6 +147,10 @@ WlzDVertex2 warpDisplayTransFore(
   float		x, y;
   int		width, height;
   WlzCompoundArray	*cobj;
+
+  /* initialise with error return */
+  rtnVtx.vtX = -1;
+  rtnVtx.vtY = -1;
 
   if( winStruct->obj == NULL ){
     rtnVtx.vtX = -1;
@@ -252,8 +283,6 @@ void warpIncrGammaCb(
   XtPointer		call_data)
 {
   MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmPushButtonCallbackStruct
-    *cbs = (XmPushButtonCallbackStruct *) call_data;
 
   winStruct->gamma *= 1.1;
   if( winStruct->gamma > 10.0 ){
@@ -279,8 +308,6 @@ void warpDecrGammaCb(
   XtPointer		call_data)
 {
   MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmPushButtonCallbackStruct
-    *cbs = (XmPushButtonCallbackStruct *) call_data;
 
   winStruct->gamma /= 1.1;
   if( winStruct->gamma < 0.1 ){
@@ -342,8 +369,6 @@ void warpInvertGreyCb(
   XtPointer		call_data)
 {
   MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmPushButtonCallbackStruct
-    *cbs = (XmPushButtonCallbackStruct *) call_data;
 
   /* invert the grey-level image - note this just sets a flag so that the
      ximage is the inverse and the original object is unchanged */
@@ -401,8 +426,6 @@ void warpCanvasMagPlusCb(
   XtPointer		call_data)
 {
   MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmPushButtonCallbackStruct
-    *cbs = (XmPushButtonCallbackStruct *) call_data;
 
   if( winStruct->mag < 8.0 ){
     winStruct->mag *= 2.0;
@@ -427,8 +450,6 @@ void warpCanvasMagMinusCb(
   XtPointer		call_data)
 {
   MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmPushButtonCallbackStruct
-    *cbs = (XmPushButtonCallbackStruct *) call_data;
 
   if( winStruct->mag > 0.25 ){
     winStruct->mag /= 2.0;
@@ -486,8 +507,6 @@ void warpCanvasFlipCb(
   XtPointer		call_data)
 {
   MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmPushButtonCallbackStruct
-    *cbs = (XmPushButtonCallbackStruct *) call_data;
 
   winStruct->transpose = (winStruct->transpose)?0:1;
 
@@ -510,8 +529,6 @@ void warpCanvasResetCb(
   XtPointer		call_data)
 {
   MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmPushButtonCallbackStruct
-    *cbs = (XmPushButtonCallbackStruct *) call_data;
 
   winStruct->rot = 0;
   winStruct->transpose = 0;
@@ -624,10 +641,10 @@ void warpDstCanvasInputCb(
 	     event */
 	  start.vtX = cbs->event->xbutton.x;
 	  start.vtY = cbs->event->xbutton.y;
-	  if( rect = HGU_XGetRect(XtDisplay(widget),
+	  if((rect = HGU_XGetRect(XtDisplay(widget),
 				  XtWindow(widget),
 				  HGU_XNoConfirmMask,
-				  NULL, &start) ){
+				  NULL, &start))){
 	    /* loop through source vertices to check for selection */
 	    rect[1].vtX += rect[0].vtX;
 	    rect[1].vtY += rect[0].vtY;
@@ -779,8 +796,8 @@ void warpDstCanvasInputCb(
     case Button3:
       break;
     }
-    if( toggle = XtNameToWidget(warpGlobals.warp2DInteractDialog,
-				"*.autoUpdate") ){
+    if((toggle = XtNameToWidget(warpGlobals.warp2DInteractDialog,
+				"*.autoUpdate"))){
       XtVaGetValues(toggle, XmNset, &autoUpdateFlg, NULL);
     }
     else {
@@ -796,6 +813,8 @@ void warpDstCanvasInputCb(
 			 call_data);
       XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
 		      call_data);
+      /* notify change to the express- and rapid-map bibfile saved resource */
+      expressMapStatusChange(0);
     }
     resetOvlyFlg = 0;
     break;
@@ -923,10 +942,10 @@ void warpSrcCanvasInputCb(
 	     event */
 	  start.vtX = cbs->event->xbutton.x;
 	  start.vtY = cbs->event->xbutton.y;
-	  if( rect = HGU_XGetRect(XtDisplay(widget),
+	  if((rect = HGU_XGetRect(XtDisplay(widget),
 				  XtWindow(widget),
 				  HGU_XNoConfirmMask,
-				  NULL, &start) ){
+				  NULL, &start))){
 	    /* loop through source vertices to check for selection */
 	    rect[1].vtX += rect[0].vtX;
 	    rect[1].vtY += rect[0].vtY;
@@ -1071,8 +1090,8 @@ void warpSrcCanvasInputCb(
     case Button3:
       break;
     }
-    if( toggle = XtNameToWidget(warpGlobals.warp2DInteractDialog,
-				"*.autoUpdate") ){
+    if((toggle = XtNameToWidget(warpGlobals.warp2DInteractDialog,
+				"*.autoUpdate"))){
       XtVaGetValues(toggle, XmNset, &autoUpdateFlg, NULL);
     }
     else {
@@ -1088,6 +1107,9 @@ void warpSrcCanvasInputCb(
 			 call_data);
       XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
 		      call_data);
+
+      /* notify change to the express- and rapid-map bibfile saved resource */
+      expressMapStatusChange(0);
     }
     resetOvlyFlg = 0;
     break;
@@ -1178,7 +1200,6 @@ void warpOvlyCanvasInputCb(
   MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
   XmDrawingAreaCallbackStruct
     *cbs = (XmDrawingAreaCallbackStruct *) call_data;
-  int		vtxIdx;
   WlzDVertex2	vtx;
 
   /* check there is an image */

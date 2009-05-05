@@ -1,22 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas Project					*
-*   File       :   MADomainSurgeryDialog.c				*
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Thu Apr 30 14:48:34 1998				*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MADomainSurgeryDialog_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MADomainSurgeryDialog.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:50:14 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -145,7 +169,6 @@ XtPointer		call_data)
 {
   DomainSelection	destDomain=(DomainSelection) client_data;
   int			col;
-  WlzObject		*obj;
 
   /* remove the flashing timeout and displayed 3D object */
   if( intervalId ){
@@ -269,7 +292,7 @@ static MenuItem surgery_option_items[] = {	/* surgery options items */
    surgeryOptionCb, (XtPointer) MAPAINT_SURGERY_LASER_CUT,
    myHGU_XmHelpStandardCb, "",
    XmTEAR_OFF_DISABLED, False, False, NULL},
-  NULL,
+  {NULL},
 };
 
 static ActionAreaItem   surgery_dialog_actions[] = {
@@ -287,7 +310,6 @@ Widget createDomainSelectOptionMenu(
   Widget	option_menu, widget;
   MenuItem	*items;
   int		i, col;
-  char		*c;
   String	str;
   int		num_overlays;
 
@@ -329,7 +351,7 @@ Widget createDomainSelectOptionMenu(
     }
     str = (String) AlcMalloc(strlen(items[i-1].name) + 4);
     (void) sprintf(str, "*%s", items[i-1].name);
-    if( widget = XtNameToWidget(option_menu, str) ){
+    if((widget = XtNameToWidget(option_menu, str))){
       XmChangeColor(widget, col);
       if( i > num_overlays ){
 	XtUnmanageChild(widget);
@@ -349,7 +371,7 @@ Widget createDomainSurgeryDialog(
   Widget	topl)
 {
   Widget	dialog, control, form, frame, title;
-  Widget	rowcolumn, button, option, widget;
+  Widget	rowcolumn, option, widget;
   int		i;
 
   dialog = HGU_XmCreateStdDialog(topl, "surgery_dialog", xmFormWidgetClass,

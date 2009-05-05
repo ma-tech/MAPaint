@@ -1,24 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas MAPaint					*
-*   File       :   domainControls.c					*
-*************************************************************************
-*   Author Name :  richard						*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Mon Nov 17 14:01:04 2003				*
-*   $Revision$								*
-*   $Name$								*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _domai_controls_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         domainControls.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:52:33 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,7 +60,7 @@ static unsigned char emage_ovly_cols[33][3] =
 static int emageNumSolidOverlays=1;
 static int emageNumWashOverlays=5;
 static int emageCurrentDomain=6;
-static double emageContrast[]={0.0,0.25,0.45,0.25,0.25,0.25};
+static double emageContrast[]={0.0,0.25,0.45,0.25,0.25,0.25,0.25};
 static int emagePriority[]={1,6,2,3,4,5};
 static char *emageName[]={
   "Not Examined",
@@ -64,7 +86,7 @@ void setEMAGEDomainsAndColoursCb(
   XtPointer	call_data)
 {
   PaintCmapStruct	*cmpstr;
-  int			i, j;
+  int			i;
   Widget		slider;
 
   /* check if any views selected for painting */
@@ -110,16 +132,16 @@ void setEMAGEDomainsAndColoursCb(
 
   /* set the domain & file names, priorities, and current domain */
   globals.current_domain = emageCurrentDomain;
-  for(i=1; i <=6; i++){
+  for(i=1; i <= 6; i++){
     globals.domain_name[i] = emageName[i-1];
     globals.domain_filename[i] = emageFilename[i-1];
     globals.priority_to_domain_lut[i] = emagePriority[i-1];
   }
 
   /* set the slider value */
-  if( slider =
+  if((slider =
      XtNameToWidget(globals.topl,
-		    "*domain_controls_dialog*numDomainsSlider") ){
+		    "*domain_controls_dialog*numDomainsSlider"))){
     float fval = 6.0;
     HGU_XmSetSliderValue(slider, fval);
   }  
@@ -146,7 +168,8 @@ static unsigned char emap_ovly_cols[33][3] =
 static int emapNumSolidOverlays=5;
 static int emapNumWashOverlays=5;
 static int emapCurrentDomain=1;
-static double emapContrast[]={0.0,0.25,0.25,0.25,0.25,0.25};
+static double emapContrast[]={0.0,0.25,0.25,0.25,0.25,0.25,0.25,
+			      0.25,0.25,0.25,0.25};
 static int emapPriority[]={1,2,3,4,5,6,7,8,9,10};
 static char *emapName[]={
   "domain_1.wlz",
@@ -199,7 +222,7 @@ void setEMAPDomainsAndColoursCb(
   XtPointer	call_data)
 {
   PaintCmapStruct	*cmpstr;
-  int			i, j;
+  int			i;
   Widget		slider;
 
   /* check if any views selected for painting */
@@ -252,9 +275,9 @@ void setEMAPDomainsAndColoursCb(
   }
 
   /* set the slider value */
-  if( slider =
+  if((slider =
      XtNameToWidget(globals.topl,
-		    "*domain_controls_dialog*numDomainsSlider") ){
+		    "*domain_controls_dialog*numDomainsSlider"))){
     float fval = 10.0;
     HGU_XmSetSliderValue(slider, fval);
   }  
@@ -300,7 +323,7 @@ void setMenuLabelsAndColors(void)
     /* get the widgets by priority and reset resources */
     /* domain menu */
     sprintf(str_buf, "*menubar*domain_menu*select*domain_%d", i);
-    if( widget = XtNameToWidget(globals.topl, str_buf) ){
+    if((widget = XtNameToWidget(globals.topl, str_buf))){
       if( i <= num_overlays ){
 	XtVaSetValues(widget,
 		      XmNlabelString, xmstr,
@@ -317,7 +340,7 @@ void setMenuLabelsAndColors(void)
 
     /* dominance array */
     sprintf(str_buf, "*domain_controls_dialog*dominance_form*%d", i);
-    if( widget = XtNameToWidget(globals.topl, str_buf) ){
+    if((widget = XtNameToWidget(globals.topl, str_buf))){
       if( i <= num_overlays ){
 	XtVaSetValues(widget, XmNbackground, pixel, NULL);
 	XtManageChild(widget);
@@ -329,7 +352,7 @@ void setMenuLabelsAndColors(void)
 
     /* colormap option menu */
     sprintf(str_buf, "*colormap_dialog*overlay*%d", i);
-    if( widget = XtNameToWidget(globals.topl, str_buf) ){
+    if((widget = XtNameToWidget(globals.topl, str_buf))){
       if( i <= num_overlays ){
 	XtVaSetValues(widget, XmNbackground, pixel, NULL);
 	XtManageChild(widget);
@@ -341,7 +364,7 @@ void setMenuLabelsAndColors(void)
 
     /* domain surgery */
     sprintf(str_buf, "*surgery_dialog*dest_domain_rc*domain %d", i);
-    if( widget = XtNameToWidget(globals.topl, str_buf) ){
+    if((widget = XtNameToWidget(globals.topl, str_buf))){
       if( i <= num_overlays ){
 	XtVaSetValues(widget,
 		      XmNlabelString, xmstr,
@@ -354,7 +377,7 @@ void setMenuLabelsAndColors(void)
       }
     }
     sprintf(str_buf, "*surgery_dialog*src_domain*domain %d", i);
-    if( widget = XtNameToWidget(globals.topl, str_buf) ){
+    if((widget = XtNameToWidget(globals.topl, str_buf))){
       if( i <= num_overlays ){
 	XtVaSetValues(widget,
 		      XmNlabelString, xmstr,
@@ -369,7 +392,7 @@ void setMenuLabelsAndColors(void)
 
     /* domain review */
     sprintf(str_buf, "*review_dialog*dest_domain_rc*domain %d", i);
-    if( widget = XtNameToWidget(globals.topl, str_buf) ){
+    if((widget = XtNameToWidget(globals.topl, str_buf))){
       if( i <= num_overlays ){
 	XtVaSetValues(widget,
 		      XmNlabelString, xmstr,
@@ -382,7 +405,7 @@ void setMenuLabelsAndColors(void)
       }
     }
     sprintf(str_buf, "*review_dialog*src_domain*domain %d", i);
-    if( widget = XtNameToWidget(globals.topl, str_buf) ){
+    if((widget = XtNameToWidget(globals.topl, str_buf))){
       if( i <= num_overlays ){
 	XtVaSetValues(widget,
 		      XmNlabelString, xmstr,
@@ -401,8 +424,10 @@ void setMenuLabelsAndColors(void)
   return;
 }
 
+/*
 static char dragTranslations[] = 
 "#override <Btn2Down>: StartDragDrop(DomainDominance)";
+*/
 
 #define DOMAIN_NAME_ATOM	"STRING"
 
@@ -531,7 +556,6 @@ static void DD_TransferProc(
   int		format)
 {
   int		source_index, dest_index;
-  int		maxIndex;
 
   /* extract the domain indices */
   if( (source_index = DD_GetIndex((String) value)) < 1 ){
@@ -551,6 +575,7 @@ static void DD_TransferProc(
   return;
 }
 
+/*
 static void DD_FinishCb(
   Widget	w,
   XtPointer	client_data,
@@ -581,6 +606,7 @@ static unsigned char domainbm_bits[] = {
    0xc2, 0xc1, 0x73, 0xb6, 0xdd, 0xdb, 0x10, 0x02, 0x00, 0x00, 0x00, 0x00,
    0x00, 0x10, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0xfe, 0xff, 0xff,
    0xff, 0xff, 0xff, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+*/
 
 void DD_StartDomainDominanceDrag(
 Widget		w,
@@ -589,12 +615,10 @@ String		*params,
 Cardinal	*num_params)
 {
   Atom		export_list[1];
-  Pixmap	icon;
   int		n;
   Arg		args[12];
-  Widget	drag_icon, drag_context;
+  Widget	drag_context;
   Pixel		fg, bg;
-  int		depth;
 
   /* if painting then ignore this request - should be fixed elsewhere */
   if( paint_key != NULL )
@@ -762,17 +786,17 @@ static void resetAllDomainParamsCb(
   /* domain names and file-names, etc. */
   MAPaintDomainGetResourceValues();
   MAPaintColormapGetResourceValues();
-  if( slider =
+  if((slider =
      XtNameToWidget(globals.topl,
-		    "*domain_controls_dialog*numDomainsSlider") ){
+		    "*domain_controls_dialog*numDomainsSlider"))){
     float fval = globals.cmapstruct->num_overlays +
       globals.cmapstruct->num_solid_overlays;
     HGU_XmSetSliderValue(slider, fval);
   }
 
-  if( slider =
+  if((slider =
      XtNameToWidget(globals.topl,
-		    "*domain_controls_dialog*OpenGLDisplayDomainStep") ){
+		    "*domain_controls_dialog*OpenGLDisplayDomainStep"))){
     float fval = globals.OpenGLDisplayDomainStep;
     HGU_XmSetSliderValue(slider, fval);
   }
@@ -794,7 +818,7 @@ static void numDomainsCb(
   XtPointer	client_data,
   XtPointer	call_data)
 {
-  Widget	slider=w, shell;
+  Widget	slider=w;
   int		val;
 
   while( strcmp(XtName(slider), "numDomainsSlider") ){
@@ -858,8 +882,7 @@ Widget create_domain_controls_dialog(
 {
   Widget		dialog, control, dominance, row_column,  form;
   Widget		frame, widget, slider;
-  int			i, n, num_overlays;
-  Pixel			pixel;
+  int			i, num_overlays;
   char			str_buf[16];
   float			fval;
 

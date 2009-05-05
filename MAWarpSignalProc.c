@@ -1,24 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   MAPaint						*
-*   File       :   MAWarpSignalProc.c					*
-*************************************************************************
-*   Author Name :  richard						*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Fri May  2 17:55:41 2003				*
-*   $Revision$					       		*
-*   $Name$								*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MAWarpSignalPr_c_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAWarpSignalProc.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:43:15 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,6 +51,12 @@
 
 #include <MAPaint.h>
 #include <MAWarp.h>
+
+extern void warpSwitchIncrementDomain(
+  int	incrFlg);
+
+extern void warpResetThresholdSliderRange(void);
+
 
 void warpSgnlDomainCanvasExposeCb(
   Widget		w,
@@ -86,9 +114,9 @@ WlzErrorNum warpResetSignalObj(
   if( WlzGreyTypeFromObj(obj, NULL) == WLZ_GREY_RGBA ){
     Widget option_menu, option;
     warpSetThreshColorTypeSensitive( True );
-    if( option_menu = 
+    if((option_menu = 
        XtNameToWidget(globals.topl,
-		      "*warp_sgnl_controls_form*color_space") ){
+		      "*warp_sgnl_controls_form*color_space"))){
       XtVaGetValues(option_menu, XmNmenuHistory, &option, NULL);
       XtCallCallbacks(option, XmNactivateCallback, NULL);
     }
@@ -171,7 +199,7 @@ void warpResetCWDCb(
   String	dirStr;
   Boolean	setFlg;
 
-  if( toggle = XtNameToWidget(w, "*.reset_cwd") ){
+  if((toggle = XtNameToWidget(w, "*.reset_cwd"))){
     XtVaGetValues(toggle, XmNset, &setFlg, NULL);
     if( setFlg == True ){
       if( XmStringGetLtoR(cbs->dir, XmSTRING_DEFAULT_CHARSET, &dirStr) ){
@@ -209,7 +237,7 @@ void warpReadSignalPopupCb(
 						     client_data);
 
     /* add a check box to reset the current working directory */
-    if( form = XtNameToWidget(warp_read_sgnl_dialog, "*.formatFormRC") ){
+    if((form = XtNameToWidget(warp_read_sgnl_dialog, "*.formatFormRC"))){
       toggle = XtVaCreateManagedWidget("reset_cwd", xmToggleButtonGadgetClass,
 				       form,
 				       XmNset,	True,
@@ -238,7 +266,6 @@ void mapWarpDataCb(
   ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
   WlzObject		*obj, *tmpObj;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
-  FILE			*fp;
 
   /* check for signal domain and warp transform */
   if((warpGlobals.sgnlObj == NULL)){
@@ -246,9 +273,9 @@ void mapWarpDataCb(
   }
 
   /* shift the signal object for the -ve bounds-obj mesh bug */
-  if( tmpObj = WlzAssignObject(
+  if((tmpObj = WlzAssignObject(
     WlzShiftObject(warpGlobals.sgnlObj, warpGlobals.srcXOffset,
-		   warpGlobals.srcYOffset, 0, &errNum), NULL) ){
+		   warpGlobals.srcYOffset, 0, &errNum), NULL))){
     WlzObject	*obj1, *obj2;
     WlzPixelV	bckgrnd;
     int		*greyVals, size;
@@ -271,8 +298,8 @@ void mapWarpDataCb(
     bckgrnd.v.ubv = 100;
     obj2 = WlzAssignObject(WlzGreyMask(obj1, tmpObj, bckgrnd, &errNum), NULL);
     WlzFreeObj(obj1);
-    if( obj = mapaintWarpObj(obj2,
-			     WLZ_INTERPOLATION_NEAREST) ){
+    if((obj = mapaintWarpObj(obj2,
+			     WLZ_INTERPOLATION_NEAREST))){
       obj = WlzAssignObject(obj, NULL);
       obj1 = WlzThreshold(obj, bckgrnd, WLZ_THRESH_HIGH, &errNum);
       pushUndoDomains(view_struct);
@@ -317,7 +344,6 @@ void resetSignalDefaultsCb(
   XtPointer	client_data,
   XtPointer	call_data)
 {
-  ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
   Widget		toggle, slider, radio_box;
   int			i;
   XmToggleButtonCallbackStruct cbs;
@@ -326,48 +352,48 @@ void resetSignalDefaultsCb(
   /* pre-processing toggles and controls
      not the paint mode selection since this is determined by
      the selected page */
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*normalise") ){
+  if((toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*normalise"))){
     XtVaSetValues(toggle, XmNset, False, NULL);
   }
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*histo_equalise") ){
+  if((toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*histo_equalise"))){
     XtVaSetValues(toggle, XmNset, False, NULL);
   }
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*shade_correction") ){
+  if((toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*shade_correction"))){
     XtVaSetValues(toggle, XmNset, False, NULL);
   }
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*gauss_smooth") ){
+  if((toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*gauss_smooth"))){
     XtVaSetValues(toggle, XmNset, False, NULL);
   }
-  if( slider = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*gauss_width") ){
+  if((slider = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*gauss_width"))){
     HGU_XmSetSliderValue(slider, (float) 5.0);
   }
 
   /* do modes before threshold controls */
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*global_thresh") ){
+  if((toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*global_thresh"))){
     XtVaSetValues(toggle, XmNset, True, NULL);
     cbs.set = True;
     XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
   }
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*incremental_thresh") ){
+  if((toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*incremental_thresh"))){
     XtVaSetValues(toggle, XmNset, False, NULL);
     cbs.set = False;
     XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
   }
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*pick_mode_thresh") ){
+  if((toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*pick_mode_thresh"))){
     XtVaSetValues(toggle, XmNset, False, NULL);
     cbs.set = False;
     XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
   }
-  if( toggle = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*distance_mode_thresh") ){
+  if((toggle = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*distance_mode_thresh"))){
     XtVaSetValues(toggle, XmNset, False, NULL);
     cbs.set = False;
     XtCallCallbacks(toggle, XmNvalueChangedCallback, &cbs);
@@ -375,62 +401,62 @@ void resetSignalDefaultsCb(
   
   /* reset the threshold and interact controls */
   /* single colour mode */
-  if( slider = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*thresh_range_low") ){
+  if((slider = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*thresh_range_low"))){
     HGU_XmSetSliderValue(slider, (float) 256.0);
     warpGlobals.threshRangeLow = 256;
   }
-  if( slider = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*thresh_range_high") ){
+  if((slider = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*thresh_range_high"))){
     HGU_XmSetSliderValue(slider, (float) 256.0);
     warpGlobals.threshRangeHigh = 256;
   }
-  if( radio_box = 
+  if((radio_box = 
      XtNameToWidget(globals.topl,
-		    "*warp_sgnl_controls_form*color_space") ){
-    if( toggle = XtNameToWidget(radio_box, "*RGB") ){
+		    "*warp_sgnl_controls_form*color_space"))){
+    if((toggle = XtNameToWidget(radio_box, "*RGB"))){
       XtVaSetValues(radio_box, XmNmenuHistory, toggle, NULL);
       XtCallCallbacks(toggle, XmNactivateCallback, NULL);
     }
   }
-  if( radio_box = 
+  if((radio_box = 
      XtNameToWidget(globals.topl,
-		    "*warp_sgnl_controls_form*threshold_channel_rc") ){
-    if( toggle = XtNameToWidget(radio_box, "*grey") ){
+		    "*warp_sgnl_controls_form*threshold_channel_rc"))){
+    if((toggle = XtNameToWidget(radio_box, "*grey"))){
       XtVaSetValues(radio_box, XmNmenuHistory, toggle, NULL);
       XtCallCallbacks(toggle, XmNvalueChangedCallback, NULL);
     }
   }
 
   /* multi-colour mode */
-  if( slider =
+  if((slider =
      XtNameToWidget(globals.topl,
-		    "*warp_sgnl_controls_form*thresh_range_red_low") ){
+		    "*warp_sgnl_controls_form*thresh_range_red_low"))){
     HGU_XmSetSliderValue(slider, (float) 255.0);
   }
-  if( slider =
+  if((slider =
      XtNameToWidget(globals.topl,
-		    "*warp_sgnl_controls_form*thresh_range_red_high") ){
+		    "*warp_sgnl_controls_form*thresh_range_red_high"))){
     HGU_XmSetSliderValue(slider, (float) 255.0);
   }
-  if( slider =
+  if((slider =
      XtNameToWidget(globals.topl,
-		    "*warp_sgnl_controls_form*thresh_range_green_low") ){
+		    "*warp_sgnl_controls_form*thresh_range_green_low"))){
     HGU_XmSetSliderValue(slider, (float) 255.0);
   }
-  if( slider =
+  if((slider =
      XtNameToWidget(globals.topl,
-		    "*warp_sgnl_controls_form*thresh_range_green_high") ){
+		    "*warp_sgnl_controls_form*thresh_range_green_high"))){
     HGU_XmSetSliderValue(slider, (float) 255.0);
   }
-  if( slider =
+  if((slider =
      XtNameToWidget(globals.topl,
-		    "*warp_sgnl_controls_form*thresh_range_blue_low") ){
+		    "*warp_sgnl_controls_form*thresh_range_blue_low"))){
     HGU_XmSetSliderValue(slider, (float) 255.0);
   }
-  if( slider =
+  if((slider =
      XtNameToWidget(globals.topl,
-		    "*warp_sgnl_controls_form*thresh_range_blue_high") ){
+		    "*warp_sgnl_controls_form*thresh_range_blue_high"))){
     HGU_XmSetSliderValue(slider, (float) 255.0);
   }
   for(i=0; i < 3; i++){
@@ -439,19 +465,19 @@ void resetSignalDefaultsCb(
   }
 
   /* interactive mode */
-  if( slider = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*thresh_eccentricity") ){
+  if((slider = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*thresh_eccentricity"))){
     HGU_XmSetSliderValue(slider, (float) 1.0);
     warpGlobals.colorEllipseEcc = 1.0;
   }
-  if( slider = XtNameToWidget(globals.topl,
-			      "*warp_sgnl_controls_form*thresh_radius") ){
+  if((slider = XtNameToWidget(globals.topl,
+			      "*warp_sgnl_controls_form*thresh_radius"))){
     HGU_XmSetSliderValue(slider, (float) 10.0);
   }
-  if( radio_box = 
+  if((radio_box = 
      XtNameToWidget(globals.topl,
-		    "*warp_sgnl_controls_form*threshold_interact_rc") ){
-    if( toggle = XtNameToWidget(radio_box, "*box") ){
+		    "*warp_sgnl_controls_form*threshold_interact_rc"))){
+    if((toggle = XtNameToWidget(radio_box, "*box"))){
       XtVaSetValues(radio_box, XmNmenuHistory, toggle, NULL);
       XtCallCallbacks(toggle, XmNvalueChangedCallback, NULL);
     }
@@ -512,7 +538,7 @@ Widget createWarpSgnlControlsFrame(
 				     XmNleftAttachment, XmATTACH_FORM,
 				     XmNrightAttachment, XmATTACH_FORM,
 				     NULL);
-  if( widget = XtNameToWidget(notebook, "*PageScroller") ){
+  if((widget = XtNameToWidget(notebook, "*PageScroller"))){
     XtUnmanageChild(widget);
   }
   XtAddCallback(notebook, XmNpageChangedCallback,

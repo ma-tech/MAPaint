@@ -1,32 +1,49 @@
 #ifndef MAWARP_H
 #define MAWARP_H
 
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Woolz Library					*
-*   File       :   MAWarp.h						*
-*************************************************************************
-* This module has been copied from the original woolz library and       *
-* modified for the public domain distribution. The original authors of  *
-* the code and the original file headers and comments are in the        *
-* HISTORY file.                                                         *
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Mon Nov 29 13:35:59 1999				*
-*   $Revision$							*
-*   $Name$								*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MAWarp.h[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAWarp.h
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:15:46 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #define WARP_MAX_NUM_VTXS 1024
 
@@ -154,11 +171,18 @@ typedef struct {
   float		seElemRadius;
   MAPaintStructElemType	seType;
 
-  /* rapid-map controls */
+  /* rapid-map and express-map controls */
   int		bibfileSavedFlg;
   int		bibfileListCount;
   int		bibfileListIndex;
+  char		*bibfileListCSVFile;
   char		**bibfileList;
+  char		**statusList;
+  char		**dateList;
+  char		**authorList;
+  char		**stageList;
+  Widget	bibfileSelectButtonsFrame;
+  Widget	matrix;
 
   /* tie-point tracking controls */
   int		tpTrackingFlg;
@@ -445,6 +469,13 @@ extern Widget createWarpStandardControlsPage(
 extern Widget createWarpRapidControlsPage(
   Widget		notebook,
   ThreeDViewStruct	*view_struct);
+
+extern Widget createWarpExpressControlsPage(
+  Widget		notebook,
+  ThreeDViewStruct	*view_struct);
+
+extern void expressMapStatusChange(
+  int	status);
 
 extern Widget createTiePointTrackingControlsPage(
   Widget		notebook,

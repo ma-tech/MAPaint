@@ -1,3 +1,46 @@
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _WlzXmExtFF_FSBUtils_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         WlzXmExtFF_FSBUtils.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:26:07 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      WlzXm
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <X11/keysym.h>
 #include <Xm/XmAll.h>
@@ -29,7 +72,7 @@ static void WlzXmFSBSelectImageTypeCb(
   }
 
   /* get the extension string and re-filter */
-  if( name = WlzEffStringFromFormat(format,  &fileExt) ){
+  if((name = WlzEffStringFromFormat(format,  &fileExt))){
     if( format == WLZEFF_FORMAT_JPEG ){
       sprintf(strBuf, "*.jp*g*");
     }
@@ -84,7 +127,7 @@ WlzErrorNum WlzXmWriteExtFFObject(
     case WLZEFF_FORMAT_PNM:
     case WLZEFF_FORMAT_BMP:
     case WLZEFF_FORMAT_TIFF:
-      if( filename = HGU_XmGetFileStr(dialog, cbs->value, cbs->dir) ){
+      if((filename = HGU_XmGetFileStr(dialog, cbs->value, cbs->dir))){
 	errNum = WlzEffWriteObj(NULL, filename, obj, format);
 	AlcFree( filename );
       }
@@ -161,7 +204,7 @@ WlzObject *WlzXmReadExtFFObject(
     case WLZEFF_FORMAT_PNM:
     case WLZEFF_FORMAT_BMP:
     case WLZEFF_FORMAT_TIFF:
-      if( filename = HGU_XmGetFileStr(dialog, cbs->value, cbs->dir) ){
+      if((filename = HGU_XmGetFileStr(dialog, cbs->value, cbs->dir))){
 	obj = WlzEffReadObj(NULL, filename, format, 0, &errNum);
 	AlcFree( filename );
       }
@@ -220,7 +263,6 @@ Widget WlzXmCreateExtFFObjectFSB(
   XtPointer		client_data)
 {
   Widget	dialog=NULL;
-  Visual	visual;
   Arg		arg[1];
   MenuItem	*menuItems;
   Widget	form, menu;
@@ -324,9 +366,9 @@ WlzErrorNum WlzXmExtFFObjectFSBSetType(
   XmFileSelectionDoSearch( dialog, NULL );
   
   /* now set the menu entry */
-  if( menu = XtNameToWidget(dialog, "*formatMenu") ){
+  if((menu = XtNameToWidget(dialog, "*formatMenu"))){
     sprintf(strBuf, "*.%s", buttonName);
-    if( button = XtNameToWidget(menu, strBuf) ){
+    if((button = XtNameToWidget(menu, strBuf))){
       XtVaSetValues(menu, XmNmenuHistory, button, NULL);
     }
   }

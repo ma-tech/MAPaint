@@ -1,29 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Woolz Library					*
-*   File       :   MAWarpInputXUtils.c					*
-*************************************************************************
-* This module has been copied from the original woolz library and       *
-* modified for the public domain distribution. The original authors of  *
-* the code and the original file headers and comments are in the        *
-* HISTORY file.                                                         *
-*************************************************************************
-*   Author Name :  Richard Baldock					*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Mon Nov 29 14:18:34 1999				*
-*   $Revision$							*
-*   $Name$								*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MAWarpInputXUtils_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAWarpInputXUtils.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:41:03 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,7 +139,7 @@ WlzObject *warpTransformObj(
     }
     if( toggleFlg ){
       rtnObj = WlzAssignObject(rtnObj, NULL);
-      if( tmpObj = WlzGreyModGradient(rtnObj, 3.0, &errNum) ){
+      if((tmpObj = WlzGreyModGradient(rtnObj, 3.0, &errNum))){
 	WlzFreeObj(rtnObj);
 	rtnObj = tmpObj;
 	errNum = WlzGreyNormalise(rtnObj, 0);
@@ -251,10 +268,12 @@ XImage	*warpCreateXImage(
   WlzUByte			*data, *dst_data, gammaLUT[256];
   int			i, j;
   WlzGreyValueWSpace	*gVWSp = NULL;
-  int			cmpndFlg=0;
   WlzUInt		r, g, b, a;
   int			rIndx, gIndx, bIndx, aIndx;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
+
+  /* initialise */
+  rIndx = gIndx = bIndx = aIndx = 0;
 
   /* create the ximage using current mag and rotate */
   if( XGetWindowAttributes(XtDisplay(winStruct->canvas),
@@ -288,13 +307,13 @@ XImage	*warpCreateXImage(
 		XmNheight, height,
 		NULL);
 
-  if( gVWSp = WlzGreyValueMakeWSp(obj, &errNum) ){
+  if((gVWSp = WlzGreyValueMakeWSp(obj, &errNum))){
     widthb = ((win_att.depth == 8)?1:4)*width;
     i = BitmapPad(XtDisplay(winStruct->canvas))>>3;
     if( widthb%i ){
       widthb += i - widthb%i;
     }
-    if( dst_data = (WlzUByte *) AlcMalloc(widthb*height*sizeof(char)) ){
+    if((dst_data = (WlzUByte *) AlcMalloc(widthb*height*sizeof(char)))){
       rtnImage = XCreateImage(XtDisplay(winStruct->canvas),
 			      win_att.visual, win_att.depth,
 			      ZPixmap, 0, (char *) dst_data,
@@ -462,8 +481,8 @@ void warpSetXImage(
     case WLZ_COMPOUND_ARR_2:
       cobj = (WlzCompoundArray *) winStruct->obj;
       if( cobj->n > 0 ){
-	if(cobj1 = WlzMakeCompoundArray(cobj->type, 1, cobj->n,
-					NULL, cobj->otype, &errNum) ){
+	if((cobj1 = WlzMakeCompoundArray(cobj->type, 1, cobj->n,
+					 NULL, cobj->otype, &errNum))){
 	  for(i=0; i < cobj->n; i++){
 	    cobj1->o[i] = WlzAssignObject(warpTransformObj((cobj->o)[i],
 							   winStruct, -1),
@@ -504,11 +523,8 @@ void warpSetOvlyXImages(
   MAPaintImageWinStruct *winStruct,
   int			imageIndex)
 {
-  XWindowAttributes	win_att;
-  int			i;
   WlzObject		*obj0=NULL, *obj1=NULL;
   WlzCompoundArray	*cobj;
-  WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check the index */
   if( (imageIndex != 0) && (imageIndex != 1) ){
@@ -801,6 +817,7 @@ void warpSetOvlyXImage(
     break;
 
   case MA_OVERLAY_MIXTYPE_BLINK:
+  default:
     break;
   }
 
@@ -849,7 +866,7 @@ void warpDisplayTiePoints(void)
   Window	src_win = XtWindow(warpGlobals.src.canvas);
   GC		gc;
   int		i, x, y;
-  WlzDVertex2	vtx1, vtx2;
+  WlzDVertex2	vtx2;
   XWindowAttributes	win_att;
 
   /* check gc's */
@@ -921,8 +938,6 @@ void warpDisplayDstMeshCb(
   XtPointer		call_data)
 {
   MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmDrawingAreaCallbackStruct
-    *cbs = (XmDrawingAreaCallbackStruct *) call_data;
   WlzMeshTransform	*meshTr = warpGlobals.meshTr;
   int			elemIdx;
   WlzMeshElem		*elem;
@@ -1005,8 +1020,6 @@ void warpDisplaySrcMeshCb(
   XtPointer		call_data)
 {
   MAPaintImageWinStruct	*winStruct = (MAPaintImageWinStruct *) client_data;
-  XmDrawingAreaCallbackStruct
-    *cbs = (XmDrawingAreaCallbackStruct *) call_data;
   WlzMeshTransform	*meshTr = warpGlobals.meshTr;
   int			elemIdx;
   WlzMeshElem		*elem;

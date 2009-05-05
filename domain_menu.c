@@ -1,12 +1,47 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-* Project:	MRC HGU General IP and Display Utilities		*
-* Title:	domain_menu.c						*
-* Author:	Richard Baldock, MRC Human Genetics Unit		*
-* Copyright:	Medical Research Council, UK.				*
-* Date:		
-* Synopsis:	
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _domain_menu_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         domain_menu.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:52:06 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -161,7 +196,7 @@ static MenuItem select_menu_itemsP[] = {	/* select menu items */
      select_domain_cb, (XtPointer) MASK_DOMAIN,
      myHGU_XmHelpStandardCb, "paint/paint.html#select_domain",
      XmTEAR_OFF_DISABLED, False, False, NULL},
-NULL,
+{NULL},
 };
 
 static MenuItem domain_menu_itemsP[] = {		/* file_menu items */
@@ -228,7 +263,7 @@ static MenuItem domain_menu_itemsP[] = {		/* file_menu items */
 {"write_paint_volume", &xmPushButtonGadgetClass, 0, NULL, NULL, False,
      NULL, NULL, NULL, NULL,
      XmTEAR_OFF_DISABLED, False, False, NULL},
-NULL,
+{NULL},
 };
 
 MenuItem	*domain_menu_items = &(domain_menu_itemsP[0]);
@@ -425,15 +460,15 @@ void addSelectDomainCallback(
   String	strBuf;
 
   /* get the menu widget */
-  if( cascadeB = XtNameToWidget(globals.topl,
-				"*menubar*domain_menu*select") ){
+  if((cascadeB = XtNameToWidget(globals.topl,
+				"*menubar*domain_menu*select"))){
 
     /* get each toggle widget and add the callback */
     for(i=0; i < 32; i++){
       strBuf = (String) AlcMalloc(strlen(select_menu_itemsP[i].name)
 				  + 4);
       sprintf(strBuf, "*%s", select_menu_itemsP[i].name);
-      if( toggle = XtNameToWidget(cascadeB, strBuf) ){
+      if((toggle = XtNameToWidget(cascadeB, strBuf))){
 	XtAddCallback(toggle, XmNvalueChangedCallback, callback, clientData);
       }
       AlcFree((void *) strBuf);
@@ -453,15 +488,15 @@ void removeSelectDomainCallback(
   String	strBuf;
 
   /* get the menu widget */
-  if( cascadeB = XtNameToWidget(globals.topl,
-				"*menubar*domain_menu*select") ){
+  if((cascadeB = XtNameToWidget(globals.topl,
+				"*menubar*domain_menu*select"))){
 
     /* get each toggle widget and add the callback */
     for(i=0; i < 32; i++){
       strBuf = (String) AlcMalloc(strlen(select_menu_itemsP[i].name)
 				  + 4);
       sprintf(strBuf, "*%s", select_menu_itemsP[i].name);
-      if( toggle = XtNameToWidget(cascadeB, strBuf) ){
+      if((toggle = XtNameToWidget(cascadeB, strBuf))){
 	XtRemoveCallback(toggle, XmNvalueChangedCallback, callback, clientData);
       }
       AlcFree((void *) strBuf);
@@ -592,8 +627,8 @@ void select_domain_cb(
       globals.cmapstruct->ovly_cols[globals.current_domain];
 
     /* reset the 3D display toggle */
-    if( toggle = XtNameToWidget(globals.topl,
-				"*domain_menu*threed_display_domain") ){
+    if((toggle = XtNameToWidget(globals.topl,
+				"*domain_menu*threed_display_domain"))){
       if( globals.domain_display_list[globals.current_domain] ){
 	XtVaSetValues(toggle, XmNset, True, NULL);
       }
@@ -704,19 +739,19 @@ void set_domain_menu_entry(
 
   /* change the name in the review and surgery dialogs */
   sprintf(str_buf, "*review_dialog*dest_domain_rc*domain %d", domain);
-  if( widget = XtNameToWidget(globals.topl, str_buf) ){
+  if((widget = XtNameToWidget(globals.topl, str_buf))){
     XtVaSetValues(widget, XmNlabelString, name, NULL);
   }
   sprintf(str_buf, "*review_dialog*src_domain*domain %d", domain);
-  if( widget = XtNameToWidget(globals.topl, str_buf) ){
+  if((widget = XtNameToWidget(globals.topl, str_buf))){
     XtVaSetValues(widget, XmNlabelString, name, NULL);
   }
   sprintf(str_buf, "*surgery_dialog*dest_domain_rc*domain %d", domain);
-  if( widget = XtNameToWidget(globals.topl, str_buf) ){
+  if((widget = XtNameToWidget(globals.topl, str_buf))){
     XtVaSetValues(widget, XmNlabelString, name, NULL);
   }
   sprintf(str_buf, "*surgery_dialog*src_domain*domain %d", domain);
-  if( widget = XtNameToWidget(globals.topl, str_buf) ){
+  if((widget = XtNameToWidget(globals.topl, str_buf))){
     XtVaSetValues(widget, XmNlabelString, name, NULL);
   }
 
@@ -876,14 +911,14 @@ void read_domain_cb(
 	return;
       }
     }
-    if( domain.p = WlzMakePlaneDomain(WLZ_PLANEDOMAIN_DOMAIN,
+    if((domain.p = WlzMakePlaneDomain(WLZ_PLANEDOMAIN_DOMAIN,
 				      globals.orig_obj->domain.p->plane1,
 				      globals.orig_obj->domain.p->plane1,
 				      obj->domain.i->line1,
 				      obj->domain.i->lastln,
 				      obj->domain.i->kol1,
 				      obj->domain.i->lastkl,
-				      &errNum) ){
+				      &errNum))){
       domain.p->domains[0] = WlzAssignDomain(obj->domain, NULL);
       values.core = NULL;
       tmpObj = WlzMakeMain(WLZ_3D_DOMAINOBJ, domain, values,
@@ -931,9 +966,9 @@ void read_domain_cb(
   }
 
   /* check if replace existing required */
-  if( widget =
+  if((widget =
      XtNameToWidget(globals.topl,
-		    "*read_domain_dialog*Replace existing domain") ){
+		    "*read_domain_dialog*Replace existing domain"))){
     XtVaGetValues(widget, XmNset, &replace_flg, NULL);
   }
   if( replace_flg == True ){
@@ -949,17 +984,17 @@ void read_domain_cb(
   }
 
   /* check overlap with existing domains */
-  if( widget = XtNameToWidget(globals.topl,
-			      "*read_domain_dialog*Check overlap") ){
+  if((widget = XtNameToWidget(globals.topl,
+			      "*read_domain_dialog*Check overlap"))){
     XtVaGetValues(widget, XmNset, &check_overlap, NULL);
   }
 
   if( (replace_flg != True) && (check_overlap == True) ){
     threshV.type = WLZ_GREY_INT;
     threshV.v.inv = globals.cmapstruct->ovly_cols[1];
-    if( obj1 = WlzThreshold(globals.obj, threshV, WLZ_THRESH_HIGH, &errNum ) ){
-      if( obj2 = WlzIntersect2(obj, obj1, &errNum) ){
-	int 		p, counter, str_len;
+    if((obj1 = WlzThreshold(globals.obj, threshV, WLZ_THRESH_HIGH, &errNum ))){
+      if((obj2 = WlzIntersect2(obj, obj1, &errNum))){
+	int 		p, counter, str_len=0;
 	char		*str_buf=NULL;
 	WlzPlaneDomain 	*pdom = obj2->domain.p;
 	int		p_offset = globals.obj->domain.p->plane1;
@@ -1098,8 +1133,8 @@ void clear_all_domains_cb(
       glDeleteLists(globals.domain_display_list[domain], 1);
       globals.domain_display_list[domain] = 0;
       MAOpenGLDrawScene( globals.canvas );
-      if( toggle = XtNameToWidget(globals.topl,
-				  "*domain_menu*threed_display_domain") ){
+      if((toggle = XtNameToWidget(globals.topl,
+				  "*domain_menu*threed_display_domain"))){
 	XtVaSetValues(toggle, XmNset, False, NULL);
       }
     }
@@ -1178,8 +1213,8 @@ int clearDomain(
       glDeleteLists(globals.domain_display_list[globals.current_domain], 1);
       globals.domain_display_list[domain] = 0;
       MAOpenGLDrawScene( globals.canvas );
-      if( toggle = XtNameToWidget(globals.topl,
-				  "*domain_menu*threed_display_domain") ){
+      if((toggle = XtNameToWidget(globals.topl,
+				  "*domain_menu*threed_display_domain"))){
 	XtVaSetValues(toggle, XmNset, False, NULL);
       }
     }
@@ -1218,7 +1253,6 @@ void clear_domain_cb(
   XtPointer	client_data,
   XtPointer	call_data)
 {
-  WlzObject	*obj;
 
   /* check the reference object */
   if( globals.obj == NULL )
@@ -1458,7 +1492,6 @@ XtPointer	call_data)
 	break;
     case GREYS_DOMAIN:
     default:
-	(void) fclose( fp );
 	/* set hour glass cursor */
 	HGU_XmUnsetHourGlassCursor(globals.topl);
 	return;
@@ -1570,10 +1603,7 @@ Widget		w,
 XtPointer	client_data,
 XtPointer	call_data)
 {
-    WlzObject		*obj, *obj1, *boundobj;
-    WlzPlaneDomain	*planedmn;
-    int			z;
-    float		red, green, blue;
+    WlzObject		*obj;
     Widget		toggle;
 
     /* check the reference object */
@@ -1672,10 +1702,9 @@ void write_paint_object_cb(
   XmFileSelectionBoxCallbackStruct *cbs =
     (XmFileSelectionBoxCallbackStruct *) call_data;
   WlzEffFormat	image_type = (WlzEffFormat) client_data;
-  FILE		*fp;
   Boolean	RGBFlg=False;
   Widget	widget;
-  WlzObject	*obj;
+  WlzObject	*obj=NULL;
   WlzErrorNum	errNum;
 
   /* do nothing if no reference object */
@@ -1693,9 +1722,9 @@ void write_paint_object_cb(
   HGU_XmSetHourGlassCursor(globals.topl);
 
   /* check for 24 bit */
-  if( widget =
+  if((widget =
      XtNameToWidget(globals.topl,
-		    "*write_paint_volume_dialog*24bit") ){
+		    "*write_paint_volume_dialog*24bit"))){
     XtVaGetValues(widget, XmNset, &RGBFlg, NULL);
     if( RGBFlg ){
       /* convert to 24bit with LUT */
@@ -1746,6 +1775,7 @@ void write_paint_object_cb(
   return;
 }
 
+/*
 static void image_type_cb(
   Widget	w,
   XtPointer	client_data,
@@ -1809,14 +1839,13 @@ static void image_type_cb(
 
   return;
 }
+*/
 
 int domain_menu_init(
   Widget	topl)
 {
   Widget		widget, form, rc, toggle;
-  int			i, n;
-  XtTranslations	trans_tb;
-  Atom			import_list[1];
+  int			i;
   Arg			args[8];
   Visual		*visual;
 
@@ -1913,7 +1942,7 @@ int domain_menu_init(
     HGU_XmCreateExtFFObjectFSB(topl, "write_paint_volume_dialog",
 			       write_paint_object_cb,
 			       NULL);
-  if( rc = XtNameToWidget(write_paint_volume_dialog, "*.formatFormRC") ){
+  if((rc = XtNameToWidget(write_paint_volume_dialog, "*.formatFormRC"))){
 
     /* add a form to include conversion to 24bit */
     form = XtVaCreateManagedWidget("write_file_form", xmFormWidgetClass,
@@ -1948,7 +1977,7 @@ int domain_menu_init(
 
     /* get the widgets in priority order */
     sprintf(str_buf, "*menubar*domain_menu*select*domain_%d", i);
-    if( widget = XtNameToWidget(topl, str_buf) ){
+    if((widget = XtNameToWidget(topl, str_buf))){
       if( i > (globals.cmapstruct->num_overlays +
 	       globals.cmapstruct->num_solid_overlays) )
       {

@@ -1,24 +1,46 @@
-#pragma ident "MRC HGU $Id$"
-/************************************************************************
-*   Copyright  :   1994 Medical Research Council, UK.                   *
-*                  All rights reserved.                                 *
-*************************************************************************
-*   Address    :   MRC Human Genetics Unit,                             *
-*                  Western General Hospital,                            *
-*                  Edinburgh, EH4 2XU, UK.                              *
-*************************************************************************
-*   Project    :   Mouse Atlas MAPaint					*
-*   File       :   MAWarpSignalDomain.c					*
-*************************************************************************
-*   Author Name :  richard						*
-*   Author Login:  richard@hgu.mrc.ac.uk				*
-*   Date        :  Tue Nov  4 17:29:28 2003				*
-*   $Revision$							*
-*   $Name$								*
-*   Synopsis    : 							*
-*************************************************************************
-*   Maintenance :  date - name - comments (Last changes at the top)	*
-************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _MAWarpSignalDomain_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         MAWarpSignalDomain.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:41:42 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,7 +61,6 @@ void warpSetSignalDomain(
   WlzErrorNum	errNum=WLZ_ERR_NONE;
   WlzPixelV	threshV, threshV1;
   WlzObject	*obj, *obj1;
-  WlzCompoundArray	*cobj;
   WlzUInt	combineMode;
 
   /* image processing sequence */
@@ -68,11 +89,11 @@ void warpSetSignalDomain(
 	  WlzFreeObj(warpGlobals.sgnlObj);
 	}
 	  
-	if( obj = WlzThreshold(obj1, threshV, WLZ_THRESH_HIGH, &errNum) ){
+	if((obj = WlzThreshold(obj1, threshV, WLZ_THRESH_HIGH, &errNum))){
 	  obj = WlzAssignObject(obj, &errNum);
 	  WlzFreeObj(obj1);
 	  threshV.v.inv = warpGlobals.threshRangeHigh + 1;
-	  if( obj1 = WlzThreshold(obj, threshV, WLZ_THRESH_LOW, &errNum) ){
+	  if((obj1 = WlzThreshold(obj, threshV, WLZ_THRESH_LOW, &errNum))){
 	    warpGlobals.sgnlObj = WlzAssignObject(obj1, &errNum);
 	  }
 	  else {
@@ -110,8 +131,8 @@ void warpSetSignalDomain(
 			WLZ_BO_AND, WLZ_BO_AND, WLZ_BO_AND, 255);
 
       /* use multi-threshold */
-      if( obj = WlzRGBAMultiThreshold(obj1, threshV, threshV1,
-				      combineMode, &errNum) ){
+      if((obj = WlzRGBAMultiThreshold(obj1, threshV, threshV1,
+				      combineMode, &errNum))){
 	warpGlobals.sgnlObj = WlzAssignObject(obj, &errNum);
       }
       else {
@@ -127,10 +148,10 @@ void warpSetSignalDomain(
       }
 
       /* use box-threshold */
-      if( obj = WlzRGBABoxThreshold(obj1,
+      if((obj = WlzRGBABoxThreshold(obj1,
 				    warpGlobals.lowRGBPoint,
 				    warpGlobals.highRGBPoint,
-				    &errNum) ){
+				    &errNum))){
 	warpGlobals.sgnlObj = WlzAssignObject(obj, &errNum);
       }
       else {
@@ -146,10 +167,10 @@ void warpSetSignalDomain(
       }
 
       /* use slice-threshold */
-      if( obj = WlzRGBASliceThreshold(obj1,
+      if((obj = WlzRGBASliceThreshold(obj1,
 				      warpGlobals.lowRGBPoint,
 				      warpGlobals.highRGBPoint,
-				      &errNum) ){
+				      &errNum))){
 	warpGlobals.sgnlObj = WlzAssignObject(obj, &errNum);
       }
       else {
@@ -165,11 +186,11 @@ void warpSetSignalDomain(
       }
 
       /* use Ellipsoid-threshold */
-      if( obj = WlzRGBAEllipsoidThreshold(obj1,
+      if((obj = WlzRGBAEllipsoidThreshold(obj1,
 					  warpGlobals.lowRGBPoint,
 					  warpGlobals.highRGBPoint,
 					  warpGlobals.colorEllipseEcc,
-					  &errNum) ){
+					  &errNum))){
 	warpGlobals.sgnlObj = WlzAssignObject(obj, &errNum);
       }
       else {
@@ -222,9 +243,9 @@ void warpSetSignalDomain(
 					 y - 80, y + 80,
 					 x - 80, x + 80, &errNum);
 	values.core = NULL;
-	if( tmpObj1 = WlzMakeMain(warpGlobals.sgnlObj->type, domain, values,
-				  NULL, NULL, &errNum) ){
-	  if( tmpObj2 = WlzIntersect2(warpGlobals.sgnlObj, tmpObj1, &errNum) ){
+	if((tmpObj1 = WlzMakeMain(warpGlobals.sgnlObj->type, domain, values,
+				  NULL, NULL, &errNum))){
+	  if((tmpObj2 = WlzIntersect2(warpGlobals.sgnlObj, tmpObj1, &errNum))){
 	    tmpObj2->values = WlzAssignValues(warpGlobals.sgnlObj->values, NULL);
 	    errNum = WlzLabel(warpGlobals.sgnlObj, &numObjs, &objs, 8192, 0,
 			      WLZ_4_CONNECTED);
@@ -265,8 +286,8 @@ void warpSetSignalDomain(
   /* check for increment mode */
   if( warpGlobals.incrThreshFlg && sgnlIncrObj() ){
     if( warpGlobals.sgnlObj ){
-      if( obj1 = WlzUnion2(warpGlobals.sgnlObj, sgnlIncrObj(),
-			   &errNum) ){
+      if((obj1 = WlzUnion2(warpGlobals.sgnlObj, sgnlIncrObj(),
+			   &errNum))){
 	WlzFreeObj(warpGlobals.sgnlObj);
 	warpGlobals.sgnlObj = WlzAssignObject(obj1, &errNum);
       }

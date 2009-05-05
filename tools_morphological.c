@@ -1,20 +1,47 @@
-#pragma ident "MRC HGU $Id$"
-/*****************************************************************************
-* Copyright   :    1994 Medical Research Council, UK.                        *
-*                  All rights reserved.                                      *
-******************************************************************************
-* Address     :    MRC Human Genetics Unit,                                  *
-*                  Western General Hospital,                                 *
-*                  Edinburgh, EH4 2XU, UK.                                   *
-******************************************************************************
-* Project     :    Mouse Atlas Project					     *
-* File        :    tools_morphological.c				     *
-******************************************************************************
-* Author Name :    Richard Baldock					     *
-* Author Login:    richard@hgu.mrc.ac.uk				     *
-* Date        :    Fri May 12 10:45:18 1995				     *
-* Synopsis    :    Morphological tools for manipulating the paint domain     *
-*****************************************************************************/
+#if defined(__GNUC__)
+#ident "MRC HGU $Id:"
+#else
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#pragma ident "MRC HGU $Id:"
+#else static char _tools_morpholog_cal_c[] = "MRC HGU $Id:";
+#endif
+#endif
+/*!
+* \file         tools_morphological.c
+* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
+* \date         Fri May  1 13:33:10 2009
+* \version      MRC HGU $Id$
+*               $Revision$
+*               $Name$
+* \par Address:
+*               MRC Human Genetics Unit,
+*               Western General Hospital,
+*               Edinburgh, EH4 2XU, UK.
+* \par Copyright:
+* Copyright (C) 2005 Medical research Council, UK.
+* 
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 2
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be
+* useful but WITHOUT ANY WARRANTY; without even the implied
+* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+* PURPOSE.  See the GNU General Public License for more
+* details.
+*
+* You should have received a copy of the GNU General Public
+* License along with this program; if not, write to the Free
+* Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+* Boston, MA  02110-1301, USA.
+* \ingroup      MAPaint
+* \brief        Morphological tools for manipulating the paint domain
+*               
+*
+* Maintenance log with most recent changes at top of list.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -45,7 +72,7 @@ static MenuItem struct_elem_items[] = {	/* structuring element items */
      struct_elem_cb, (XtPointer) WLZ_EUCLIDEAN_DISTANCE,
      myHGU_XmHelpStandardCb, "",
      XmTEAR_OFF_DISABLED, False, False, NULL},
-NULL,
+{NULL},
 };
 
 void struct_elem_cb(
@@ -53,9 +80,6 @@ Widget		w,
 XtPointer	client_data,
 XtPointer	call_data)
 {
-    XmPushButtonCallbackStruct *cbs =
-	(XmPushButtonCallbackStruct *) call_data;
-
     struct_elem_type = (WlzDistanceType) client_data;
     return;
 }
@@ -109,7 +133,6 @@ void MAPaintMorphological2DCb(
   XtPointer	call_data)
 {
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
-  WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   XmAnyCallbackStruct	*cbs = (XmAnyCallbackStruct *) call_data;
   int			x, y;
   DomainSelection	sel_domain;
@@ -156,7 +179,7 @@ void MAPaintMorphological2DCb(
 	  }
 	}
 	else {
-	  if( obj1 = WlzStructDilation(obj, structElem, &errNum) ){
+	  if((obj1 = WlzStructDilation(obj, structElem, &errNum))){
 	    WlzFreeObj(obj);
 	    obj = WlzAssignObject(obj1, NULL);
 	  }
