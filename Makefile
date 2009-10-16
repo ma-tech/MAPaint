@@ -306,6 +306,7 @@ LIBDIRS			= . \
 			../../HGUX/libhguGL \
 			../../External/Tiff/tiff-v3.5.7/libtiff \
 			../../External/Jpeg/jpeg-6b \
+			../../External/Xbae/xbae-4.60.4/src/.libs \
 			  $(HGU_LIB_DIR) \
 			  $(MOTIF_LIB_DIR) \
 			  $(OPENGL_LIB_DIR) \
@@ -378,7 +379,7 @@ ifeq	 	($(UNIXTYPE), DARWIN)
 EXTRA_LIBS		= tiff jpeg m
 X11LIBS         	= Xt X11 Xmu Xp
 OPENGLLIBS		= GLU
-MOTIFLIBS       	= Xm
+MOTIFLIBS       	= Xbae Xm
 endif
 
 LOCALLIBS		= hguGL HguXm HguX WlzExtFF Wlz bibfile Alg Alc
