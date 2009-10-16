@@ -54,7 +54,7 @@
 #include <MAPaint.h>
 #include <MAWarp.h>
 
-#include <Matrix.h>
+#include <Xbae/Matrix.h>
 
 /* menu item structures */
 
@@ -484,8 +484,11 @@ Widget	topl)
 {
     Widget	widget;
     String	filestr, dirstr;
-    char	lineBuf[1024], fileBuf[512], statusBuf[64], dateBuf[64], authorBuf[64];
-    char	stageBuf[16];
+    char	lineBuf[1024], fileBuf[512], dateBuf[64];
+    char	authorBuf[64], stageBuf[16];
+    MAPaintExpressMapStatus	status;
+    MAPaintExpressMapQuality	quality;
+    int		bibfileStartIndex=0;
 
     /* create the tool controls dialog */
     tool_controls_dialog = create_tool_controls_dialog( topl );
@@ -618,15 +621,21 @@ Widget	topl)
 	    linecount++;
 	  }
 	  warpGlobals.bibfileList = (char **) AlcCalloc(linecount, sizeof(char *));
-	  warpGlobals.statusList = (char **) AlcCalloc(linecount, sizeof(char *));
+	  warpGlobals.statusList = (MAPaintExpressMapStatus *)
+	    AlcCalloc(linecount, sizeof(MAPaintExpressMapStatus));
 	  warpGlobals.dateList = (char **) AlcCalloc(linecount, sizeof(char *));
 	  warpGlobals.authorList = (char **) AlcCalloc(linecount, sizeof(char *));
 	  warpGlobals.stageList = (char **) AlcCalloc(linecount, sizeof(char *));
+	  warpGlobals.qualityList = (MAPaintExpressMapQuality *)
+	    AlcCalloc(linecount, sizeof(MAPaintExpressMapQuality));
 	  rewind(fp);
 	  linecount = 0;
 	  while( fgets(lineBuf, 1024, fp) ){
-	    csvCount = sscanf(lineBuf, "%[^,\n], %[^,\n], %[^,\n], %[^,\n], %s", fileBuf, statusBuf,
-			      dateBuf, authorBuf, stageBuf);
+	    int	statusTmp, qualityTmp;
+	    csvCount = sscanf(lineBuf, "%[^,\n], %d, %[^,\n], %[^,\n], %[^,\n], %d", fileBuf,
+			      &statusTmp, dateBuf, authorBuf, stageBuf, &qualityTmp);
+	    status = statusTmp;
+	    quality = qualityTmp;
 	    if( csvCount > 0 ){
 	      if((fileBuf[0] != '/') && globals.origDir ){
 		warpGlobals.bibfileList[linecount] = 
@@ -641,10 +650,10 @@ Widget	topl)
 	      }
 	    }
 	    if( csvCount > 1 ){
-		warpGlobals.statusList[linecount] = AlcStrDup(statusBuf);
+		warpGlobals.statusList[linecount] = status;
 	    }
 	    else {
-	      warpGlobals.statusList[linecount] = AlcStrDup("None");
+	      warpGlobals.statusList[linecount] = MA_EXPRESSMAP_STATUS_NONE;
 	    }
 	    if( csvCount > 2 ){
 		warpGlobals.dateList[linecount] = AlcStrDup(dateBuf);
@@ -663,6 +672,12 @@ Widget	topl)
 	    }
 	    else {
 	      warpGlobals.stageList[linecount] = AlcStrDup("TS23");
+	    }
+	    if( csvCount > 5 ){
+		warpGlobals.qualityList[linecount] = quality;
+	    }
+	    else {
+	      warpGlobals.qualityList[linecount] = MA_EXPRESSMAP_QUALITY_NONE;
 	    }
 	    linecount++;
 	  }
@@ -705,11 +720,12 @@ Widget	topl)
 	  if( numRows > 0 ){
 	    XbaeMatrixDeleteRows(matrix, 0, numRows);
 	  }
-	  rows = (String *) AlcMalloc(sizeof(String) * warpGlobals.bibfileListCount * 5);
+	  rows = (String *) AlcMalloc(sizeof(String) * warpGlobals.bibfileListCount * 6);
 	  labels = (String *) AlcMalloc(sizeof(String) * warpGlobals.bibfileListCount);
 	  rowButtonLabels  = (Boolean *)AlcMalloc(sizeof(Boolean) *
 						  warpGlobals.bibfileListCount);
        
+	  bibfileStartIndex = -1;
 	  for(i=0; i < warpGlobals.bibfileListCount; i++){
 	    bibfileStr = tailStr = warpGlobals.bibfileList[i];
 	    for(j=0; j < strlen(bibfileStr); j++){
@@ -717,13 +733,20 @@ Widget	topl)
 		tailStr = bibfileStr + (j + 1);
 	      }
 	    }
-	    rows[i*5 + 0] = tailStr;
-	    rows[i*5 + 1] = warpGlobals.statusList[i];
-	    rows[i*5 + 2] = warpGlobals.dateList[i];
-	    rows[i*5 + 3] = warpGlobals.authorList[i];
-	    rows[i*5 + 4] = warpGlobals.stageList[i];
+	    rows[i*6 + 0] = tailStr;
+	    rows[i*6 + 1] = expressMapStatusStrs[warpGlobals.statusList[i]];
+	    rows[i*6 + 2] = warpGlobals.dateList[i];
+	    rows[i*6 + 3] = warpGlobals.authorList[i];
+	    rows[i*6 + 4] = warpGlobals.stageList[i];
+	    rows[i*6 + 5] = expressMapQualityStrs[warpGlobals.qualityList[i]];
 	    labels[i] = "->";
 	    rowButtonLabels[i] = True;
+
+	    /* check for first "None" */
+	    if((bibfileStartIndex == -1) &&
+	       (warpGlobals.statusList[i] == MA_EXPRESSMAP_STATUS_NONE)){
+	      bibfileStartIndex = i;
+	    }
 	  }
 	  XbaeMatrixAddRows(matrix, 0, rows, labels, NULL, i);
 	  for(i=0; i < warpGlobals.bibfileListCount; i++){
@@ -785,7 +808,10 @@ Widget	topl)
 
 	/* read first bibfile */
 	warpGlobals.bibfileSavedFlg = 1;
-	warpGlobals.bibfileListIndex = -1;
+	if( bibfileStartIndex < 0 ){
+	  bibfileStartIndex = 0;
+	}
+	warpGlobals.bibfileListIndex = bibfileStartIndex - 1;
 	if( globals.rapidMapFlg ){
 	  if((toggle = XtNameToWidget(globals.topl, "*warp_input_rapid_form*next"))){
 	    XtCallCallbacks(toggle, XmNactivateCallback, NULL);

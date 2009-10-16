@@ -2205,7 +2205,7 @@ void warpRapidIORead(
       recalcWarpProcObjCb(w, (XtPointer) view_struct, NULL);
     }
 
-    expressMapStatusChange(-1);
+    expressMapStatusChange(MA_EXPRESSMAP_STATUS_VIEWED);
 
   }
 

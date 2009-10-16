@@ -52,6 +52,7 @@
 #include <netdb.h>
 
 #include <MAPaint.h>
+#include <MAWarp.h>
 
 static void new_obj_cb(
   Widget	w,
@@ -224,8 +225,10 @@ void referenceFileListCb(
     install_paint_reference_object( obj );
 
     /* set the title of the top-level window */
-    set_topl_title(refFileList[0]);
-    globals.file = refFileList[0];
+    set_topl_title(cbs->file);
+    globals.file = AlcStrDup(cbs->file);
+    globals.origObjExtType = cbs->format;
+
     /* add to the file list and write file */
     HGU_XmFileListAddFile(globals.fileList, cbs->file, cbs->format);
     HGU_XmFileListWriteResourceFile(globals.fileList,
@@ -962,6 +965,13 @@ void quit_cb(
   /* save domains */
   save_domains();
   clear_autosave();
+
+  /* check if expressMap */
+  if( globals.expressMapFlg ){
+    if( !(warpGlobals.bibfileListCSVFileSavedFlg) ){
+      expressMapSaveListCb(w, client_data, call_data);
+    }
+  }
 
   /* use a dialog widget to double confirm exit  - last possible cop out */
   if( !HGU_XmUserConfirm(globals.topl, "Really really quit?",

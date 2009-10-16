@@ -52,7 +52,10 @@
 #include <MAPaint.h>
 #include <MAWarp.h>
 
-#include <Matrix.h>
+#include <Xbae/Matrix.h>
+
+char *expressMapStatusStrs[]={"None","Viewed","Changed","Saved","Complete","Dummy"};
+char *expressMapQualityStrs[]={"None","*","**","***","Too Few","Missaligned","Dummy"};
 
 extern void warpSetSignalDomain(
   WlzIVertex2	*selVtx);
@@ -210,7 +213,7 @@ void warpMeshMethodCb(
   XtCallCallbacks(warpGlobals.ovly.canvas, XmNexposeCallback, call_data);
 
   /* notify change to the express- and rapid-map bibfile saved resource */
-  expressMapStatusChange(0);
+  expressMapStatusChange(MA_EXPRESSMAP_STATUS_CHANGED);
 
   return;
 }
@@ -237,7 +240,7 @@ void warpAffineTypeCb(
   warpGlobals.affineType = type;
  
   /* notify change to the express- and rapid-map bibfile saved resource */
-  expressMapStatusChange(0);
+  expressMapStatusChange(MA_EXPRESSMAP_STATUS_CHANGED);
 
  return;
 }
@@ -273,7 +276,7 @@ void warpMeshMinDistCb(
   XtCallCallbacks(warpGlobals.ovly.canvas, XmNexposeCallback, call_data);
 
   /* notify change to the express- and rapid-map bibfile saved resource */
-  expressMapStatusChange(0);
+  expressMapStatusChange(MA_EXPRESSMAP_STATUS_CHANGED);
 
   return;
 }
@@ -342,7 +345,7 @@ void warpMeshMaxDistCb(
   XtCallCallbacks(warpGlobals.ovly.canvas, XmNexposeCallback, call_data);
 
   /* notify change to the express- and rapid-map bibfile saved resource */
-  expressMapStatusChange(0);
+  expressMapStatusChange(MA_EXPRESSMAP_STATUS_CHANGED);
 
   return;
 }
@@ -853,7 +856,7 @@ void expressMapSaveCb(
   }
 
   /* set status and author and save csv bibfile list */
-  expressMapStatusChange(1);
+  expressMapStatusChange(MA_EXPRESSMAP_STATUS_SAVED);
 
   return;
 }
@@ -1140,12 +1143,13 @@ void expressMapSaveListCb(
   /* to get here there must be a file str for the bibfile list */
   if((fp = fopen(warpGlobals.bibfileListCSVFile, "w"))){
     for(i=0; i < warpGlobals.bibfileListCount; i++){
-      fprintf(fp, "%s, %s, %s, %s, %s\n",
+      fprintf(fp, "%s, %d, %s, %s, %s, %d\n",
 	      warpGlobals.bibfileList[i],
 	      warpGlobals.statusList[i],
 	      warpGlobals.dateList[i],
 	      warpGlobals.authorList[i],
-	      warpGlobals.stageList[i]);
+	      warpGlobals.stageList[i],
+	      warpGlobals.qualityList[i]);
     }
     fclose(fp);
   }
@@ -1336,97 +1340,150 @@ char *expressMapGetDate(
 }
 
 void expressMapStatusChange(
-  int	status)
+  MAPaintExpressMapStatus	status)
 {
   char		*tmpS;
   time_t	tmpTime;
   int		index;
 
-  if((status != warpGlobals.bibfileSavedFlg) &&
-     (warpGlobals.bibfileListCount > 0) &&
-     (warpGlobals.bibfileListIndex >= 0)){
+  /* check bibfile list and index */
+  if((warpGlobals.bibfileListCount <= 0) ||
+     (warpGlobals.bibfileListIndex < 0) ||
+     (warpGlobals.bibfileListIndex >= warpGlobals.bibfileListCount)){
+    return;
+  }
 
-    index = warpGlobals.bibfileListIndex;
+  /* check if there is a status change */
+  index = warpGlobals.bibfileListIndex;
+  if( status == warpGlobals.statusList[index] ){
+    return;
+  }
 
-    switch( status ){
+  /* Something to do - switch on new status */
+  switch( status ){
 
-    case -1:
-      /* get author and date from bibfile if possible */
-      XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
-			1, "None");
-      if( warpGlobals.statusList[index] ){
-	AlcFree(warpGlobals.statusList[index]);
-      }
-      warpGlobals.statusList[index] = AlcStrDup("None");
+  default:
+  case MA_EXPRESSMAP_STATUS_NONE:
+    /* nothing can switch back to None so include with default*/
+    /* get author and date from bibfile if possible */
+    XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
+		      1, expressMapStatusStrs[MA_EXPRESSMAP_STATUS_NONE]);
+    warpGlobals.statusList[index] = MA_EXPRESSMAP_STATUS_NONE;
 
-      tmpS = expressMapGetAuthor(warpGlobals.bibfileList[index]);
-      XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
-			3, tmpS?tmpS:"Unknown");
-      if( warpGlobals.authorList[index] ){
-	AlcFree(warpGlobals.authorList[index]);
-      }
-      warpGlobals.authorList[index] = AlcStrDup(tmpS?tmpS:"Unknown");
-      if(tmpS){
-	AlcFree(tmpS);
-      }
-
-      tmpS = expressMapGetDate(warpGlobals.bibfileList[index]);
-      XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
-			2, tmpS?tmpS:"Unknown");
-      if( warpGlobals.dateList[index] ){
-	AlcFree(warpGlobals.dateList[index]);
-      }
-      warpGlobals.dateList[index] = AlcStrDup(tmpS?tmpS:"Unknown");
-      if(tmpS){
-	AlcFree(tmpS);
-      }
-      break;
-
-    case 0:
-      XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
-			1, "Changed");
-      if( warpGlobals.statusList[index] ){
-	AlcFree(warpGlobals.statusList[index]);
-      }
-      warpGlobals.statusList[index] = AlcStrDup("Changed");
-      break;
-
-    case 1:
-    default:
-      XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
-			1, "Saved");
-      if( warpGlobals.statusList[index] ){
-	AlcFree(warpGlobals.statusList[index]);
-      }
-      warpGlobals.statusList[index] = AlcStrDup("Saved");
-      break;
+    tmpS = expressMapGetAuthor(warpGlobals.bibfileList[index]);
+    XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
+		      3, tmpS?tmpS:"Unknown");
+    if( warpGlobals.authorList[index] ){
+      AlcFree(warpGlobals.authorList[index]);
+    }
+    warpGlobals.authorList[index] = AlcStrDup(tmpS?tmpS:"Unknown");
+    if(tmpS){
+      AlcFree(tmpS);
     }
 
-    /* now author and date */
-    if( status != -1 ){
-      tmpS = getenv("USER");
-      XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
-			3, tmpS?tmpS:"Unknown");
-      if( warpGlobals.authorList[index] ){
-	AlcFree(warpGlobals.authorList[index]);
-      }
-      warpGlobals.authorList[index] = AlcStrDup(tmpS?tmpS:"Unknown");
-
-      tmpTime = time(NULL);
-      tmpS = ctime(&tmpTime);
-      *(tmpS + strlen(tmpS) - 1) = '\0';
-      XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
-			2, tmpS?tmpS:"Unknown");
-      if( warpGlobals.dateList[index] ){
-	AlcFree(warpGlobals.dateList[index]);
-      }
-      warpGlobals.dateList[index] = AlcStrDup(tmpS?tmpS:"Unknown");
+    tmpS = expressMapGetDate(warpGlobals.bibfileList[index]);
+    XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
+		      2, tmpS?tmpS:"Unknown");
+    if( warpGlobals.dateList[index] ){
+      AlcFree(warpGlobals.dateList[index]);
     }
-    else {
-      status = 1;
+    warpGlobals.dateList[index] = AlcStrDup(tmpS?tmpS:"Unknown");
+    if(tmpS){
+      AlcFree(tmpS);
     }
+    warpGlobals.bibfileSavedFlg = 1;
+    /* all other options have the suthor and date set so return here */
+    return;
 
-    warpGlobals.bibfileSavedFlg = status;
+  case MA_EXPRESSMAP_STATUS_VIEWED:
+    XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
+		      1, expressMapStatusStrs[status]);
+    warpGlobals.statusList[index] = status;
+    warpGlobals.bibfileSavedFlg = 1;
+    break;
+
+  case MA_EXPRESSMAP_STATUS_CHANGED:
+    XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
+		      1, expressMapStatusStrs[status]);
+    warpGlobals.statusList[index] = status;
+    warpGlobals.bibfileSavedFlg = 0;
+    break;
+
+  case MA_EXPRESSMAP_STATUS_SAVED:
+    XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
+		      1, expressMapStatusStrs[status]);
+    warpGlobals.statusList[index] = status;
+    warpGlobals.bibfileSavedFlg = 1;
+    break;
+
+  case MA_EXPRESSMAP_STATUS_COMPLETE:
+    XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
+		      1, expressMapStatusStrs[status]);
+    warpGlobals.statusList[index] = status;
+    warpGlobals.bibfileSavedFlg = 1;
+    break;
+  }
+
+  /* now author and date */
+  tmpS = getenv("USER");
+  XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
+		    3, tmpS?tmpS:"Unknown");
+  if( warpGlobals.authorList[index] ){
+    AlcFree(warpGlobals.authorList[index]);
+  }
+  warpGlobals.authorList[index] = AlcStrDup(tmpS?tmpS:"Unknown");
+
+  tmpTime = time(NULL);
+  tmpS = ctime(&tmpTime);
+  *(tmpS + strlen(tmpS) - 1) = '\0';
+  XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
+		    2, tmpS?tmpS:"Unknown");
+  if( warpGlobals.dateList[index] ){
+    AlcFree(warpGlobals.dateList[index]);
+  }
+  warpGlobals.dateList[index] = AlcStrDup(tmpS?tmpS:"Unknown");
+
+  return;
+}
+
+static String stageName[]={"TS21","TS22","TS23","TS24","TS25"};
+
+static int expressMapStageIndexFromStr(
+  String	testStr)
+{
+  int	index=-1, i;
+
+  for(i=0; i < 5; i++){
+    if( strcmp(stageName[i], testStr) == 0 ){
+      index = i;
+    }
+  }
+
+  return index;
+}
+
+static void expressMapSetStageIndexFromIndex(
+  int index)
+{
+  int		stageIndex;
+  Widget	optionMenu, button;
+  char		strBuf[32];
+
+  if((index >= 0) && (index < warpGlobals.bibfileListCount)){
+
+    stageIndex = expressMapStageIndexFromStr(warpGlobals.stageList[index]);
+
+    if(stageIndex != -1){
+      if((optionMenu = 
+	  XtNameToWidget(warpGlobals.bibfileSelectButtonsFrame, "*.stage_select"))){
+	sprintf(strBuf, "*.stage_select.button_%d", stageIndex);
+	if((button = XtNameToWidget(warpGlobals.bibfileSelectButtonsFrame, strBuf))){
+	  XtVaSetValues(optionMenu,
+			XmNmenuHistory, button,
+			NULL);
+	}
+      }
+    }
   }
 
   return;
@@ -1439,12 +1496,12 @@ static void expressMapSetBibfileFromIndex(
 {
   String		bibfileStr;
   int			oldIndex;
+  MAPaintExpressMapStatus	status;
 
   if((index >= 0) && (index < warpGlobals.bibfileListCount) ){
     if( index != warpGlobals.bibfileListIndex ){
 
       /* check if current saved */
-
       if( warpGlobals.bibfileSavedFlg == 0 ){
 	if( HGU_XmUserConfirm(globals.topl,
 			      "Current bibfile not saved.\n"
@@ -1453,11 +1510,16 @@ static void expressMapSetBibfileFromIndex(
 			      "Yes", "No", 1) ){
 	  expressMapSaveCb(globals.topl, (XtPointer) view_struct, NULL);
 	}
+	else {
+	  /* set status of this to viewed */
+	  expressMapStatusChange(MA_EXPRESSMAP_STATUS_VIEWED);
+	}
       }
 
       oldIndex = warpGlobals.bibfileListIndex;
       warpGlobals.bibfileListIndex = index;
       bibfileStr = warpGlobals.bibfileList[index];
+      status = warpGlobals.statusList[index];
 
       /* rapid install next bibfile */
       rapidInstallBibfile(bibfileStr, view_struct);
@@ -1465,6 +1527,12 @@ static void expressMapSetBibfileFromIndex(
       /* highlight new current row in matrix widget */
       expressMapUnsetRowSelection(oldIndex);
       expressMapSetRowSelection(index);
+
+      /* reset original status - assumes no external change to bibfile */
+      if( status == MA_EXPRESSMAP_STATUS_NONE ){
+	status = MA_EXPRESSMAP_STATUS_VIEWED;
+      }
+      expressMapStatusChange(status);
     }
   }
 
@@ -1484,6 +1552,7 @@ void expressMapPreviousCb(
   /* set next index */
   expressMapSetBibfileFromIndex(warpGlobals.bibfileListIndex - 1,
 				view_struct, 0);
+  expressMapSetStageIndexFromIndex(warpGlobals.bibfileListIndex);
 
   return;
 }
@@ -1501,6 +1570,7 @@ void expressMapNextCb(
   /* set next index */
   expressMapSetBibfileFromIndex(warpGlobals.bibfileListIndex + 1,
 				view_struct, 0);
+  expressMapSetStageIndexFromIndex(warpGlobals.bibfileListIndex);
 
   return;
 }
@@ -1515,6 +1585,7 @@ void expressMapSkipBackCb(
   /* set next index */
   expressMapSetBibfileFromIndex(warpGlobals.bibfileListIndex - 1,
 				view_struct, 1);
+  expressMapSetStageIndexFromIndex(warpGlobals.bibfileListIndex);
 
   return;
 }
@@ -1529,7 +1600,54 @@ void expressMapSkipForeCb(
   /* set next index */
   expressMapSetBibfileFromIndex(warpGlobals.bibfileListIndex + 1,
 				view_struct, 1);
+  expressMapSetStageIndexFromIndex(warpGlobals.bibfileListIndex);
 
+  return;
+}
+
+void expressMapSetCompleteCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  expressMapStatusChange(MA_EXPRESSMAP_STATUS_COMPLETE);
+  return;
+}
+
+void expressStageSelectCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  int	index = warpGlobals.bibfileListIndex;
+  int	itemNum = (int) client_data;
+
+  if((itemNum >= 0) && (itemNum < 5)){
+    if( warpGlobals.stageList[index] ){
+      AlcFree(warpGlobals.stageList[index]);
+    }
+    warpGlobals.stageList[index] = AlcStrDup(stageName[itemNum]);
+    XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
+		      4, stageName[itemNum]);
+  }
+  
+  return;
+}
+
+void expressQualitySelectCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data)
+{
+  int	index = warpGlobals.bibfileListIndex;
+  int	itemNum = (int) client_data;
+
+  if((itemNum >= 0) && (itemNum < 6)){
+    warpGlobals.qualityList[index] = itemNum;
+    XbaeMatrixSetCell(warpGlobals.matrix, warpGlobals.bibfileListIndex,
+		      5, expressMapQualityStrs[itemNum]);
+  }
+  
   return;
 }
 
@@ -1540,12 +1658,13 @@ void expressRowSelectCb(
 {
   ThreeDViewStruct	*view_struct = (ThreeDViewStruct *) client_data;
   XbaeMatrixLabelActivateCallbackStruct	*cbs;
-  int	index;
+  int		index;
 
   cbs = (XbaeMatrixLabelActivateCallbackStruct *) call_data;
   if( cbs->row > -1 ){
     index = (int) XbaeMatrixGetRowUserData(widget, cbs->row);
     expressMapSetBibfileFromIndex(index, view_struct, 1);
+    expressMapSetStageIndexFromIndex(index);
   }
 
   return;
@@ -1559,7 +1678,7 @@ void expressCellEnterCb(
   XbaeMatrixEnterCellCallbackStruct	*cbs;
 
   cbs = (XbaeMatrixEnterCellCallbackStruct *) call_data;
-  if(cbs->column != 4){
+  if(cbs->column != 10){
     cbs->doit = False;
   }
 
@@ -2424,6 +2543,7 @@ Widget createWarpBibfileSelectButtonsFrame(
   ThreeDViewStruct 	*view_struct)
 {
   Widget	frame, button;
+  XmString	labelStr, xmStr1, xmStr2, xmStr3, xmStr4, xmStr5, xmStr6;
 
   frame = XtVaCreateManagedWidget("bibfileSelectButtons", xmRowColumnWidgetClass, parent,
 				  XmNchildType, 	XmFRAME_TITLE_CHILD,
@@ -2451,6 +2571,59 @@ Widget createWarpBibfileSelectButtonsFrame(
 				   frame, NULL);
   XtAddCallback(button, XmNactivateCallback, expressMapSkipForeCb, (XtPointer) view_struct);
 
+  /* create the options menus for stage and status */
+  labelStr = XmStringCreateLocalized ("Theiler Stage:");
+  xmStr1 = XmStringCreateLocalized ("TS21");
+  xmStr2 = XmStringCreateLocalized ("TS22");
+  xmStr3 = XmStringCreateLocalized ("TS23");
+  xmStr4 = XmStringCreateLocalized ("TS24");
+  xmStr5 = XmStringCreateLocalized ("TS25");
+  button = XmVaCreateSimpleOptionMenu(frame, "stage_select", labelStr, 'S', 2,
+				      expressStageSelectCb,
+				      XmVaPUSHBUTTON, xmStr1, '\0', NULL, NULL,
+				      XmVaPUSHBUTTON, xmStr2, '\0', NULL, NULL,
+				      XmVaPUSHBUTTON, xmStr3, '\0', NULL, NULL,
+				      XmVaPUSHBUTTON, xmStr4, '\0', NULL, NULL,
+				      XmVaPUSHBUTTON, xmStr5, '\0', NULL, NULL,
+				      NULL);
+  XmStringFree(labelStr);
+  XmStringFree(xmStr1);
+  XmStringFree(xmStr2);
+  XmStringFree(xmStr3);
+  XmStringFree(xmStr4);
+  XmStringFree(xmStr5);
+  XtManageChild(button);
+
+  /* create the options menu for image quality/mapping quality */
+  labelStr = XmStringCreateLocalized ("Match to Model:");
+  xmStr1 = XmStringCreateLocalized(expressMapQualityStrs[MA_EXPRESSMAP_QUALITY_NONE]);
+  xmStr2 = XmStringCreateLocalized(expressMapQualityStrs[MA_EXPRESSMAP_QUALITY_ONE]);
+  xmStr3 = XmStringCreateLocalized(expressMapQualityStrs[MA_EXPRESSMAP_QUALITY_TWO]);
+  xmStr4 = XmStringCreateLocalized(expressMapQualityStrs[MA_EXPRESSMAP_QUALITY_THREE]);
+  xmStr5 = XmStringCreateLocalized(expressMapQualityStrs[MA_EXPRESSMAP_QUALITY_TOOFEW]);
+  xmStr6 = XmStringCreateLocalized(expressMapQualityStrs[MA_EXPRESSMAP_QUALITY_MISSALIGNED]);
+  button = XmVaCreateSimpleOptionMenu(frame, "image_quality", labelStr, 'Q', 0,
+				      expressQualitySelectCb,
+				      XmVaPUSHBUTTON, xmStr1, '\0', NULL, NULL,
+				      XmVaPUSHBUTTON, xmStr2, '\0', NULL, NULL,
+				      XmVaPUSHBUTTON, xmStr3, '\0', NULL, NULL,
+				      XmVaPUSHBUTTON, xmStr4, '\0', NULL, NULL,
+				      XmVaPUSHBUTTON, xmStr5, '\0', NULL, NULL,
+				      XmVaPUSHBUTTON, xmStr6, '\0', NULL, NULL,
+				      NULL);
+  XmStringFree(labelStr);
+  XmStringFree(xmStr1);
+  XmStringFree(xmStr2);
+  XmStringFree(xmStr3);
+  XmStringFree(xmStr4);
+  XmStringFree(xmStr5);
+  XmStringFree(xmStr6);
+  XtManageChild(button);
+
+  /* button to set complete status */
+  button = XtVaCreateManagedWidget("Set Complete", xmPushButtonWidgetClass,
+				   frame, NULL);
+  XtAddCallback(button, XmNactivateCallback, expressMapSetCompleteCb, (XtPointer) view_struct);
 
   warpGlobals.bibfileSelectButtonsFrame = frame;
   
@@ -2463,14 +2636,14 @@ Widget createWarpExpressControlsPage(
   Widget	form, button;
   Widget	buttons, widget, matrix;
   Pixel		foreground, background;
-  char		*columnLabels[5]={"Bibfile", "Status", "Date", "Author", "Stage"};
-  unsigned char	columnLabelAlignments[5]={XmALIGNMENT_CENTER, XmALIGNMENT_CENTER,
+  char		*columnLabels[6]={"Bibfile", "Status", "Date", "Author", "Stage", "Quality"};
+  unsigned char	columnLabelAlignments[6]={XmALIGNMENT_CENTER, XmALIGNMENT_CENTER,
 					  XmALIGNMENT_CENTER, XmALIGNMENT_CENTER,
-					  XmALIGNMENT_CENTER};
-  unsigned char	columnAlignments[5]={XmALIGNMENT_BEGINNING, XmALIGNMENT_BEGINNING,
+					  XmALIGNMENT_CENTER, XmALIGNMENT_CENTER};
+  unsigned char	columnAlignments[6]={XmALIGNMENT_BEGINNING, XmALIGNMENT_BEGINNING,
 				     XmALIGNMENT_BEGINNING, XmALIGNMENT_BEGINNING,
-				     XmALIGNMENT_BEGINNING};
-  short		columnWidths[5]={12, 8, 12, 12, 5};
+				     XmALIGNMENT_BEGINNING, XmALIGNMENT_BEGINNING};
+  short		columnWidths[6]={14, 7, 13, 7, 4, 8};
 
   form = XtVaCreateWidget("warp_input_express_form",
 			  xmFormWidgetClass, 	notebook,
@@ -2493,9 +2666,9 @@ Widget createWarpExpressControlsPage(
 				   XmNtopAttachment,	XmATTACH_FORM,
 				   XmNleftAttachment,	XmATTACH_FORM,
 				   XmNrightAttachment,	XmATTACH_FORM,
-				   XmNcolumns, 5,
-				   XmNvisibleRows, 4,
-				   XmNvisibleColumns, 5,
+				   XmNcolumns, 6,
+				   XmNvisibleRows, 5,
+				   XmNvisibleColumns, 6,
 				   XmNallowColumnResize, True,
 				   XmNgridType,	XmGRID_ROW_SHADOW,
 				   XmNshadowThickness, 0,

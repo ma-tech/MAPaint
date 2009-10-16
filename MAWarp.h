@@ -78,6 +78,29 @@ typedef enum _MAPaintStructElemType
   MAPAINT_CUBE_SE
 } MAPaintStructElemType;
 
+typedef enum {
+  MA_EXPRESSMAP_STATUS_NONE=0,
+  MA_EXPRESSMAP_STATUS_VIEWED=1,
+  MA_EXPRESSMAP_STATUS_CHANGED=2,
+  MA_EXPRESSMAP_STATUS_SAVED=3,
+  MA_EXPRESSMAP_STATUS_COMPLETE=4,
+  MA_EXPRESSMAP_STATUS_LAST=5,
+} MAPaintExpressMapStatus;
+
+extern char *expressMapStatusStrs[];
+
+typedef enum {
+  MA_EXPRESSMAP_QUALITY_NONE=0,
+  MA_EXPRESSMAP_QUALITY_ONE=1,
+  MA_EXPRESSMAP_QUALITY_TWO=2,
+  MA_EXPRESSMAP_QUALITY_THREE=3,
+  MA_EXPRESSMAP_QUALITY_TOOFEW=4,
+  MA_EXPRESSMAP_QUALITY_MISSALIGNED=5,
+  MA_EXPRESSMAP_QUALITY_LAST=6,
+} MAPaintExpressMapQuality;
+
+extern char *expressMapQualityStrs[];
+
 typedef struct {
   WlzObject		*obj;
   Widget		canvas, text, popup;
@@ -176,11 +199,13 @@ typedef struct {
   int		bibfileListCount;
   int		bibfileListIndex;
   char		*bibfileListCSVFile;
+  int		bibfileListCSVFileSavedFlg;
   char		**bibfileList;
-  char		**statusList;
+  MAPaintExpressMapStatus	*statusList;
   char		**dateList;
   char		**authorList;
   char		**stageList;
+  MAPaintExpressMapQuality	*qualityList;
   Widget	bibfileSelectButtonsFrame;
   Widget	matrix;
 
@@ -475,7 +500,7 @@ extern Widget createWarpExpressControlsPage(
   ThreeDViewStruct	*view_struct);
 
 extern void expressMapStatusChange(
-  int	status);
+  MAPaintExpressMapStatus	status);
 
 extern Widget createTiePointTrackingControlsPage(
   Widget		notebook,

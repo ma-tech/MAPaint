@@ -252,7 +252,7 @@ INCDIRS			= .  \
 			../../HGUX/libhguGL \
 			../../External/Tiff/tiff-v3.5.7/libtiff \
 			../../External/Jpeg/jpeg-6b \
-			../../External/Xbae/Xbae-4.6.2/src \
+			../../External/Xbae/xbae-4.60.4/include \
 			  $(HGU_INC_DIR) \
 			  $(OPENGL_INC_DIR) \
 			  $(X11_INC_DIR) \
@@ -287,7 +287,7 @@ LIBDIRS			= . \
 			../../HGUX/libhguGL \
 			../../External/Tiff/tiff-v3.5.7/libtiff \
 			../../External/Jpeg/jpeg-6b \
-			../../External/Xbae/Xbae-4.6.2/src \
+			../../External/Xbae/xbae-4.60.4/src/.libs \
 			  $(HGU_LIB_DIR) \
 			  $(OPENGL_LIB_DIR) \
 			  $(X11_LIB_DIR) \

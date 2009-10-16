@@ -574,6 +574,9 @@ void warp2DInteractDeleteSelectedCb(
 		       call_data);
     XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
 		    call_data);
+
+    /* something changed */
+    expressMapStatusChange(MA_EXPRESSMAP_STATUS_CHANGED);
   }
 
   return;
@@ -644,6 +647,9 @@ void warp2DInteractDeleteLastCb(
 		       call_data);
     XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
 		    call_data);
+
+    /* something changed */
+    expressMapStatusChange(MA_EXPRESSMAP_STATUS_CHANGED);
   }
 
   return;
@@ -698,6 +704,9 @@ void warp2DInteractDeleteAllCb(
 		       call_data);
     XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
 		    call_data);
+
+    /* something changed */
+    expressMapStatusChange(MA_EXPRESSMAP_STATUS_CHANGED);
   }
 
   return;

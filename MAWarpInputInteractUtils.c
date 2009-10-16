@@ -814,7 +814,7 @@ void warpDstCanvasInputCb(
       XtCallCallbacks(warpGlobals.dst.canvas, XmNexposeCallback,
 		      call_data);
       /* notify change to the express- and rapid-map bibfile saved resource */
-      expressMapStatusChange(0);
+      expressMapStatusChange(MA_EXPRESSMAP_STATUS_CHANGED);
     }
     resetOvlyFlg = 0;
     break;
@@ -1109,7 +1109,7 @@ void warpSrcCanvasInputCb(
 		      call_data);
 
       /* notify change to the express- and rapid-map bibfile saved resource */
-      expressMapStatusChange(0);
+      expressMapStatusChange(MA_EXPRESSMAP_STATUS_CHANGED);
     }
     resetOvlyFlg = 0;
     break;
