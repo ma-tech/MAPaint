@@ -2643,7 +2643,7 @@ Widget createWarpExpressControlsPage(
   unsigned char	columnAlignments[6]={XmALIGNMENT_BEGINNING, XmALIGNMENT_BEGINNING,
 				     XmALIGNMENT_BEGINNING, XmALIGNMENT_BEGINNING,
 				     XmALIGNMENT_BEGINNING, XmALIGNMENT_BEGINNING};
-  short		columnWidths[6]={14, 7, 13, 7, 4, 8};
+  short		columnWidths[6]={14, 7, 14, 7, 5, 8};
 
   form = XtVaCreateWidget("warp_input_express_form",
 			  xmFormWidgetClass, 	notebook,

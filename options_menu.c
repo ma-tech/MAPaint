@@ -753,7 +753,7 @@ Widget	topl)
 	    XbaeMatrixSetRowUserData(matrix, i, (XtPointer) i);
 	  }
 	  XtVaSetValues(matrix,
-			XmNbuttonLabels, False,
+			XmNbuttonLabels, True,
 			XmNrowButtonLabels, rowButtonLabels,
 			XmNrowLabelAlignment, XmALIGNMENT_CENTER,
 			NULL);
