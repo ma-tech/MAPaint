@@ -365,6 +365,7 @@ static XrmOptionDescRec mapaint_options[] = {
   {"-rapidMap",	".rapidMap", XrmoptionSkipArg, NULL},
   {"-expressMap",".expressMap", XrmoptionSkipArg, NULL},
   {"-panedWarp",".panedWarp", XrmoptionNoArg, "False"},
+  {"-VMWare",".VMWare", XrmoptionNoArg, "True"},
 };
 
 int main(
@@ -381,6 +382,7 @@ int main(
   Boolean		d8Flg=False;
   Boolean		d24Flg=False;
   Boolean		emageFlg=False;
+  Boolean		VMWareFlg=False;
   XrmValue		xrmValue;
   char			*rtnStrType;
   char			*nameStr, *depthRscStr;
@@ -412,7 +414,7 @@ int main(
   XtToolkitThreadInitialize();
   app_con = XtCreateApplicationContext();
   XtAppSetFallbackResources(app_con, fallback_resources);
-  dpy = XtOpenDisplay(app_con, NULL, nameStr, "MAPaint", mapaint_options, 14,
+  dpy = XtOpenDisplay(app_con, NULL, nameStr, "MAPaint", mapaint_options, 17,
 		      &argc, argv);
   globals.dpy = dpy;
 
@@ -564,6 +566,16 @@ int main(
     }
   }
   globals.emageFlg = emageFlg;
+  
+  /* check for VMWare event mappings - reuse depth resource string */
+  sprintf(depthRscStr, "%s.VMWare", nameStr);
+  if( XrmGetResource(XtDatabase(dpy), depthRscStr, "MAPaint.VMWare",
+		     &rtnStrType, &xrmValue) == True ){
+    if( !strcmp(xrmValue.addr, "True") ){
+      VMWareFlg = True;
+    }
+  }
+  globals.VMWareFlg = VMWareFlg;
   
   /* finally create the top-level shell */
   if( emageFlg == True ){

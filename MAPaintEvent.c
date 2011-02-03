@@ -135,6 +135,83 @@ static MAPaintEventMapping	mapaintEventMappingP[]=
    0x0, 0x0, 0x0, 0x0, 0x0, 0x0, NULL},
 };
 
+static MAPaintEventMapping	mapaintEventMappingVMWareP[]=
+{
+  /* 3D view context, any mode */
+  {MAPAINT_3D_VIEW_CONTEXT, MAPAINT_VIEW_MODE,
+   ButtonPress, Button1, 0x0, ButtonPress, Button1, 0x0,
+   "Select rotate"},
+  {MAPAINT_3D_VIEW_CONTEXT, MAPAINT_VIEW_MODE,
+   ButtonPress, Button1, ShiftMask, ButtonPress, Button1, ShiftMask,
+   "Select translate along line of sight"},
+  {MAPAINT_3D_VIEW_CONTEXT, MAPAINT_VIEW_MODE,
+   ButtonPress, Button1, ControlMask, ButtonPress, Button2, 0x0,
+   "Select translate across line of sight"},
+
+  /* section view context, view mode */
+  {MAPAINT_SECT_VIEW_CONTEXT, MAPAINT_VIEW_MODE,
+   ButtonPress, Button1, 0x0, ButtonPress, Button1, 0x0,
+   "Select paint mode"},
+  {MAPAINT_SECT_VIEW_CONTEXT, MAPAINT_VIEW_MODE,
+   ButtonPress, Button1, ControlMask, ButtonPress, Button2, 0x0,
+   "Display pointer feedback"},
+
+  /* section view context, paint mode */
+  {MAPAINT_SECT_VIEW_CONTEXT, MAPAINT_PAINT_MODE,
+   ButtonPress, Button1, ShiftMask, ButtonPress, Button1, ShiftMask,
+   "Increase magnification"},
+  {MAPAINT_SECT_VIEW_CONTEXT, MAPAINT_PAINT_MODE,
+   ButtonPress, Button1, ControlMask|ShiftMask, ButtonPress, Button2, ShiftMask,
+   "Decrease magnification"},
+  {MAPAINT_SECT_VIEW_CONTEXT, MAPAINT_PAINT_MODE,
+   ButtonPress, Button1, Mod1Mask, ButtonPress, Button1, ControlMask,
+   "Lift paint domain"},
+  {MAPAINT_SECT_VIEW_CONTEXT, MAPAINT_PAINT_MODE,
+   ButtonPress, Button3, 0x0, ButtonPress, Button3, 0x0,
+   "Select quit painting"},
+  /* painting tools - all use the same re-mapping for sanity */
+  {MAPAINT_SECT_VIEW_CONTEXT, MAPAINT_PAINT_MODE,
+   ButtonPress, Button1, 0x0, ButtonPress, Button1, 0x0,
+   "Initiate paint operation; Affine mode select region"},
+  {MAPAINT_SECT_VIEW_CONTEXT, MAPAINT_PAINT_MODE,
+   ButtonPress, Button1, ControlMask, ButtonPress, Button2, 0x0,
+   "Initiate paint operation - delete mode; Affine mode select domain"},
+  {MAPAINT_SECT_VIEW_CONTEXT, MAPAINT_PAINT_MODE,
+   ButtonPress, Button2, ControlMask, ButtonPress, Button2, ControlMask,
+   "Affine mode select all domains"},
+
+  /* warp contexts, warp mode */
+  /* destination window */
+  {MAPAINT_WARP_2D_CONTEXT, MAPAINT_WARP_MODE,
+   ButtonPress, Button1, 0x0, ButtonPress, Button1, 0x0,
+   "Set or move tie-point"},
+  {MAPAINT_WARP_2D_CONTEXT, MAPAINT_WARP_MODE,
+   ButtonPress, Button2, 0x0, ButtonPress, Button2, 0x0,
+   "Delete tie-point if selected"},
+  {MAPAINT_WARP_2D_CONTEXT, MAPAINT_WARP_MODE,
+   ButtonPress, Button1, ShiftMask, ButtonPress, Button1, ShiftMask,
+   "Multi select"},
+  {MAPAINT_WARP_2D_CONTEXT, MAPAINT_WARP_MODE,
+   ButtonPress, Button1, ControlMask, ButtonPress, Button1, ControlMask,
+   "Rectangle select"},
+
+  /* signal window */
+  {MAPAINT_WARP_SGNL_CONTEXT, MAPAINT_THRESHOLD_MODE,
+   ButtonPress, Button1, 0x0, ButtonPress, Button1, 0x0,
+   "Set start value"},
+  {MAPAINT_WARP_SGNL_CONTEXT, MAPAINT_THRESHOLD_MODE,
+   ButtonPress, Button1, ControlMask, ButtonPress, Button1, ControlMask,
+   "Lift signal domain"},
+  {MAPAINT_WARP_SGNL_CONTEXT, MAPAINT_PICK_MODE,
+   ButtonPress, Button1, 0x0, ButtonPress, Button1, 0x0,
+   "Set start value"},
+  {MAPAINT_WARP_SGNL_CONTEXT, MAPAINT_PICK_MODE,
+   ButtonPress, Button2, 0x0, ButtonPress, Button2, 0x0,
+   "Set finish value"},
+  {MAPAINT_NONE_CONTEXT, MAPAINT_NONE_MODE,
+   0x0, 0x0, 0x0, 0x0, 0x0, 0x0, NULL},
+};
+
 MAPaintEventMapping *mapaintEventMapping=&(mapaintEventMappingP[0]);
 
 Widget	event_remap_dialog=NULL;
@@ -704,22 +781,17 @@ Widget createEventRemapDialog(
 {
   Widget	dialog, control, button, notebook, page;
   Widget	widget, col_rcs[5];
-  int		numMappings;
   MAPaintEventMapping	*eventMap;
   MAPaintContext	context;
   MAPaintContextMode	mode;
   String		contextPageStr, contextTabStr, modeTabStr;
 
-  /* Sort the event mapping list first by context then by mode */
-  numMappings = 0;
-  /*eventMap = mapaintEventMapping;
-  while(eventMap->context != MAPAINT_NONE_CONTEXT){
-    numMappings++;
-    eventMap++;
-    }*/
-  if( numMappings > 1 ){
-    qsort(mapaintEventMapping, numMappings, sizeof(MAPaintEventMapping),
-	  eventMappingCompar);
+  /* check for VMWare option request */
+  if( globals.VMWareFlg ){
+    mapaintEventMapping=&(mapaintEventMappingVMWareP[0]);
+  }
+  else {
+    mapaintEventMapping=&(mapaintEventMappingP[0]);
   }
 
   /* create a notebook dialog with a major page per

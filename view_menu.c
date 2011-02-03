@@ -52,6 +52,11 @@
 
 #include <MAPaint.h>
 
+extern WlzErrorNum MAPaintEventRemap(
+  MAPaintContext	context,
+  MAPaintContextMode	mode,
+  XEvent		*event);
+
 /* menu item structures */
 
 static MenuItem view_menu_itemsP[] = {		/* file_menu items */
@@ -499,6 +504,7 @@ Boolean			highlight)
 }
 
 static int paintingTrigger=0;
+static int feedbackFlg=0;
 
 void canvas_input_cb(
   Widget          w,
@@ -514,6 +520,11 @@ void canvas_input_cb(
   switch( cbs->event->type ){
 
    case ButtonPress:
+     /* remap the event */
+     if( MAPaintEventRemap(MAPAINT_SECT_VIEW_CONTEXT,
+			   MAPAINT_VIEW_MODE, cbs->event) != WLZ_ERR_NONE ){
+       break;
+     }
      switch( cbs->event->xbutton.button ){
 
       case Button1:
@@ -521,6 +532,7 @@ void canvas_input_cb(
 	  x = cbs->event->xbutton.x / wlzViewStr->scale;
 	  y = cbs->event->xbutton.y / wlzViewStr->scale;
 	  display_pointer_feedback_information(view_struct, x, y);
+	  feedbackFlg = 1;
 	}
 	else if( (!view_struct->noPaintingFlag) && (!globals.sectViewFlg) ){
 	  paintingTrigger = 1;
@@ -531,6 +543,7 @@ void canvas_input_cb(
 	x = cbs->event->xbutton.x / wlzViewStr->scale;
 	y = cbs->event->xbutton.y / wlzViewStr->scale;
 	display_pointer_feedback_information(view_struct, x, y);
+	feedbackFlg = 1;
 	break;
 
       case Button3:		/* unused */
@@ -541,6 +554,7 @@ void canvas_input_cb(
      break;
 
    case ButtonRelease:
+     feedbackFlg = 0;
      switch( cbs->event->xbutton.button ){
 
       case Button1:
@@ -590,7 +604,8 @@ void canvas_input_cb(
 
    case MotionNotify:
 
-     if((cbs->event->xmotion.state & Button2Mask) ||
+     if(feedbackFlg ||
+        (cbs->event->xmotion.state & Button2Mask) ||
         ((cbs->event->xmotion.state & Button1Mask) &&
 	 (cbs->event->xmotion.state & Mod1Mask)))
      {
@@ -699,7 +714,8 @@ void CanvasButtonEventHandler(
      Ctrl<Btn1Down> which is currently trapped by something unknown */
   if((event->type == ButtonPress) &&
      (event->xbutton.button == Button1) &&
-     ((event->xbutton.state & modMask) == ControlMask)){
+     ((event->xbutton.state & modMask))){
+/*     ((event->xbutton.state & modMask) == ControlMask)){*/
     cbs.reason = XmCR_INPUT;
     cbs.event = event;
     cbs.window = XtWindow(w);

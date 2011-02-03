@@ -284,6 +284,7 @@ typedef struct _PaintGlobals{
   char			*app_name;
   int			sectViewFlg;
   Boolean		emageFlg;
+  Boolean		VMWareFlg;
 
   /* file_menu globals */
   char			*file;
