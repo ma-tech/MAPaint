@@ -376,7 +376,7 @@ EXTRA_LIBS		= tiff jpeg m SM ICE dl pthread
 X11LIBS         	= Xt Xmu Xp X11 Xext
 endif
 ifeq	 	($(UNIXTYPE), DARWIN)
-EXTRA_LIBS		= tiff jpeg m
+EXTRA_LIBS		= tiff jpeg niftiio znz z m
 X11LIBS         	= Xt X11 Xmu Xp
 OPENGLLIBS		= GLU
 MOTIFLIBS       	= Xbae Xm

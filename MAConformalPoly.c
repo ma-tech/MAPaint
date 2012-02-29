@@ -121,8 +121,8 @@ WlzBasisFnTransform *WlzConfPolyFromCPts(
   		wMax;
   double	*bMx = NULL,
   		*wMx = NULL;
-  double	**aMx = NULL,
-  		**vMx = NULL;
+  double	**aA, **vA;
+  AlgMatrix	aMx, vMx;
   WlzDVertex2	powVx,
   		sVx;
   WlzBasisFnTransform *basis = NULL;
@@ -130,6 +130,10 @@ WlzBasisFnTransform *WlzConfPolyFromCPts(
   WlzErrorNum	errNum = WLZ_ERR_NONE;
   int		nPts = nDPts;
   const double	tol = 1.0e-06;
+
+  /* initialise */
+  aMx.core = NULL;
+  vMx.core = NULL;
 
   /* allocate space */
   if((order < 0) || (nPts <= 0))
@@ -167,8 +171,8 @@ WlzBasisFnTransform *WlzConfPolyFromCPts(
     nCoef = (order + 1);
     if(((wMx = (double *)AlcCalloc(sizeof(double), nCoef)) == NULL) ||
        ((bMx = (double *)AlcMalloc(sizeof(double) * nPts)) == NULL) ||
-       (AlcDouble2Malloc(&vMx, nPts, nCoef) != ALC_ER_NONE) ||
-       (AlcDouble2Malloc(&aMx, nPts, nCoef) !=  ALC_ER_NONE) ||
+       ((aMx.rect = AlgMatrixRectNew(nPts, nCoef, NULL)) == NULL) ||
+       ((vMx.rect = AlgMatrixRectNew(nPts, nCoef, NULL)) == NULL) ||
        ((basisFn->poly.v = AlcMalloc(sizeof(WlzDVertex2) * nCoef)) == NULL))
     {
       errNum = WLZ_ERR_MEM_ALLOC;
@@ -177,6 +181,8 @@ WlzBasisFnTransform *WlzConfPolyFromCPts(
 
   if(errNum == WLZ_ERR_NONE)
   {
+    aA = aMx.rect->array;
+    vA = vMx.rect->array;
     /* Fill matrix A. */
     for(idM = 0; idM < nPts; ++idM)
     {
@@ -185,12 +191,12 @@ WlzBasisFnTransform *WlzConfPolyFromCPts(
       sVx = *(sPts + idM);
       for(idX = 0; idX <= basisFn->nPoly; ++idX)
       {
-	*(*(aMx + idM) + idX) = powVx.vtX;
+	*(*(aA + idM) + idX) = powVx.vtX;
 	powVx.vtX *= sVx.vtX;
       }
     }
     /* Perform singular value decomposition of matrix A. */
-    errNum= WlzErrorFromAlg(AlgMatrixSVDecomp(aMx, nPts, nCoef, wMx, vMx));
+    errNum= WlzErrorFromAlg(AlgMatrixSVDecomp(aMx, wMx, vMx));
   }
   if(errNum == WLZ_ERR_NONE)
   {
@@ -217,7 +223,7 @@ WlzBasisFnTransform *WlzConfPolyFromCPts(
       *(bMx + idM) = (dPts + idM)->vtX;
     }
     /* Solve for x polynomial coefficients. */
-    errNum = WlzErrorFromAlg(AlgMatrixSVBackSub(aMx, nPts, nCoef, wMx, vMx,
+    errNum = WlzErrorFromAlg(AlgMatrixSVBackSub(aMx, wMx, vMx,
     					        bMx));
   }
   if(errNum == WLZ_ERR_NONE)
@@ -232,7 +238,7 @@ WlzBasisFnTransform *WlzConfPolyFromCPts(
     {
       *(bMx + idM) = (dPts + idM)->vtY;
     }
-    errNum = WlzErrorFromAlg(AlgMatrixSVBackSub(aMx, nPts, nCoef, wMx, vMx,
+    errNum = WlzErrorFromAlg(AlgMatrixSVBackSub(aMx, wMx, vMx,
     						bMx));
   }
   if(errNum == WLZ_ERR_NONE)
@@ -251,14 +257,9 @@ WlzBasisFnTransform *WlzConfPolyFromCPts(
   {
     AlcFree(wMx);
   }
-  if(aMx)
-  {
-    (void )AlcDouble2Free(aMx);
-  }
-  if(vMx)
-  {
-    (void )AlcDouble2Free(vMx);
-  }
+  AlgMatrixFree(aMx);
+  AlgMatrixFree(vMx);
+
   if(errNum != WLZ_ERR_NONE)
   {
     if(basisFn)

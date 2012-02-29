@@ -835,7 +835,7 @@ void controls_io_write_cb(
   WlzThreeDViewStruct	*wlzViewStr= view_struct->wlzViewStr;
   String		fileStr;
   FILE			*fp;
-  char			*tmpS, *dateS, *hostS, *userS, tmpBuf[25];
+  char			*tmpS, *dateS, *hostS, *userS, tmpBuf[128];
   BibFileRecord		*bibfileRecord;
   static char		unknownS[] = "unknown";
   time_t		tmpTime;
