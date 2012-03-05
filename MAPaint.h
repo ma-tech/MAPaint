@@ -1,27 +1,26 @@
 #ifndef MAPAINT_H
 #define MAPAINT_H
-
 #if defined(__GNUC__)
-#ident "MRC HGU $Id:"
+#ident "University of Edinburgh $Id$"
 #else
-#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
-#pragma ident "MRC HGU $Id:"
-#else static char _MAPaint.h[] = "MRC HGU $Id:";
-#endif
+static char _MAPaint_h[] = "University of Edinburgh $Id$";
 #endif
 /*!
 * \file         MAPaint.h
-* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
-* \date         Fri May  1 13:18:22 2009
-* \version      MRC HGU $Id$
-*               $Revision$
-*               $Name$
-* \par Address:
+* \author	Richard Baldock
+* \date		April 2009
+* \version      $Id$
+* \par
+* Address:
 *               MRC Human Genetics Unit,
+*               MRC Institute of Genetics and Molecular Medicine,
+*               University of Edinburgh,
 *               Western General Hospital,
 *               Edinburgh, EH4 2XU, UK.
-* \par Copyright:
-* Copyright (C) 2005 Medical research Council, UK.
+* \par
+* Copyright (C), [2012],
+* The University Court of the University of Edinburgh,
+* Old College, Edinburgh, UK.
 * 
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
@@ -40,9 +39,6 @@
 * Boston, MA  02110-1301, USA.
 * \ingroup      MAPaint
 * \brief        
-*               
-*
-* Maintenance log with most recent changes at top of list.
 */
 
 #include <X11/keysym.h>
@@ -72,5 +68,17 @@
 #define MAPAINT_UPDATE_LEVEL	x
 #define MAPAINT_RELEASE_STR	"MAPaint Release 2.0.x"
 
+/* Platfrom defines. */
+#ifdef __linux__
+#define LINUX2
+#else
+#ifdef __MACH__
+#define DARWIN
+#else
+#if defined(sun) || defined(__sun)
+#define SUNOS5
+#endif
+#endif
+#endif
 /* do not add anything after this line */
 #endif /* MAPAINT_H */

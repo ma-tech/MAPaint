@@ -1,24 +1,24 @@
 #if defined(__GNUC__)
-#ident "MRC HGU $Id:"
+#ident "University of Edinburgh $Id$"
 #else
-#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
-#pragma ident "MRC HGU $Id:"
-#else static char _MAWarpInputXUtils_c[] = "MRC HGU $Id:";
-#endif
+static char _MAWarpInputXUtils_c[] = "University of Edinburgh $Id$";
 #endif
 /*!
 * \file         MAWarpInputXUtils.c
-* \author       Richard Baldock <Richard.Baldock@hgu.mrc.ac.uk>
-* \date         Fri May  1 13:41:03 2009
-* \version      MRC HGU $Id$
-*               $Revision$
-*               $Name$
-* \par Address:
+* \author	Richard Baldock
+* \date		April 2009
+* \version      $Id$
+* \par
+* Address:
 *               MRC Human Genetics Unit,
+*               MRC Institute of Genetics and Molecular Medicine,
+*               University of Edinburgh,
 *               Western General Hospital,
 *               Edinburgh, EH4 2XU, UK.
-* \par Copyright:
-* Copyright (C) 2005 Medical research Council, UK.
+* \par
+* Copyright (C), [2012],
+* The University Court of the University of Edinburgh,
+* Old College, Edinburgh, UK.
 * 
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
@@ -37,10 +37,11 @@
 * Boston, MA  02110-1301, USA.
 * \ingroup      MAPaint
 * \brief        
-*               
-*
-* Maintenance log with most recent changes at top of list.
 */
+
+/* Can't have \alpha for 24 bit; it's just RGB. All code changes for this
+ * bug fix are controlled by the define NO_ALPHA_FOR_24. */
+#define NO_ALPHA_FOR_24
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -252,7 +253,6 @@ int HGU_XGetColorIndexFromMask24(
   if( order == MSBFirst ){
     index = 3 - index;
   }
-
   return index;
 }
 
@@ -331,7 +331,7 @@ XImage	*warpCreateXImage(
 	aIndx = HGU_XGetColorIndexFromMask24(~(win_att.visual->red_mask|
 					       win_att.visual->green_mask|
 					       win_att.visual->blue_mask),
-					     rtnImage->byte_order);
+					       rtnImage->byte_order);
       }
 
       /* set up the gamma LUT */
@@ -422,7 +422,9 @@ XImage	*warpCreateXImage(
 	    data[rIndx] = r;
 	    data[gIndx] = g;
 	    data[bIndx] = b;
+#ifndef NO_ALPHA_FOR_24
 	    data[aIndx] = a;
+#endif /* NO_ALPHA_FOR_24 */
 	    data += 3;
 	    break;
 
@@ -671,7 +673,9 @@ void warpSetOvlyXImage(
 	data[rIndx] = c * 255 + (1 - c) * data1[gIndx];
 	data[gIndx] = c * data0[gIndx] + (1 - c) * 255;
 	data[bIndx] = c * data0[gIndx] + (1 - c) * data1[gIndx];
+#ifndef NO_ALPHA_FOR_24
 	data[aIndx] = 0;
+#endif /* NO_ALPHA_FOR_24 */
       }
     }
     break;
@@ -683,7 +687,9 @@ void warpSetOvlyXImage(
 	data[rIndx] = a * (255 - data0[gIndx]);
 	data[gIndx] = b * (255 - data1[gIndx]);
 	data[bIndx] = 0;
+#ifndef NO_ALPHA_FOR_24
 	data[aIndx] = 0;
+#endif /* NO_ALPHA_FOR_24 */
       }
     }
     break;
@@ -695,7 +701,9 @@ void warpSetOvlyXImage(
 	data[rIndx] = c * 255 + (1 - c) * data1[gIndx];
 	data[bIndx] = c * data0[gIndx] + (1-c) * 255;
 	data[gIndx] = c * data0[gIndx] + (1-c) * data1[gIndx];
+#ifndef NO_ALPHA_FOR_24
 	data[aIndx] = 0;
+#endif /* NO_ALPHA_FOR_24 */
       }
     }
     break;
@@ -707,7 +715,9 @@ void warpSetOvlyXImage(
 	data[rIndx] = a * (255 - data0[gIndx]);
 	data[bIndx] = b * (255 - data1[gIndx]);
 	data[gIndx] = 0;
+#ifndef NO_ALPHA_FOR_24
 	data[aIndx] = 0;
+#endif /* NO_ALPHA_FOR_24 */
       }
     }
     break;
@@ -719,7 +729,9 @@ void warpSetOvlyXImage(
 	data[gIndx] = c * 255 + (1 - c) * data1[gIndx];
 	data[bIndx] = c * data0[gIndx] + (1-c) * 255;
 	data[rIndx] = c * data0[gIndx] + (1-c) * data1[gIndx];
+#ifndef NO_ALPHA_FOR_24
 	data[aIndx] = 0;
+#endif /* NO_ALPHA_FOR_24 */
       }
     }
     break;
@@ -731,7 +743,9 @@ void warpSetOvlyXImage(
 	data[gIndx] = a * (255 - data0[gIndx]);
 	data[bIndx] = b * (255 - data1[gIndx]);
 	data[rIndx] = 0;
+#ifndef NO_ALPHA_FOR_24
 	data[aIndx] = 0;
+#endif /* NO_ALPHA_FOR_24 */
       }
     }
     break;
@@ -743,7 +757,9 @@ void warpSetOvlyXImage(
 	data[rIndx] = a * (255 - data0[gIndx]);
 	data[gIndx] = b * (255 - data1[gIndx]);
 	data[bIndx] = b * (255 - data1[gIndx]);
+#ifndef NO_ALPHA_FOR_24
 	data[aIndx] = 0;
+#endif /* NO_ALPHA_FOR_24 */
       }
     }
     break;
@@ -755,7 +771,9 @@ void warpSetOvlyXImage(
 	data[gIndx] = a * (255 - data0[gIndx]);
 	data[rIndx] = b * (255 - data1[gIndx]);
 	data[bIndx] = b * (255 - data1[gIndx]);
+#ifndef NO_ALPHA_FOR_24
 	data[aIndx] = 0;
+#endif /* NO_ALPHA_FOR_24 */
       }
     }
     break;
@@ -767,7 +785,9 @@ void warpSetOvlyXImage(
 	data[bIndx] = a * (255 - data0[gIndx]);
 	data[gIndx] = b * (255 - data1[gIndx]);
 	data[rIndx] = b * (255 - data1[gIndx]);
+#ifndef NO_ALPHA_FOR_24
 	data[aIndx] = 0;
+#endif /* NO_ALPHA_FOR_24 */
       }
     }
     break;
@@ -789,7 +809,9 @@ void warpSetOvlyXImage(
 	  data[gIndx] = b * data1[gIndx];
 	  data[bIndx] = b * data1[bIndx];
 	}
+#ifndef NO_ALPHA_FOR_24
 	data[aIndx] = 0;
+#endif /* NO_ALPHA_FOR_24 */
       }
     }
     break;
@@ -811,7 +833,9 @@ void warpSetOvlyXImage(
 	  data[gIndx] = a * data0[gIndx];
 	  data[bIndx] = a * data0[bIndx];
 	}
+#ifndef NO_ALPHA_FOR_24
 	data[aIndx] = 0;
+#endif /* NO_ALPHA_FOR_24 */
       }
     }
     break;
