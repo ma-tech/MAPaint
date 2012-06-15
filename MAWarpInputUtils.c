@@ -1099,7 +1099,7 @@ void warpIORead(
 			    &fileStr, &fileType);
 
 	  /* read the image and install */
-	  if((obj = WlzEffReadObj(NULL, fileStr, fileType, 0, &errNum))){
+	  if((obj = WlzEffReadObj(NULL, fileStr, fileType, 0, 0, 0, &errNum))){
 	    if((obj->type == WLZ_2D_DOMAINOBJ) &&
 	       (obj->values.core != NULL)){
 	      warpGlobals.srcFile = fileStr;
@@ -1146,7 +1146,7 @@ void warpIORead(
 			    &fileStr, &fileType);
 
 	  /* read the image and install */
-	  if((obj = WlzEffReadObj(NULL, fileStr, fileType, 0, &errNum))){
+	  if((obj = WlzEffReadObj(NULL, fileStr, fileType, 0, 0, 0, &errNum))){
 	    warpGlobals.sgnlFile = fileStr;
 	    warpGlobals.sgnlFileType = fileType;
 	    if( warpGlobals.sgnl.obj ){
@@ -1816,7 +1816,7 @@ void warpRapidIORead(
 				 &fileStr, &fileType);
 
 	/* read the image and install */
-	if((obj = WlzEffReadObj(NULL, fileStr, fileType, 0, &errNum))){
+	if((obj = WlzEffReadObj(NULL, fileStr, fileType, 0, 0, 0, &errNum))){
 	  if((obj->type == WLZ_2D_DOMAINOBJ) &&
 	     (obj->values.core != NULL)){
 	    warpGlobals.srcFile = fileStr;
@@ -1863,7 +1863,7 @@ void warpRapidIORead(
 				 &fileStr, &fileType);
 
 	/* read the image and install */
-	if((obj = WlzEffReadObj(NULL, fileStr, fileType, 0, &errNum))){
+	if((obj = WlzEffReadObj(NULL, fileStr, fileType, 0, 0, 0, &errNum))){
 	  if( obj->type == WLZ_2D_DOMAINOBJ ){
 	    warpGlobals.sgnlFile = fileStr;
 	    warpGlobals.sgnlFileType = fileType;

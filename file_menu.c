@@ -795,7 +795,7 @@ void read_reference_object_cb(
     image_type = (WlzEffFormat) client_data;
     if((icsfile = HGU_XmGetFileStr(globals.topl, cbs->value,
 				   cbs->dir))){
-      obj = WlzEffReadObj(NULL, icsfile, image_type, 0, &errNum);
+      obj = WlzEffReadObj(NULL, icsfile, image_type, 0, 0, 0, &errNum);
       AlcFree(icsfile);
     }
     else {
