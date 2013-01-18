@@ -1,0 +1,19 @@
+MAPaint
+=======
+
+($Id$)
+
+Bill.Hill@igmm.mrc.ac.uk 2013
+
+MAPaint is an nteractive application to manually segment, "paint" 3D
+voxel data. This is a X11/Motif based application providing very fast
+access to section views through the data volume. The software allows
+the user to define arbitrary regions of the 3D space (termed domains)
+by manual and semi-automatic delineation. In any session up to 32
+domains can be defined simultaneously which are saved to independent
+files. Domains are full 3D image objects that can be manipulated
+with the woolz libraries and command line tools.
+
+See also:
+
+http://www.emouseatlas.org/emap/analysis_tools_resources/software/eMAP-apps.html
