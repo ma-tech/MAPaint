@@ -500,7 +500,7 @@ void realignReadOverlayCb(
   }
 
   /* read the new source object - ready to extend to other types */
-  obj = WlzEffReadObj(fp, NULL, WLZEFF_FORMAT_WLZ, 0, &errNum);
+  obj = WlzEffReadObj(fp, NULL, WLZEFF_FORMAT_WLZ, 0, 0, 0, &errNum);
   fclose(fp);
 
   /* check the object */
