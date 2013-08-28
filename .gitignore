@@ -1,1 +1,21 @@
 *.o
+<<<<<<< HEAD
+=======
+.deps
+COPYING
+INSTALL
+Makefile
+Makefile.in
+aclocal.m4
+autom4te.cache
+config.guess
+config.log
+config.status
+config.sub
+configure
+depcomp
+install-sh
+libtool
+missing
+
+>>>>>>> 17cd52f5ba77f66425397636fc0972abc1c50b13
