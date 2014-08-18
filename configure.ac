@@ -124,7 +124,7 @@ AC_PROG_RANLIB
 AC_FUNC_MMAP
 
 # Check for libraries.
-AC_CHECK_LIB(m, pow)
+AC_CHECK_LIB(z, m, pow)
 
 # Check for header files.
 AC_HEADER_STDC
@@ -417,7 +417,7 @@ then
 else
   HAVE_MOT="yes"
   INCL_MOT="-I${MOT_DIR}/include"
-  LIBS_MOT="{MOT_DIR}/lib/libXm.a"
+  LIBS_MOT="${MOT_DIR}/lib/libXm.a"
 fi
 
 dnl Check for Motif Xbae widget
@@ -464,7 +464,7 @@ AC_ARG_WITH(static-opengl,
             [ --with-static-opengl=OPENGL_DIR   Directory containing the Mesa
                           OpenGL include and lib directories.],
             OPENGL_DIR=$withval, OPENGL_DIR=no)
-if test ${OPENGL_DIR} == "no"
+if test ${OPENGL_DIR} = "no"
 then
   AC_ARG_WITH(opengl,
               [ --with-opengl=OPENGL_DIR     Directory containing the OpenGL
@@ -472,12 +472,10 @@ then
 	      OPENGL_DIR=$withval, OPENGL_DIR=no)
   if test ${OPENGL_DIR} = "no"
   then
-    AC_CHECK_HEADER(GL/gl.h,
-		    AC_CHECK_LIB(GL, glBegin,
-				 [
-				   HAVE_GL=yes
-				   LIBS_GL="-lGLU -lGL"
-				 ]))
+    AC_CHECK_HEADER(GL/gl.h, [
+			       HAVE_GL=yes
+			       LIBS_GL="-lGLU -lGL"
+			     ])
   else
     HAVE_GL="yes"
     INCL_GL="-I${OPENGL_DIR}/include"
