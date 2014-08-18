@@ -39,7 +39,7 @@ AM_CPPFLAGS		= \
 
 LDADD			= \
 			-lXt -lXmu -lXp -lX11 -lXext \
-			-lm -lSM -lICE -ldl -lpthread
+			-lm -lz -lSM -lICE -ldl -lpthread
 
 bin_PROGRAMS		= \
 			MAPaint
