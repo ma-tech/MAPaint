@@ -84,6 +84,8 @@ HAVE_TIF="no"
 TIFF_DIR="no"
 INCL_TIF=""
 LIBS_TIF=""
+HAVE_BZLIB="no"
+HAVE_ZLIB="no"
 
 # Check CPU type
 echo "Checking target cpu/system type"
@@ -118,13 +120,14 @@ esac
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
-AC_PROG_RANLIB
+LT_INIT
+AC_PROG_MKDIR_P
 
 # Check for system functions
 AC_FUNC_MMAP
 
 # Check for libraries.
-AC_CHECK_LIB(z, m, pow)
+AC_CHECK_LIB(m, pow)
 
 # Check for header files.
 AC_HEADER_STDC
@@ -182,21 +185,18 @@ CFLAGS=""
 AC_PROG_CC
 
 AC_ARG_ENABLE(icc,
-  [  --enable-icc          build using the Intel C compiler],
-  GCC="no"
+  [  --enable-icc            build using the Intel C compiler])
+AS_IF([test x"$enable_icc" = "xyes"], [
+  CFLAGS="${CFLAGS} -w2"
   CC="icc"
+  CXX="icpc"
   LD="xild"
   AR="xiar"
-  )
-
-if test "$CC" = "gcc"
-then
+], [
   CFLAGS="${CFLAGS} -pipe -Wall -Wno-deprecated"
-fi
-if test "$CC" = "icc"
-then
-  CFLAGS="${CFLAGS} -w2"
-fi
+  CC="gcc"
+  CXX="g++"
+])
 
 CFLAGS="${CFLAGS} ${CDEF_ARCH}"
 
@@ -222,19 +222,21 @@ else
   then
     case ${target_cpu} in
       i386|i486|i586)
-	CFLAGS="${CFLAGS} -m32 -xK"
-	;;
+        CFLAGS="${CFLAGS} -m32 -xK"
+        ;;
       i686)
-	CFLAGS="${CFLAGS}  -xN"
-	;;
+        CFLAGS="${CFLAGS} -xN"
+        ;;
       x86_64|amd64)
-	CFLAGS="${CFLAGS} -m64"
-	;;
+        CFLAGS="${CFLAGS} -m64"
+        ;;
       *)
-	;;
+        ;;
     esac
   fi
 fi
+
+CPP="cpp"
 
 AC_ARG_ENABLE(debug,
   [  --enable-debug	build with debugging flags set],
@@ -242,20 +244,20 @@ AC_ARG_ENABLE(debug,
     LDFLAGS="${LDFLAGS} -g -DDEBUG")
 
 AC_ARG_ENABLE(optimise,
-  [  --enable-optimise	build with optimisation flags set],
+  [  --enable-optimise	   build with optimisation flags set],
   [
     # GNU CC
     if test "$CC" = "gcc"
     then
       case ${target_cpu} in
 	i386|i486|i586|i686)
-	  CFLAGS="${CFLAGS} -O2 -fomit-frame-pointer"
+	  CFLAGS="${CFLAGS} -fPIC -O2 -fomit-frame-pointer"
 	  ;;
 	x86_64|amd64)
-          CFLAGS="${CFLAGS} -O2"
+          CFLAGS="${CFLAGS} -fPIC -O2 -msse3"
 	  ;;
         *)
-          CFLAGS="${CFLAGS} -O2"
+          CFLAGS="${CFLAGS} -fPIC -O2"
 	  ;;
       esac
     else
@@ -303,13 +305,33 @@ AC_ARG_ENABLE(openmp,
     fi)
 
 AC_ARG_ENABLE(profile,
-  [  --enable-profile	build with profiling set],
+  [  --enable-profile	  build with profiling set],
     CFLAGS="${CFLAGS} -pg"
     LDFLAGS="${LDFLAGS} -pg")
 
 if test ${USE_CTAGS} = 1
 then
   AC_CHECK_PROG(GNC_CTAGS_FILE, ctags, tags)
+fi
+
+dnl Check for zlib and bzlib
+AS_IF([test x"$enable_bzip2" != x"no"], [
+  AC_SEARCH_LIBS([BZ2_bzCompress], [bz2], [HAVE_BZLIB=yes])
+])
+AS_IF([test x"$enable_zlib" != x"no"], [
+  AC_SEARCH_LIBS([zlibVersion], [z], [HAVE_ZLIB=yes])
+])
+if test ${HAVE_BZLIB} = "no"
+then
+  CFLAGS="${CFLAGS} -DHAVE_BZLIB=0"
+else
+  CFLAGS="${CFLAGS} -DHAVE_BZLIB=1"
+fi
+if test ${HAVE_ZLIB} = "no"
+then
+  CFLAGS="${CFLAGS} -DHAVE_ZLIB=0"
+else
+  CFLAGS="${CFLAGS} -DHAVE_ZLIB=1"
 fi
 
 dnl Check for HGUX
