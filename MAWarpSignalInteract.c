@@ -500,7 +500,7 @@ void sgnlCanvasInputCb(
   double	line, kol;
   unsigned int	modMask=(ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|
 			 Mod4Mask|Mod5Mask);
-  WlzErrorNum	errNum;
+  WlzErrorNum	errNum = WLZ_ERR_NONE;
   WlzIVertex2	selVtx, *rtnVtx=NULL;
 
   /* check for signal processed object - else do nothing */

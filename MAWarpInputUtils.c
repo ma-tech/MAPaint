@@ -150,7 +150,7 @@ void warpSetOvlyObject(void)
 				       warpGlobals.affineType,
 				       &errNum)) == NULL ){
     (void) WlzStringFromErrorNum(errNum, &warpErrStr);
-    sprintf(warpErrBuf,
+    snprintf(warpErrBuf, WARP_ERR_BUF_LEN,
 	    "2D Warp Object Input:\n"
 	    "    Failed to determine the best fit affine.\n"
 	    "    Please delete some of the tie-points\n"
@@ -188,7 +188,7 @@ void warpSetOvlyObject(void)
     }
     else {
       (void) WlzStringFromErrorNum(errNum, &warpErrStr);
-      sprintf(warpErrBuf,
+      snprintf(warpErrBuf, WARP_ERR_BUF_LEN,
 	      "2D Warp Object Input:\n"
 	      "    Failed to affine transform the\n"
 	      "    source object please move some\n"
@@ -228,7 +228,7 @@ void warpSetOvlyObject(void)
 			    NULL, &errNum)) ){
 
     (void) WlzStringFromErrorNum(errNum, &warpErrStr);
-    sprintf(warpErrBuf,
+    snprintf(warpErrBuf, WARP_ERR_BUF_LEN,
 	    "2D Warp Object Input:\n"
 	    "    Failed to calculate the basis\n"
 	    "    transform, please move some\n"
@@ -254,7 +254,7 @@ void warpSetOvlyObject(void)
   if((errNum = WlzBasisFnSetMesh(warpGlobals.meshTr, warpGlobals.basisTr))
      != WLZ_ERR_NONE){
     (void) WlzStringFromErrorNum(errNum, &warpErrStr);
-    sprintf(warpErrBuf,
+    snprintf(warpErrBuf, WARP_ERR_BUF_LEN,
 	    "2D Warp Object Input:\n"
 	    "    Failed to apply the basis transform\n"
 	    "    to the mesh, please move some of\n"
@@ -305,7 +305,7 @@ void warpSetOvlyObject(void)
   if((errNum = WlzMeshTransformVerify(warpGlobals.meshTr, 1,
 				      &badElm, NULL)) != WLZ_ERR_NONE){
     (void) WlzStringFromErrorNum(errNum, &warpErrStr);
-    sprintf(warpErrBuf,
+    snprintf(warpErrBuf, WARP_ERR_BUF_LEN,
 	    "2D Warp Object Input:\n"
 	    "    The tie-points set generate an invalid\n"
 	    "    mesh, select yes to attempt to correct\n"
@@ -321,7 +321,7 @@ void warpSetOvlyObject(void)
       if( !(aMesh = WlzMeshTransformAdapt(warpGlobals.meshTr,
 					  minElmArea, &errNum)) ){
 	(void) WlzStringFromErrorNum(errNum, &warpErrStr);
-	sprintf(warpErrBuf,
+	snprintf(warpErrBuf, WARP_ERR_BUF_LEN,
 		"2D Warp Object Input:\n"
 		"    Failed to correct the mesh,\n"
 		"    please move some of\n"
@@ -406,7 +406,7 @@ void warpSetOvlyObject(void)
   }
   else {
     (void) WlzStringFromErrorNum(errNum, &warpErrStr);
-    sprintf(warpErrBuf,
+    snprintf(warpErrBuf, WARP_ERR_BUF_LEN,
 	    "2D Warp Object Input:\n"
 	    "    Failed to apply the warp transform\n"
 	    "    to the source object, please move\n"
@@ -2218,7 +2218,7 @@ void warpIOWriteAffine(
   FILE			*fp;
 
   /* check for source object */
-  if((warpGlobals.src.obj == NULL)){
+  if(warpGlobals.src.obj == NULL){
     return;
   }
 
@@ -2273,7 +2273,7 @@ void warpIOWriteImage(
   WlzObject		*obj;
 
   /* check for source object */
-  if((warpGlobals.src.obj == NULL)){
+  if(warpGlobals.src.obj == NULL){
     return;
   }
 

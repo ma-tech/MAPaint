@@ -175,11 +175,11 @@ void referenceFileListCb(
     }
   }
   else if((obj = HGU_XmFileListReadObject(w, cbs, &errNum))){
+    WlzDomain	domain;
+    WlzValues	values;
+    WlzObject	*newObj;
 
     switch( obj->type ){
-      WlzDomain	domain;
-      WlzValues	values;
-      WlzObject	*newObj;
 
     case WLZ_2D_DOMAINOBJ:
       if((domain.p = WlzMakePlaneDomain(WLZ_PLANEDOMAIN_DOMAIN, 0, 0,
@@ -405,7 +405,7 @@ XtPointer	call_data)
 
   glBegin(GL_LINES);
   glColor3f(1.0, 0.0, 0.0);
-  glIndexi( HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 0.0, 0.0) );
+  glIndexi( (int) HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 0.0, 0.0) );
   glVertex3i(planedmn->kol1, planedmn->line1, planedmn->plane1);
   glVertex3i(planedmn->lastkl, planedmn->line1, planedmn->plane1);
   glVertex3i(planedmn->kol1, planedmn->line1, planedmn->lastpl);
@@ -416,7 +416,7 @@ XtPointer	call_data)
   glVertex3i(planedmn->lastkl, planedmn->lastln, planedmn->lastpl);
 
   glColor3f(0.0, 1.0, 0.0);
-  glIndexi( HGU_XGetColorPixel(globals.dpy, globals.cmap, 0.0, 1.0, 0.0) );
+  glIndexi( (int) HGU_XGetColorPixel(globals.dpy, globals.cmap, 0.0, 1.0, 0.0) );
   glVertex3i(planedmn->kol1, planedmn->line1, planedmn->plane1);
   glVertex3i(planedmn->kol1, planedmn->lastln, planedmn->plane1);
   glVertex3i(planedmn->kol1, planedmn->line1, planedmn->lastpl);
@@ -427,7 +427,7 @@ XtPointer	call_data)
   glVertex3i(planedmn->lastkl, planedmn->lastln, planedmn->lastpl);
 
   glColor3f(0.0, 0.0, 1.0);
-  glIndexi( HGU_XGetColorPixel(globals.dpy, globals.cmap, 0.0, 0.0, 1.0) );
+  glIndexi( (int) HGU_XGetColorPixel(globals.dpy, globals.cmap, 0.0, 0.0, 1.0) );
   glVertex3i(planedmn->kol1, planedmn->line1, planedmn->plane1);
   glVertex3i(planedmn->kol1, planedmn->line1, planedmn->lastpl);
   glVertex3i(planedmn->kol1, planedmn->lastln, planedmn->plane1);
@@ -453,7 +453,7 @@ XtPointer	call_data)
 
     /* set up const z boundaries */
     glColor3f(1.0, 1.0, 1.0);
-    glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 1.0));
+    glIndexi((int) HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 1.0));
     (void) glLineWidth( (GLfloat) 2.0 );
     for(z=planedmn->plane1+step/2; z <= planedmn->lastpl; z += step)
     {
@@ -480,7 +480,7 @@ XtPointer	call_data)
     /* set up const y boundaries */
     if( errNum == WLZ_ERR_NONE ){
       glColor3f(1.0, 1.0, 0.0);
-      glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 0.0));
+      glIndexi((int) HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 0.0));
       if((viewStr = WlzMake3DViewStruct(WLZ_3D_VIEW_STRUCT, &errNum))){
 	viewStr->theta = WLZ_M_PI / 2.0;
 	viewStr->phi = WLZ_M_PI / 2.0;
@@ -511,7 +511,7 @@ XtPointer	call_data)
 
     /* set up const x boundaries */
     if( errNum == WLZ_ERR_NONE ){
-      glIndexi(HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 0.0));
+      glIndexi((int) HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 0.0));
       glColor3f(1.0, 1.0, 0.0);
       if((viewStr = WlzMake3DViewStruct(WLZ_3D_VIEW_STRUCT, &errNum))){
 	viewStr->theta = 0.0;
@@ -543,7 +543,7 @@ XtPointer	call_data)
   }
 
   if( errNum == WLZ_ERR_NONE ){
-    glIndexi( HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 1.0) );
+    glIndexi( (int) HGU_XGetColorPixel(globals.dpy, globals.cmap, 1.0, 1.0, 1.0) );
     glColor3f(1.0, 1.0, 1.0);
     glEndList();
 
@@ -712,7 +712,7 @@ void install_paint_reference_object(
 	    globals.obj->domain.p->plane1, globals.obj->domain.p->lastkl,
 	    globals.obj->domain.p->lastln, globals.obj->domain.p->lastpl);
     MAPaintLogData("BoundingBox", strBuf, 0, NULL);
-    sprintf(strBuf, "%d", WlzVolume(globals.obj, NULL));
+    sprintf(strBuf, "%d", (int) WlzVolume(globals.obj, NULL));
     MAPaintLogData("Volume", strBuf, 0, NULL);
   }
 
@@ -782,6 +782,9 @@ void read_reference_object_cb(
   WlzEffFormat		image_type;
   WlzObject		*obj;
   String		icsfile;
+  WlzDomain	domain;
+  WlzValues	values;
+  WlzObject	*newObj;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* set hour glass cursor */
@@ -834,9 +837,6 @@ void read_reference_object_cb(
 
   /* install the new reference object */
   switch( obj->type ){
-    WlzDomain	domain;
-    WlzValues	values;
-    WlzObject	*newObj;
 
   case WLZ_2D_DOMAINOBJ:
     if((domain.p = WlzMakePlaneDomain(WLZ_PLANEDOMAIN_DOMAIN, 0, 0,
@@ -1003,7 +1003,7 @@ void fileMenuPopupCb(
     if((button = XtNameToWidget(menu, strBuf))){
       if( refFileList[i-1] != NULL){
 	/* reset the button label */
-	if( (len = strlen(refFileList[i-1])) < 36 ){
+	if( (len = (int) strlen(refFileList[i-1])) < 36 ){
 	  sprintf(strBuf, "%d/ %s", i, refFileList[i-1]);
 	}
 	else {
@@ -1211,7 +1211,7 @@ void file_menu_init(
       pclose(pp);
     }
 #elif defined (DARWIN)
-    if( pp = popen("find /Volumes -maxdepth 4 -name Models", "r") ){
+    if( (pp = popen("find /Volumes -maxdepth 4 -name Models", "r")) ){
       while( fscanf(pp, "%s", fileStr) != EOF ){
 	if( strstr(fileStr, "Models") ){
 	  globals.base_theiler_dir = AlcStrDup(fileStr);
@@ -1253,10 +1253,10 @@ void file_menu_init(
     if( (fp = fopen(initial_reference_file, "r")) ){
       HGU_XmSetHourGlassCursor(topl);
       if((obj = WlzReadObj( fp, NULL ))){
+        WlzDomain	domain;
+        WlzValues	values;
+        WlzObject	*newObj;
 	switch( obj->type ){
-	  WlzDomain	domain;
-	  WlzValues	values;
-	  WlzObject	*newObj;
 
 	case WLZ_2D_DOMAINOBJ:
 	  domain.p = WlzMakePlaneDomain(WLZ_PLANEDOMAIN_DOMAIN, 0, 0,

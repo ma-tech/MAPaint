@@ -275,7 +275,7 @@ void set_view_dialog_title(
 
   theta *= 180.0 / WLZ_M_PI;
   phi *= 180.0 / WLZ_M_PI;
-  (void) sprintf(str_buff, "%s: (%.2f, %.2f)",
+  (void) snprintf(str_buff, 64, "%s: (%.2f, %.2f)",
 		 view_struct->titleStr, phi, theta);
   xmstr = XmStringCreateLocalized( str_buff );
   XtVaSetValues(dialog, XmNdialogTitle, xmstr, NULL);

@@ -223,7 +223,8 @@ extern MAPaintWarp2DStruct warpGlobals;
 extern Widget warp_read_src_dialog;
 extern Widget warp_read_sgnl_dialog;
 extern const char *warpErrStr;
-extern char warpErrBuf[256];
+#define WARP_ERR_BUF_LEN 256
+extern char warpErrBuf[WARP_ERR_BUF_LEN];
 
 extern WlzDVertex2 warpDisplayTransBack(
   WlzDVertex2	vtx,

@@ -388,7 +388,7 @@ int main(
   if( argv[0] ){
     int i;
     nameStr = argv[0];
-    for(i=strlen(argv[0]); i > 0; i--){
+    for(i= (int) strlen(argv[0]); i > 0; i--){
       if( argv[0][i-1] == '/' ){
 	nameStr = (argv[0]) + i;
 	break;

@@ -73,7 +73,9 @@ static char _MAPaint_h[] = "University of Edinburgh $Id$";
 #define LINUX2
 #else
 #ifdef __MACH__
+#ifndef DARWIN
 #define DARWIN
+#endif
 #else
 #if defined(sun) || defined(__sun)
 #define SUNOS5

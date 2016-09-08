@@ -747,7 +747,7 @@ Widget	topl)
 	  }
 	  XbaeMatrixAddRows(matrix, 0, rows, labels, NULL, i);
 	  for(i=0; i < warpGlobals.bibfileListCount; i++){
-	    XbaeMatrixSetRowUserData(matrix, i, (XtPointer) i);
+	    XbaeMatrixSetRowUserData(matrix, i, (XtPointer) (long) i);
 	  }
 	  XtVaSetValues(matrix,
 			XmNbuttonLabels, True,

@@ -62,7 +62,7 @@ DomainSelection getSelectedDomainType(
      rely on the ximage */
   if((x < 0) || (x >= view_struct->ximage->width) ||
      (y < 0) || (y >= view_struct->ximage->height) ){
-    return( GREYS_DOMAIN ); /* HACK WAS return( NULL ); WHAT SHOULD THIS BE? */
+    return( DOMAIN_INVALID ); /* HACK WAS return( NULL ); WHAT SHOULD THIS BE? - introduced invalid enum */
   }
 
   sel_domain = imageValueToDomain
@@ -84,7 +84,7 @@ WlzObject *getSelectedRegion(
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* get the selected domain */
-  if( (sel_domain = getSelectedDomainType(x, y, view_struct)) < 0 ){
+  if( (sel_domain = getSelectedDomainType(x, y, view_struct)) == DOMAIN_INVALID ){
     return NULL;
   }
 

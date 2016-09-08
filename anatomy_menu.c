@@ -90,9 +90,9 @@ String getAnatShortNameFromCoord(
     }
     else {
       i_min = 0;
-      vol_min = WlzVolume(anatObjItems[domainIndexList[0]].domain, NULL);
+      vol_min = (int) WlzVolume(anatObjItems[domainIndexList[0]].domain, NULL);
       for(i=1; i < numDomains; i++){
-	vol = WlzVolume(anatObjItems[domainIndexList[i]].domain, NULL);
+	vol = (int) WlzVolume(anatObjItems[domainIndexList[i]].domain, NULL);
 	if( vol < vol_min ){
 	  i_min = i;
 	}
@@ -133,9 +133,9 @@ String getAnatFullNameFromCoord(
     }
     else {
       i_min = 0;
-      vol_min = WlzVolume(anatObjItems[domainIndexList[0]].domain, NULL);
+      vol_min = (int) WlzVolume(anatObjItems[domainIndexList[0]].domain, NULL);
       for(i=1; i < numDomains; i++){
-	vol = WlzVolume(anatObjItems[domainIndexList[i]].domain, NULL);
+	vol = (int) WlzVolume(anatObjItems[domainIndexList[i]].domain, NULL);
 	if( vol < vol_min ){
 	  vol_min = vol;
 	  i_min = i;
@@ -486,7 +486,7 @@ void set_anatomy_menu(
   DIR		*dfd;
   Widget	menu_button, menu;
   MenuItem	*menu_items;
-  String	theilerDir, dirStr;
+  String	theilerDir, dirStr=NULL;
   
   /* open the current theiler stage directory */
   if( globals.theiler_stage && globals.base_theiler_dir ){

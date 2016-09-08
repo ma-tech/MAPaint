@@ -81,7 +81,7 @@ static void DisplayPolyF(
   return;
 }
 
-static void DisplayBoundF(
+void DisplayBoundF(
   Display	*dpy,
   Window	win,
   GC		gc,
@@ -113,7 +113,7 @@ WlzBasisFnTransform *WlzConfPolyFromCPts(
   int  		idM,
   		idN,
 		idX,
-		nCoef;
+		nCoef=1;
   double	thresh,
   		wMax;
   double	*bMx = NULL,

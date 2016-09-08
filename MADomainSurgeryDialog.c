@@ -324,7 +324,7 @@ Widget createDomainSelectOptionMenu(
     items[i].accel_text         = NULL;
     items[i].item_set           = False;
     items[i].callback           = callbackproc;
-    items[i].callback_data      = (XtPointer) (i+1);
+    items[i].callback_data      = (XtPointer) (long) (i+1);
     items[i].help_callback      = NULL;
     items[i].help_callback_data = NULL;
     items[i].tear_off_model     = XmTEAR_OFF_DISABLED;
@@ -451,7 +451,7 @@ Widget createDomainSurgeryDialog(
 				     rowcolumn, NULL);
 
     XtAddCallback(widget, XmNactivateCallback, surgeryDestDomainCb,
-		  (XtPointer) i);
+		  (XtPointer) (long) i);
     pixel = globals.cmapstruct->ovly_cols[i] +
       globals.cmapstruct->gmax - globals.cmapstruct->gmin;
     if( i > globals.cmapstruct->num_overlays )

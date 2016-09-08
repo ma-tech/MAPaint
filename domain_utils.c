@@ -112,10 +112,14 @@ WlzObject *get_domain_from_object(
 
   /* threshold below */
   if((obj1 = WlzThreshold(obj, low_thresh, WLZ_THRESH_HIGH, &errNum))){
-
-    /* threshold above */
-    obj1 = WlzAssignObject(obj1, NULL);
-    obj2 = WlzThreshold( obj1, high_thresh, WLZ_THRESH_LOW, &errNum );
+    if( obj1->type != WLZ_EMPTY_OBJ ){
+      /* threshold above */
+      obj1 = WlzAssignObject(obj1, NULL);
+      if((obj2 = WlzThreshold( obj1, high_thresh, WLZ_THRESH_LOW, &errNum)) && (obj2->type == WLZ_EMPTY_OBJ)){
+	WlzFreeObj(obj2);
+	obj2 = NULL;
+      }
+    }
     WlzFreeObj( obj1 );
   }
 
@@ -340,8 +344,8 @@ void setDomainIncrement(
   int			delFlag)
 {
   WlzObject	*obj1, *obj2;
-  int		i, j, numOverlays;
-  int		dominanceFlag;
+  int		i, j, numOverlays=0;
+  int		dominanceFlag=0;
   WlzValues	values;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
@@ -445,9 +449,9 @@ void setDomainIncrement(
     if( view_struct->curr_domain[i] && !dominanceFlag ){
       int orig_area, new_area;
       obj2 = WlzDiffDomain(view_struct->curr_domain[i], obj1, NULL);
-      orig_area = WlzArea(view_struct->curr_domain[i], NULL);
+      orig_area = (int) WlzArea(view_struct->curr_domain[i], NULL);
       WlzFreeObj(view_struct->curr_domain[i]);
-      new_area = WlzArea(obj2, NULL);
+      new_area = (int) WlzArea(obj2, NULL);
       if( new_area < orig_area ){
 	globals.domain_changed_since_saved[i] = 1;
       }

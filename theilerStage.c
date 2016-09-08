@@ -235,7 +235,7 @@ void set_theiler_stage_cb(
   XtPointer	client_data,
   XtPointer	call_data)
 {
-  String	file_str;
+  String	file_str=NULL;
   String	theilerName=(String) client_data;
   FILE		*fp;
   WlzObject	*obj;
