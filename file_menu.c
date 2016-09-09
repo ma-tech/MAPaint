@@ -1195,12 +1195,12 @@ void file_menu_init(
   if( globals.base_theiler_dir ){
     globals.base_theiler_dir = AlcStrDup( globals.base_theiler_dir );
   }
-  else {
-    FILE	*pp;
+/*  else {
+    FILE	*pp;*/
     
     /* search for the Theiler mode directory as per the CDROM 
        should search local disc first */
-#if defined (LINUX2)
+/*#if defined (LINUX2)
     if((pp = popen("find /mnt -maxdepth 4 -name Models", "r"))){
       while( fscanf(pp, "%s", fileStr) != EOF ){
 	if( strstr(fileStr, "Models") ){
@@ -1233,7 +1233,7 @@ void file_menu_init(
 #else
     globals.base_theiler_dir = NULL;
 #endif
-  }
+  }*/
   if( globals.theiler_stage ){
     char *tStr;
     if((tStr = theilerString(globals.theiler_stage))){

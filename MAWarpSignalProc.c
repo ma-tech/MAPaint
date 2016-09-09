@@ -137,7 +137,7 @@ void warpReadSignalCb(
   XmFileSelectionBoxCallbackStruct *cbs =
     (XmFileSelectionBoxCallbackStruct *) call_data;
   ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
-  WlzObject		*obj;
+  WlzObject		*obj=NULL, *obj1=NULL;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check we can get the object */
@@ -162,6 +162,12 @@ void warpReadSignalCb(
     if( obj ){
       switch( obj->type ){
       case WLZ_2D_DOMAINOBJ:
+        /* convert to RGBA grey-value */
+        if( WlzGreyTypeFromObj(obj, &errNum) != WLZ_GREY_RGBA ){
+          obj1 = WlzConvertPix(obj, WLZ_GREY_RGBA, &errNum);
+          WlzFreeObj(obj);
+          obj = obj1;
+        }
 	/* set the source object */
 	errNum = warpResetSignalObj(obj);
 	break;
