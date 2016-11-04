@@ -994,21 +994,27 @@ static WlzObject *get_thresh_obj(
   /* threshold within the required range */
   if( errNum == WLZ_ERR_NONE ){
     threshV.v.inv -= thresh_down;
-    if( (obj1 = WlzThreshold(ref_obj, threshV, WLZ_THRESH_HIGH,
-			     &errNum)) == NULL)
+    if(((obj1 = WlzThreshold(ref_obj, threshV, WLZ_THRESH_HIGH,
+			     &errNum)) == NULL) || (obj1->type == WLZ_EMPTY_OBJ))
     {
       if( errNum != WLZ_ERR_NONE ){
 	MAPaintReportWlzError(globals.topl, "get_thresh_obj", errNum);
+      }
+      if( obj1 ){
+	WlzFreeObj(obj1);
       }
       return( NULL );
     }
     obj1 = WlzAssignObject(obj1, NULL);
     threshV.v.inv += thresh_down + thresh_up + 1;
-    if( (obj2 = WlzThreshold(obj1, threshV, WLZ_THRESH_LOW,
-			     &errNum)) == NULL )
+    if(((obj2 = WlzThreshold(obj1, threshV, WLZ_THRESH_LOW,
+			     &errNum)) == NULL) || (obj2->type == WLZ_EMPTY_OBJ))
     {
       if( errNum != WLZ_ERR_NONE ){
 	MAPaintReportWlzError(globals.topl, "get_thresh_obj", errNum);
+      }
+      if( obj2 ){
+	WlzFreeObj(obj2);
       }
       WlzFreeObj( obj1 );
       return( NULL );
@@ -1144,9 +1150,9 @@ void MAPaintThreshold2DCb(
 
       if( constrainedFlg == True ){
 	obj1 = NULL;
-	if((paintBallCurrDomain ==
+	if(paintBallCurrDomain ==
 	   getSelectedDomainType(thresholdInitialX, thresholdInitialY,
-				 view_struct))){
+				 view_struct)){
 	  obj1 = get_domain_from_object(view_struct->painted_object,
 					paintBallCurrDomain);
 	  setDomainIncrement(obj1, view_struct, paintBallCurrDomain, 1);

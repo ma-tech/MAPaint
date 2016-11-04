@@ -505,7 +505,7 @@ static WlzErrorNum installReviewDomain(
 	button = XtVaCreateManagedWidget(str_buf, xmPushButtonWidgetClass,
 					 rowcolumn, NULL);
 	XtAddCallback(button, XmNactivateCallback,
-		      setCurrentRegionPlaneCb, (XtPointer) p);
+		      setCurrentRegionPlaneCb, (XtPointer) (long) p);
       }
       break;
 
@@ -1235,7 +1235,7 @@ Widget createDomainReviewDialog(
 				     rowcolumn, NULL);
 
     XtAddCallback(widget, XmNactivateCallback, reviewDestDomainCb,
-		  (XtPointer) i);
+		  (XtPointer) (long) i);
     pixel = globals.cmapstruct->ovly_cols[i] +
       globals.cmapstruct->gmax - globals.cmapstruct->gmin;
     if( i > globals.cmapstruct->num_overlays )

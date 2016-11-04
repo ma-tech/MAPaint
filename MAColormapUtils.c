@@ -412,7 +412,7 @@ int set_paint_colormap(
 
   /* set the solid overlays */
   for(i=0; i < cmpstr->npixels; i++){
-    j = cmpstr->pixels[i];
+    j = (int) cmpstr->pixels[i];
     if( j > (cmpstr->gmax + cmpstr->ovly_incr[cmpstr->num_overlays]) ){
       solid_ovly = j -
 	(cmpstr->gmax + cmpstr->ovly_incr[cmpstr->num_overlays]) +
@@ -429,7 +429,7 @@ int set_paint_colormap(
   case MAPAINT_8_24BIT_MODE:
     /* set the colormap colours */
     for(i=0; i < cmpstr->npixels; i++){
-      j = cmpstr->pixels[i];
+      j = (int) cmpstr->pixels[i];
       colorcells[i].red   = colormap[0][j] * 256;
       colorcells[i].green = colormap[1][j] * 256;
       colorcells[i].blue  = colormap[2][j] * 256;
@@ -463,7 +463,7 @@ int set_paint_colormap(
 
   case MAPAINT_24BIT_ONLY_MODE:
     for(i=0; i < cmpstr->npixels; i++){
-      j = cmpstr->pixels[i];
+      j = (int) cmpstr->pixels[i];
       globals.colormap[0][j] = colormap[0][j];
       globals.colormap[1][j] = colormap[1][j];
       globals.colormap[2][j] = colormap[2][j];

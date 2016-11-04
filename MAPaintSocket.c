@@ -224,7 +224,7 @@ static char *socketBuildRequestReturn(
   /* we assume that the message buffer has sufficient room
      for the message return. The return length will be 24
      plus the length of the error string */
-  msgLen = 24 + strlen(MAPaintSocketErrorStr[err]);
+  msgLen = 24 + (int) strlen(MAPaintSocketErrorStr[err]);
   if( rtnDetail ){
     msgLen += 3 + strlen("detail:") + strlen(rtnDetail);
     sprintf(msgBuf, "%9.9d status %1.1d %4.4d %s; %s %s",
@@ -262,7 +262,7 @@ static void socketInputReadCb(
   /* attempt to read from the socket */
   msgSock = accept(*source, NULL, NULL);
   memset(msgBuf, 0, sizeof(msgBuf));
-  if( (rtnVal = read(msgSock, msgBuf, 1024)) == -1 ){
+  if( (rtnVal = (int) read(msgSock, msgBuf, 1024)) == -1 ){
     perror("reading stream message");
   }
   else if( rtnVal == 0 ){

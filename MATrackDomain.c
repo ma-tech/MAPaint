@@ -150,11 +150,11 @@ static WlzPolygonDomain *HGU_TrackPolyline(
   WlzObject		*poly_obj, *ref_region, *testObj1=NULL, *testObj2=NULL, *tmpObj;
   WlzPolygonDomain	*new_polydmn=NULL;
   MATrackMatchPointStruct	*mpts=NULL;
-  int			i, j, k, kmax, num_mpts=0;
+  int			i, j=0, k, kmax, num_mpts=0;
   double		dx1, dx2, dx3, dy1, dy2, dy3, s1, s2, s3;
   int			x, y, dx, dy;
   WlzIVertex2		*vtxs=NULL;
-  double		**local_cost, **direction;
+  double		**local_cost=NULL, **direction=NULL;
   EdgeCostParams	*edgeCostParams=(EdgeCostParams *) costParams;
   WlzGreyValueWSpace	*gVWSp1=NULL, *gVWSp2=NULL;
   WlzErrorNum		errNum=WLZ_ERR_NONE;

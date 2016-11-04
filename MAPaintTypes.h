@@ -75,6 +75,7 @@ typedef enum {
   DOMAIN_30	 = 30,
   DOMAIN_31	 = 31,
   DOMAIN_32	 = 32,
+  DOMAIN_INVALID = 33,
   MASK_DOMAIN  = 100
 } DomainSelection;
 

@@ -137,7 +137,7 @@ void warpReadSignalCb(
   XmFileSelectionBoxCallbackStruct *cbs =
     (XmFileSelectionBoxCallbackStruct *) call_data;
   ThreeDViewStruct	*view_struct=(ThreeDViewStruct *) client_data;
-  WlzObject		*obj;
+  WlzObject		*obj=NULL, *obj1=NULL;
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check we can get the object */
@@ -162,6 +162,12 @@ void warpReadSignalCb(
     if( obj ){
       switch( obj->type ){
       case WLZ_2D_DOMAINOBJ:
+        /* convert to RGBA grey-value */
+        if( WlzGreyTypeFromObj(obj, &errNum) != WLZ_GREY_RGBA ){
+          obj1 = WlzConvertPix(obj, WLZ_GREY_RGBA, &errNum);
+          WlzFreeObj(obj);
+          obj = obj1;
+        }
 	/* set the source object */
 	errNum = warpResetSignalObj(obj);
 	break;
@@ -265,7 +271,7 @@ void mapWarpDataCb(
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check for signal domain and warp transform */
-  if((warpGlobals.sgnlObj == NULL)){
+  if( warpGlobals.sgnlObj == NULL ){
     return;
   }
 
@@ -298,10 +304,13 @@ void mapWarpDataCb(
     if((obj = mapaintWarpObj(obj2,
 			     WLZ_INTERPOLATION_NEAREST))){
       obj = WlzAssignObject(obj, NULL);
-      obj1 = WlzThreshold(obj, bckgrnd, WLZ_THRESH_HIGH, &errNum);
-      pushUndoDomains(view_struct);
-      setDomainIncrement(obj1, view_struct, globals.current_domain, 0);
-      WlzFreeObj(obj1);
+      if( (obj1 = WlzThreshold(obj, bckgrnd, WLZ_THRESH_HIGH, &errNum)) ){
+	pushUndoDomains(view_struct);
+	if( WlzArea(obj1, &errNum) > 0 ){
+	  setDomainIncrement(obj1, view_struct, globals.current_domain, 0);
+	}
+	WlzFreeObj(obj1);
+      }
       WlzFreeObj(obj);
     }
     WlzFreeObj(obj2);

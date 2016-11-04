@@ -416,7 +416,7 @@ String HGU_XModifierMaskToString(
   return rtnStr;
 }
 
-static int eventMappingCompar(
+/*static int eventMappingCompar(
   const void *item1,
   const void *item2)
 {
@@ -438,7 +438,7 @@ static int eventMappingCompar(
   else {
     return 0;
   }
-}
+}*/
 
 static void createTitleRow(
   Widget	page,
@@ -776,7 +776,7 @@ static ActionAreaItem   event_remap_actions[] = {
 Widget createEventRemapDialog(
   Widget	parent)
 {
-  Widget	dialog, control, button, notebook, page;
+  Widget	dialog, control, button, notebook, page=NULL;
   Widget	widget, col_rcs[5];
   MAPaintEventMapping	*eventMap;
   MAPaintContext	context;
@@ -912,8 +912,10 @@ Widget createEventRemapDialog(
     }
 
     /* add new row to the page table */
-    createEventRow(page, widget, eventMap, col_rcs);
-    eventMap++;
+    if( page ){
+      createEventRow(page, widget, eventMap, col_rcs);
+      eventMap++;
+    }
   }
 
   return dialog;

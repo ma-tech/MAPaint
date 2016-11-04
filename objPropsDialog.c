@@ -68,7 +68,7 @@ void setup_obj_props_cb(
   WlzErrorNum		errNum=WLZ_ERR_NONE;
 
   /* check object */
-  if( (globals.orig_obj == NULL) ){
+  if( globals.orig_obj == NULL ){
     return;
   }
 

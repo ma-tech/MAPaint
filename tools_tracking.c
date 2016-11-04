@@ -52,7 +52,7 @@ void imageTrackCurrentDomain(
   ThreeDViewStruct	*view_struct,
   DomainSelection	domain)
 {
-  WlzObject		*ref_obj=NULL, *new_domain, *ref_domain;
+  WlzObject		*ref_obj=NULL, *new_domain, *ref_domain=NULL;
   WlzObject		*obj;
   MATrackDomainSearchParams	searchParams;
   MATrackDomainCostParams	costParams;

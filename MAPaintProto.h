@@ -772,10 +772,16 @@ extern void eventRemapCb(Widget	widget,
 			 XtPointer	call_data);
 extern Widget createEventRemapDialog(Widget parent);
 
-/* MAWaarpInputXUtils.c */
+/* MAWarpInputXUtils.c */
 extern int HGU_XGetColorIndexFromMask24(
   unsigned long mask,
   int		order);
+
+/* MAWarpInputPages.c */
+extern void expressMapSaveListCb(
+  Widget	widget,
+  XtPointer	client_data,
+  XtPointer	call_data);
 
 /* do not add anything after this line */
 #endif /* MAPAINTPROTO_H */

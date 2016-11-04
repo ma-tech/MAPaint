@@ -141,7 +141,7 @@ void saveSeqSliderCb(
   if((widget = XtNameToWidget(rowWidgets[rowIndx], "*.filename"))){
     XtVaGetValues(widget, XmNvalue, &fileStr, NULL);
     strcpy(fileBuf, fileStr);
-    for(i=0, j=strlen(fileStr); i < strlen(fileStr); i++){
+    for(i=0, j=(int)strlen(fileStr); i < strlen(fileStr); i++){
       if(fileStr[i] == '.'){
 	j = i;
       }
@@ -189,7 +189,7 @@ static void saveSeqTimeOutProc(
   timeoutIds[rowIndx] = XtAppAddTimeOut(globals.app_con,
 					timeoutTime[rowIndx],
 					saveSeqTimeOutProc,
-					(XtPointer) rowIndx);
+					(XtPointer) (long) rowIndx);
 
   return;
 }
@@ -240,11 +240,11 @@ void saveSeqStartCb(
       sequenceIndxs[i] = 0;
       if((scale = XtNameToWidget(rowSliders[i], "*.scale"))){
 	XtAddCallback(scale, XmNvalueChangedCallback,
-		      saveSeqSliderCb, (XtPointer) i);
+		      saveSeqSliderCb, (XtPointer) (long) i);
 	XtVaGetValues(scale, XmNdragCallback, &dragList, NULL);
 	if( dragList ){
 	  XtAddCallback(scale, XmNdragCallback,
-			saveSeqSliderCb, (XtPointer) i);
+			saveSeqSliderCb, (XtPointer) (long) i);
 	}
       }
     }
@@ -268,7 +268,7 @@ void saveSeqStartCb(
       timeoutIds[i] = XtAppAddTimeOut(globals.app_con,
 				      timeoutTime[i],
 				      saveSeqTimeOutProc,
-				      (XtPointer) i);
+				      (XtPointer) (long) i);
     }
 
   }
@@ -312,11 +312,11 @@ void saveSeqStopCb(
       sequenceIndxs[i] = 0;
       if((scale = XtNameToWidget(rowSliders[i], "*.scale"))){
 	XtRemoveCallback(scale, XmNvalueChangedCallback,
-			 saveSeqSliderCb, (XtPointer) i);
+			 saveSeqSliderCb, (XtPointer) (long) i);
 	XtVaGetValues(scale, XmNdragCallback, &dragList, NULL);
 	if( dragList ){
 	  XtRemoveCallback(scale, XmNdragCallback,
-			   saveSeqSliderCb, (XtPointer) i);
+			   saveSeqSliderCb, (XtPointer) (long) i);
 	}
       }
     }

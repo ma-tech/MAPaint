@@ -86,19 +86,25 @@ void warpSetSignalDomain(
 	  WlzFreeObj(warpGlobals.sgnlObj);
 	}
 	  
-	if((obj = WlzThreshold(obj1, threshV, WLZ_THRESH_HIGH, &errNum))){
+	if((obj = WlzThreshold(obj1, threshV, WLZ_THRESH_HIGH, &errNum)) && (WlzVolume(obj, &errNum) > 0)){
 	  obj = WlzAssignObject(obj, &errNum);
 	  WlzFreeObj(obj1);
 	  threshV.v.inv = warpGlobals.threshRangeHigh + 1;
-	  if((obj1 = WlzThreshold(obj, threshV, WLZ_THRESH_LOW, &errNum))){
+	  if((obj1 = WlzThreshold(obj, threshV, WLZ_THRESH_LOW, &errNum)) && (WlzVolume(obj1, &errNum) > 0)){
 	    warpGlobals.sgnlObj = WlzAssignObject(obj1, &errNum);
 	  }
 	  else {
+	    if( obj1 ){
+	      WlzFreeObj(obj1);
+	    }
 	    warpGlobals.sgnlObj = NULL;
 	  }
 	  WlzFreeObj(obj);
 	}
 	else {
+	  if( obj ) {
+	    WlzFreeObj(obj);
+	  }
 	  WlzFreeObj(obj1);
 	  warpGlobals.sgnlObj = NULL;
 	}
@@ -130,7 +136,12 @@ void warpSetSignalDomain(
       /* use multi-threshold */
       if((obj = WlzRGBAMultiThreshold(obj1, threshV, threshV1,
 				      combineMode, &errNum))){
-	warpGlobals.sgnlObj = WlzAssignObject(obj, &errNum);
+	if( WlzIsEmpty(obj, &errNum) ){
+	    WlzFreeObj(obj);
+	    warpGlobals.sgnlObj = NULL;
+	} else {
+	    warpGlobals.sgnlObj = WlzAssignObject(obj, &errNum);
+	}
       }
       else {
 	warpGlobals.sgnlObj = NULL;
@@ -149,7 +160,12 @@ void warpSetSignalDomain(
 				    warpGlobals.lowRGBPoint,
 				    warpGlobals.highRGBPoint,
 				    &errNum))){
-	warpGlobals.sgnlObj = WlzAssignObject(obj, &errNum);
+	if( WlzIsEmpty(obj, &errNum) ){
+	    WlzFreeObj(obj);
+	    warpGlobals.sgnlObj = NULL;
+	} else {
+	    warpGlobals.sgnlObj = WlzAssignObject(obj, &errNum);
+	}
       }
       else {
 	warpGlobals.sgnlObj = NULL;
@@ -168,7 +184,12 @@ void warpSetSignalDomain(
 				      warpGlobals.lowRGBPoint,
 				      warpGlobals.highRGBPoint,
 				      &errNum))){
-	warpGlobals.sgnlObj = WlzAssignObject(obj, &errNum);
+	if( WlzIsEmpty(obj, &errNum) ){
+	    WlzFreeObj(obj);
+	    warpGlobals.sgnlObj = NULL;
+	} else {
+	    warpGlobals.sgnlObj = WlzAssignObject(obj, &errNum);
+	}
       }
       else {
 	warpGlobals.sgnlObj = NULL;
@@ -188,7 +209,12 @@ void warpSetSignalDomain(
 					  warpGlobals.highRGBPoint,
 					  warpGlobals.colorEllipseEcc,
 					  &errNum))){
-	warpGlobals.sgnlObj = WlzAssignObject(obj, &errNum);
+	if( WlzIsEmpty(obj, &errNum) ){
+	    WlzFreeObj(obj);
+	    warpGlobals.sgnlObj = NULL;
+	} else {
+	    warpGlobals.sgnlObj = WlzAssignObject(obj, &errNum);
+	}
       }
       else {
 	warpGlobals.sgnlObj = NULL;

@@ -82,7 +82,7 @@ MAPaintWarp2DStruct warpGlobals;
 Widget warp_read_src_dialog=NULL;
 Widget warp_read_sgnl_dialog=NULL;
 const char *warpErrStr;
-char warpErrBuf[256];
+char warpErrBuf[WARP_ERR_BUF_LEN];
 
 
 void warpInput2DCb(
