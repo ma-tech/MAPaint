@@ -19,7 +19,9 @@ export MA=/opt/MouseAtlas
 #./configure --with-pic --enable-optimise --enable-openmp \
 #            --with-woolz=$MA --with-nifti=$MA --with-tiff=$MA --with-jpeg=$MA \
 #            --with-xbae=$MA --with-hgux=$MA
+
 ./configure --with-pic --enable-optimise --enable-openmp \
+	    --enable-avx2 --enable-lto \
             --with-static-woolz=$MA --with-static-nifti=$MA \
 	    --with-static-tiff=$MA --with-static-jpeg=$MA \
 	    --with-static-xbae=$MA --with-static-hgux=$MA

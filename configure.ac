@@ -49,6 +49,7 @@ AC_CONFIG_SRCDIR([MAPaint.c])
 # Set defaults
 AC_PREFIX_DEFAULT(/opt/MouseAtlas)
 AC_DISABLE_SHARED
+SIMD=''
 CDEF_ARCH=""
 USE_CTAGS=1
 USE_ETAGS=0
@@ -254,7 +255,11 @@ AC_ARG_ENABLE(optimise,
 	  CFLAGS="${CFLAGS} -fPIC -O2 -fomit-frame-pointer"
 	  ;;
 	x86_64|amd64)
-          CFLAGS="${CFLAGS} -fPIC -O2 -msse3"
+	  if test "x$SIMD" = "x"
+	  then
+	    SIMD="-msse3"
+	  fi
+          CFLAGS="${CFLAGS} -fPIC -O2"
 	  ;;
         *)
           CFLAGS="${CFLAGS} -fPIC -O2"
@@ -290,6 +295,10 @@ AC_ARG_ENABLE(optimise,
       fi
     fi
     ])
+
+AC_ARG_ENABLE(avx2,
+  [AC_HELP_STRING([--enable-avx2],[enable AVX2 SIMD optimizations])],
+  SIMD='-mavx2')
 
 AC_ARG_ENABLE(openmp,
   [  --enable-openmp    build with openmp flags set],
@@ -638,6 +647,9 @@ else
   CFLAGS="$CFLAGS -DHAVE_JPEG=0"
   AC_MSG_ERROR(Could not find Jpeg);
 fi
+
+AS_IF([ test "$CC" = "gcc" -a "x$enable_optimise" = "xyes" ],
+      CFLAGS="$CFLAGS $SIMD")
 
 AC_CONFIG_FILES([	Makefile ])
 
