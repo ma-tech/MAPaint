@@ -75,6 +75,7 @@ INCL_GL=""
 LIBS_GL=""
 HAVE_NIF="no"
 NIFTI_DIR="no"
+CJSON_DIR="no"
 INCL_NIF=""
 LIBS_NIF=""
 HAVE_JPG="no"
@@ -646,6 +647,42 @@ then
 else
   CFLAGS="$CFLAGS -DHAVE_JPEG=0"
   AC_MSG_ERROR(Could not find Jpeg);
+fi
+
+dnl Check for cJSON
+AC_ARG_WITH(static-cjson,
+            [ --with-static-cjson=CJSON_DIR     Directory containing the CJSON
+                          include and lib directories.],
+            CJSON_DIR=$withval, CJSON_DIR=no)
+if test ${CJSON_DIR} = "no"
+then
+  AC_ARG_WITH(cjson,
+              [ --with-cjson=CJSON_DIR     Directory containing the CJSON
+			    include and lib directories.],
+	      CJSON_DIR=$withval, CJSON_DIR=no)
+  if test ${CJSON_DIR} = "no"
+  then
+    AC_CHECK_HEADER(cjson.h, [
+				 HAVE_CJSON=yes
+				 LIBS_CJSON="-lcjson"
+			       ])
+  else
+    HAVE_CJSON=yes
+    INCL_CJSON="-I${CJSON_DIR}/include"
+    LIBS_CJSON="-L${CJSON_DIR}/lib -lcjson"
+  fi
+else
+  HAVE_CJSON=yes
+  INCL_CJSON="-I${CJSON_DIR}/include"
+  LIBS_CJSON="${CJSON_DIR}/lib/libcjson.a"
+fi
+if test ${HAVE_CJSON} = "yes"
+then
+  CFLAGS="$CFLAGS -DHAVE_CJSON=1 $INCL_CJSON"
+  LDFLAGS="$LDFLAGS $LIBS_CJSON"
+else
+  CFLAGS="$CFLAGS -DHAVE_CJSON=0"
+  AC_MSG_ERROR(Could not find cJSON);
 fi
 
 AS_IF([ test "$CC" = "gcc" -a "x$enable_optimise" = "xyes" ],
