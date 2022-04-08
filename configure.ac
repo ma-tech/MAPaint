@@ -33,7 +33,7 @@
 # \brief        Process this file with autoconf to produce a configure script.
 ##
 
-m4_define([MAPAINT_VERSION], [1.1.0])
+m4_define([MAPAINT_VERSION], [1.1.1])
 
 AC_INIT(HGUX, HGUX_VERSION, WOOLZ-DEV@hgu.mrc.ac.uk)
 AC_CANONICAL_TARGET
